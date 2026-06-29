@@ -1,3 +1,6 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+
 import 'package:flutter/material.dart';
 import 'hr_modern_app.dart' as modern;
 import 'hr_modern_app_v2.dart' as app2;
@@ -8,6 +11,7 @@ const _ink = Color(0xFF0F172A);
 const _muted = Color(0xFF64748B);
 const _line = Color(0xFFE2E8F0);
 const _danger = Color(0xFFDC2626);
+const _lastModuleKey = 'hr_last_module_index';
 
 class HrLoggedInApp extends StatelessWidget {
   final String role;
@@ -77,9 +81,23 @@ class _HrShellState extends State<_HrShell> {
   int index = 0;
 
   @override
+  void initState() {
+    super.initState();
+    final savedIndex = int.tryParse(html.window.localStorage[_lastModuleKey] ?? '0') ?? 0;
+    if (savedIndex >= 0 && savedIndex <= 7) {
+      index = savedIndex;
+    }
+  }
+
+  void changeModule(int nextIndex) {
+    html.window.localStorage[_lastModuleKey] = nextIndex.toString();
+    setState(() => index = nextIndex);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      base.DashboardPage(onNavigate: (i) => setState(() => index = i)),
+      base.DashboardPage(onNavigate: changeModule),
       const modern.ModernEmployeesPage(),
       const modern.ModernContractsPage(),
       const modern.ModernCredentialsPage(),
@@ -96,7 +114,7 @@ class _HrShellState extends State<_HrShell> {
             selectedIndex: index,
             role: widget.role,
             onLogout: widget.onLogout,
-            onChanged: (i) => setState(() => index = i),
+            onChanged: changeModule,
           ),
           const VerticalDivider(width: 1, color: _line),
           Expanded(child: pages[index]),
