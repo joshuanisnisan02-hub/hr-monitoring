@@ -7,12 +7,13 @@ const projectUrl = String.fromEnvironment(
   'SUPABASE_URL',
   defaultValue: 'https://iysbzkdczngvafvtwpjn.supabase.co',
 );
-const publicClientKey = String.fromEnvironment('SUPABASE_PUBLIC_CLIENT_KEY');
+const publicClientKey = String.fromEnvironment(
+  'SUPABASE_PUBLIC_CLIENT_KEY',
+  defaultValue: 'sb_publishable_QJuRm0RkkQfbgAnBPPxbYw_AtG0BK3o',
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (publicClientKey.isNotEmpty) {
-    await Supabase.initialize(url: projectUrl, anonKey: publicClientKey);
-  }
+  await Supabase.initialize(url: projectUrl, anonKey: publicClientKey);
   runApp(const HrModernAppV2());
 }
