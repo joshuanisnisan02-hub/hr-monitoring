@@ -134,7 +134,7 @@ class AppSidebar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-          child: const Text('Records are shown in compact tables, 10 rows per page.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
+          child: const Text('Tables use title case text and sortable columns.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
         ),
       ]),
     );
@@ -202,23 +202,23 @@ class DashboardPage extends StatelessWidget {
             if (snap.hasError) return ErrorBox('${snap.error}');
             final row = snap.data?.isNotEmpty == true ? snap.data!.first as Map<String, dynamic> : <String, dynamic>{};
             final cards = [
-              Metric('Active employees', row['active_employees'], Icons.people_alt_outlined, const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
-              Metric('Active faculty', row['active_faculty'], Icons.school_outlined, const Color(0xFFF0FDF4), const Color(0xFF15803D)),
-              Metric('For renewal', row['contracts_for_renewal'], Icons.schedule_outlined, const Color(0xFFFFFBEB), const Color(0xFFB45309)),
-              Metric('Expired contracts', row['expired_contracts'], Icons.warning_amber_rounded, const Color(0xFFFEF2F2), const Color(0xFFB91C1C)),
-              Metric('Licenses due', row['licenses_due'], Icons.badge_outlined, const Color(0xFFF5F3FF), const Color(0xFF6D28D9)),
-              Metric('Certificates due', row['certificates_due'], Icons.workspace_premium_outlined, const Color(0xFFECFEFF), const Color(0xFF0E7490)),
-              Metric('Ranking records', row['ranking_applications'], Icons.leaderboard_outlined, const Color(0xFFF8FAFC), _ink),
+              Metric('Active Employees', row['active_employees'], Icons.people_alt_outlined, const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
+              Metric('Active Faculty', row['active_faculty'], Icons.school_outlined, const Color(0xFFF0FDF4), const Color(0xFF15803D)),
+              Metric('For Renewal', row['contracts_for_renewal'], Icons.schedule_outlined, const Color(0xFFFFFBEB), const Color(0xFFB45309)),
+              Metric('Expired Contracts', row['expired_contracts'], Icons.warning_amber_rounded, const Color(0xFFFEF2F2), const Color(0xFFB91C1C)),
+              Metric('Licenses Due', row['licenses_due'], Icons.badge_outlined, const Color(0xFFF5F3FF), const Color(0xFF6D28D9)),
+              Metric('Certificates Due', row['certificates_due'], Icons.workspace_premium_outlined, const Color(0xFFECFEFF), const Color(0xFF0E7490)),
+              Metric('Ranking Records', row['ranking_applications'], Icons.leaderboard_outlined, const Color(0xFFF8FAFC), _ink),
             ];
             return SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(spacing: 16, runSpacing: 16, children: cards.map((m) => MetricCard(m)).toList()),
                 const SizedBox(height: 24),
                 Wrap(spacing: 14, runSpacing: 14, children: [
-                  QuickCard('Manage employees', Icons.people_alt_outlined, () => onNavigate(1)),
-                  QuickCard('Manage contracts', Icons.assignment_outlined, () => onNavigate(2)),
-                  QuickCard('Manage credentials', Icons.badge_outlined, () => onNavigate(3)),
-                  QuickCard('Manage ranking', Icons.leaderboard_outlined, () => onNavigate(5)),
+                  QuickCard('Manage Employees', Icons.people_alt_outlined, () => onNavigate(1)),
+                  QuickCard('Manage Contracts', Icons.assignment_outlined, () => onNavigate(2)),
+                  QuickCard('Manage Credentials', Icons.badge_outlined, () => onNavigate(3)),
+                  QuickCard('Manage Ranking', Icons.leaderboard_outlined, () => onNavigate(5)),
                 ]),
               ]),
             );
@@ -275,8 +275,8 @@ class EmployeesPage extends StatelessWidget {
         subtitle: 'Create, edit, delete, and search employee or faculty master records.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search employee name, appointment, status, or license',
-          addLabel: 'Add employee',
+          searchHint: 'Search Employee Name, Appointment, Status, Or License',
+          addLabel: 'Add Employee',
           columns: const [
             GridCol('full_name', 'Employee Name', flex: 3, primary: true),
             GridCol('appointment', 'Appointment', flex: 2),
@@ -302,8 +302,8 @@ class ContractsPage extends StatelessWidget {
         subtitle: 'Manage contract records without breaking the Excel contract monitoring flow.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search employee, contract type, date, or status',
-          addLabel: 'Add contract',
+          searchHint: 'Search Employee, Contract Type, Date, Or Status',
+          addLabel: 'Add Contract',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
             GridCol('contract_type', 'Contract Type', flex: 2),
@@ -344,8 +344,8 @@ class LicensesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CrudTable(
         load: load,
-        searchHint: 'Search employee, license name, number, or status',
-        addLabel: 'Add license',
+        searchHint: 'Search Employee, License Name, Number, Or Status',
+        addLabel: 'Add License',
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('license_name', 'License', flex: 2),
@@ -367,8 +367,8 @@ class CertificatesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CrudTable(
         load: load,
-        searchHint: 'Search employee, certificate, number, or status',
-        addLabel: 'Add certificate',
+        searchHint: 'Search Employee, Certificate, Number, Or Status',
+        addLabel: 'Add Certificate',
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('certificate_name', 'Certificate', flex: 3),
@@ -393,8 +393,8 @@ class EvaluationsPage extends StatelessWidget {
         subtitle: 'Manage evaluation ratings by academic year and semester.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search employee, academic year, semester, or description',
-          addLabel: 'Add evaluation',
+          searchHint: 'Search Employee, Academic Year, Semester, Or Description',
+          addLabel: 'Add Evaluation',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
             GridCol('academic_year', 'A.Y.', flex: 1),
@@ -422,8 +422,8 @@ class RankingPage extends StatelessWidget {
         subtitle: 'Manage faculty ranking applications, points, ranks, and salaries.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search employee, cycle, rank, or appointment',
-          addLabel: 'Add ranking',
+          searchHint: 'Search Employee, Cycle, Rank, Or Appointment',
+          addLabel: 'Add Ranking',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
             GridCol('cycle_name', 'Cycle', flex: 2),
@@ -473,11 +473,14 @@ class _CrudTableState extends State<CrudTable> {
   late Future<List<dynamic>> future;
   String query = '';
   int page = 0;
+  String? sortKey;
+  bool sortAscending = true;
 
   @override
   void initState() {
     super.initState();
     future = widget.load();
+    sortKey = widget.columns.first.key;
   }
 
   void refresh() => setState(() {
@@ -490,6 +493,16 @@ class _CrudTableState extends State<CrudTable> {
         page = 0;
       });
 
+  void setSort(String? value) => setState(() {
+        sortKey = value ?? widget.columns.first.key;
+        page = 0;
+      });
+
+  void toggleSortDirection() => setState(() {
+        sortAscending = !sortAscending;
+        page = 0;
+      });
+
   @override
   Widget build(BuildContext context) => FutureBuilder<List<dynamic>>(
         future: future,
@@ -499,31 +512,38 @@ class _CrudTableState extends State<CrudTable> {
 
           final rows = snap.data?.cast<Map<String, dynamic>>() ?? [];
           final filtered = query.trim().isEmpty ? rows : rows.where((r) => searchableText(r).contains(query.toLowerCase())).toList();
-          final pageCount = filtered.isEmpty ? 1 : ((filtered.length - 1) ~/ _pageSize) + 1;
+          final activeSortKey = sortKey ?? widget.columns.first.key;
+          final sorted = [...filtered]..sort((a, b) => compareRows(a, b, activeSortKey, sortAscending));
+          final pageCount = sorted.isEmpty ? 1 : ((sorted.length - 1) ~/ _pageSize) + 1;
           final safePage = page.clamp(0, pageCount - 1).toInt();
-          final startIndex = filtered.isEmpty ? 0 : safePage * _pageSize;
-          final pageRows = filtered.skip(startIndex).take(_pageSize).toList();
-          final endIndex = filtered.isEmpty ? 0 : startIndex + pageRows.length;
+          final startIndex = sorted.isEmpty ? 0 : safePage * _pageSize;
+          final pageRows = sorted.skip(startIndex).take(_pageSize).toList();
+          final endIndex = sorted.isEmpty ? 0 : startIndex + pageRows.length;
 
           return Column(children: [
             TableToolbar(
               total: rows.length,
-              showing: filtered.length,
+              showing: sorted.length,
               hint: widget.searchHint,
               addLabel: widget.addLabel,
+              columns: widget.columns,
+              sortKey: activeSortKey,
+              sortAscending: sortAscending,
               onSearch: setSearch,
               onRefresh: refresh,
               onAdd: () => widget.onAdd(context, refresh),
+              onSortChanged: setSort,
+              onToggleSortDirection: toggleSortDirection,
             ),
             const SizedBox(height: 12),
-            Expanded(child: filtered.isEmpty ? const EmptyBox() : buildTable(pageRows)),
+            Expanded(child: sorted.isEmpty ? const EmptyBox() : buildTable(pageRows)),
             const SizedBox(height: 12),
             PaginationFooter(
               page: safePage,
               pageCount: pageCount,
               start: startIndex + 1,
               end: endIndex,
-              total: filtered.length,
+              total: sorted.length,
               onPrevious: safePage > 0 ? () => setState(() => page = safePage - 1) : null,
               onNext: safePage < pageCount - 1 ? () => setState(() => page = safePage + 1) : null,
             ),
@@ -557,7 +577,7 @@ class _CrudTableState extends State<CrudTable> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete record?'),
+        title: const Text('Delete Record?'),
         content: Text('This will remove ${formatValue(valueFor(row, widget.columns.first.key))} from this module.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
@@ -569,9 +589,9 @@ class _CrudTableState extends State<CrudTable> {
     try {
       await widget.onDelete(row);
       refresh();
-      if (mounted) showSnack(context, 'Record deleted.');
+      if (mounted) showSnack(context, 'Record Deleted.');
     } catch (e) {
-      if (mounted) showSnack(context, 'Delete failed: $e');
+      if (mounted) showSnack(context, 'Delete Failed: $e');
     }
   }
 }
@@ -581,21 +601,58 @@ class TableToolbar extends StatelessWidget {
   final int showing;
   final String hint;
   final String addLabel;
+  final List<GridCol> columns;
+  final String sortKey;
+  final bool sortAscending;
   final ValueChanged<String> onSearch;
   final VoidCallback onRefresh;
   final VoidCallback onAdd;
-  const TableToolbar({super.key, required this.total, required this.showing, required this.hint, required this.addLabel, required this.onSearch, required this.onRefresh, required this.onAdd});
+  final ValueChanged<String?> onSortChanged;
+  final VoidCallback onToggleSortDirection;
+
+  const TableToolbar({
+    super.key,
+    required this.total,
+    required this.showing,
+    required this.hint,
+    required this.addLabel,
+    required this.columns,
+    required this.sortKey,
+    required this.sortAscending,
+    required this.onSearch,
+    required this.onRefresh,
+    required this.onAdd,
+    required this.onSortChanged,
+    required this.onToggleSortDirection,
+  });
 
   @override
-  Widget build(BuildContext context) => Row(children: [
-        Expanded(child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)))),
-        const SizedBox(width: 12),
-        Chip(avatar: const Icon(Icons.table_rows_outlined, size: 18), label: Text('$showing of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
-        const SizedBox(width: 12),
-        OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
-        const SizedBox(width: 12),
-        FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add), label: Text(addLabel)),
-      ]);
+  Widget build(BuildContext context) => Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          SizedBox(width: 380, child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)))),
+          SizedBox(
+            width: 190,
+            child: DropdownButtonFormField<String>(
+              value: sortKey,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Sort By', contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+              items: columns.map((c) => DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis))).toList(),
+              onChanged: onSortChanged,
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: onToggleSortDirection,
+            icon: Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 18),
+            label: Text(sortAscending ? 'A-Z' : 'Z-A'),
+          ),
+          Chip(avatar: const Icon(Icons.table_rows_outlined, size: 18), label: Text('$showing Of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
+          OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
+          FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add), label: Text(addLabel)),
+        ],
+      );
 }
 
 class TableHeader extends StatelessWidget {
@@ -661,7 +718,7 @@ class PaginationFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = total == 0 ? 'No records' : 'Showing $start-$end of $total • Page ${page + 1} of $pageCount • 10 per page';
+    final text = total == 0 ? 'No Records' : 'Showing $start-$end Of $total • Page ${page + 1} Of $pageCount • 10 Per Page';
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -696,14 +753,14 @@ class ErrorBox extends StatelessWidget {
   const ErrorBox(this.message, {super.key});
 
   @override
-  Widget build(BuildContext context) => Card(color: const Color(0xFFFFF7ED), child: Padding(padding: const EdgeInsets.all(18), child: Text('Unable to load records: $message', style: const TextStyle(color: Color(0xFF9A3412)))));
+  Widget build(BuildContext context) => Card(color: const Color(0xFFFFF7ED), child: Padding(padding: const EdgeInsets.all(18), child: Text('Unable To Load Records: $message', style: const TextStyle(color: Color(0xFF9A3412)))));
 }
 
 class EmptyBox extends StatelessWidget {
   const EmptyBox({super.key});
 
   @override
-  Widget build(BuildContext context) => const Card(child: Center(child: Padding(padding: EdgeInsets.all(34), child: Text('No matching records found.', style: TextStyle(color: _muted, fontWeight: FontWeight.w700)))));
+  Widget build(BuildContext context) => const Card(child: Center(child: Padding(padding: EdgeInsets.all(34), child: Text('No Matching Records Found.', style: TextStyle(color: _muted, fontWeight: FontWeight.w700)))));
 }
 
 enum FieldKind { text, number, integer, date, dropdown, multiline }
@@ -804,23 +861,23 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
 
 Future<List<EditOption>> employeeOptions() async {
   final rows = await db.from('employees').select('id, full_name').order('full_name').limit(2000);
-  return rows.map<EditOption>((r) => EditOption(r['id'].toString(), r['full_name'].toString())).toList();
+  return rows.map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['full_name']))).toList();
 }
 
 Future<List<EditOption>> cycleOptions() async {
   final rows = await db.from('ranking_cycles').select('id, name').order('name');
-  return rows.map<EditOption>((r) => EditOption(r['id'].toString(), r['name'].toString())).toList();
+  return rows.map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['name']))).toList();
 }
 
 Future<void> editEmployee(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
-  final data = await showRecordDialog(context, row == null ? 'Add employee' : 'Edit employee', const [
-    EditField('full_name', 'Full name', required: true),
+  final data = await showRecordDialog(context, row == null ? 'Add Employee' : 'Edit Employee', const [
+    EditField('full_name', 'Full Name', required: true),
     EditField('appointment', 'Appointment'),
     EditField('designation', 'Designation'),
-    EditField('employee_type', 'Employee type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
-    EditField('employment_status', 'Employment status', kind: FieldKind.dropdown, options: [EditOption('active', 'Active'), EditOption('inactive', 'Inactive'), EditOption('separated', 'Separated')]),
-    EditField('current_salary', 'Current salary', kind: FieldKind.number),
-    EditField('license_summary', 'License summary'),
+    EditField('employee_type', 'Employee Type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full Time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part Time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
+    EditField('employment_status', 'Employment Status', kind: FieldKind.dropdown, options: [EditOption('active', 'Active'), EditOption('inactive', 'Inactive'), EditOption('separated', 'Separated')]),
+    EditField('current_salary', 'Current Salary', kind: FieldKind.number),
+    EditField('license_summary', 'License Summary'),
   ], row);
   if (data == null) return;
   data['name_key'] = normalizeName(data['full_name']?.toString() ?? '');
@@ -829,12 +886,12 @@ Future<void> editEmployee(BuildContext context, Map<String, dynamic>? row, VoidC
 
 Future<void> editContract(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
-  final data = await showRecordDialog(context, row == null ? 'Add contract' : 'Edit contract', [
+  final data = await showRecordDialog(context, row == null ? 'Add Contract' : 'Edit Contract', [
     EditField('employee_id', 'Employee', kind: FieldKind.dropdown, required: true, options: employees),
-    const EditField('contract_type', 'Contract type'),
-    const EditField('contract_start_date', 'Start date', kind: FieldKind.date),
-    const EditField('duration_months', 'Duration in months', kind: FieldKind.integer),
-    const EditField('contract_end_date', 'End date', kind: FieldKind.date),
+    const EditField('contract_type', 'Contract Type'),
+    const EditField('contract_start_date', 'Start Date', kind: FieldKind.date),
+    const EditField('duration_months', 'Duration In Months', kind: FieldKind.integer),
+    const EditField('contract_end_date', 'End Date', kind: FieldKind.date),
     const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('On-going', 'On-going'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
   ], row);
   if (data == null) return;
@@ -843,12 +900,12 @@ Future<void> editContract(BuildContext context, Map<String, dynamic>? row, VoidC
 
 Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
-  final data = await showRecordDialog(context, row == null ? 'Add license' : 'Edit license', [
+  final data = await showRecordDialog(context, row == null ? 'Add License' : 'Edit License', [
     EditField('employee_id', 'Employee', kind: FieldKind.dropdown, required: true, options: employees),
-    const EditField('license_name', 'License name', required: true),
-    const EditField('license_number', 'License number'),
-    const EditField('issued_date', 'Issued date', kind: FieldKind.date),
-    const EditField('expiry_date', 'Expiry date', kind: FieldKind.date),
+    const EditField('license_name', 'License Name', required: true),
+    const EditField('license_number', 'License Number'),
+    const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
+    const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
     const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
   ], row);
   if (data == null) return;
@@ -857,13 +914,13 @@ Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCa
 
 Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
-  final data = await showRecordDialog(context, row == null ? 'Add certificate' : 'Edit certificate', [
+  final data = await showRecordDialog(context, row == null ? 'Add Certificate' : 'Edit Certificate', [
     EditField('employee_id', 'Employee', kind: FieldKind.dropdown, required: true, options: employees),
-    const EditField('certificate_type', 'Certificate type'),
-    const EditField('certificate_name', 'Certificate name', required: true),
-    const EditField('certificate_number', 'Certificate number'),
-    const EditField('issued_date', 'Issued date', kind: FieldKind.date),
-    const EditField('expiry_date', 'Expiry date', kind: FieldKind.date),
+    const EditField('certificate_type', 'Certificate Type'),
+    const EditField('certificate_name', 'Certificate Name', required: true),
+    const EditField('certificate_number', 'Certificate Number'),
+    const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
+    const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
     const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
   ], row);
   if (data == null) return;
@@ -873,16 +930,16 @@ Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, Vo
 
 Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
-  final data = await showRecordDialog(context, row == null ? 'Add evaluation' : 'Edit evaluation', [
+  final data = await showRecordDialog(context, row == null ? 'Add Evaluation' : 'Edit Evaluation', [
     EditField('employee_id', 'Employee', kind: FieldKind.dropdown, required: true, options: employees),
-    const EditField('academic_year', 'Academic year', required: true),
+    const EditField('academic_year', 'Academic Year', required: true),
     const EditField('semester', 'Semester', required: true),
-    const EditField('superior_rating', 'Superior rating', kind: FieldKind.number),
-    const EditField('peer_rating', 'Peer rating', kind: FieldKind.number),
-    const EditField('self_rating', 'Self rating', kind: FieldKind.number),
-    const EditField('student_rating', 'Student rating', kind: FieldKind.number),
-    const EditField('total_rating', 'Total rating', kind: FieldKind.number),
-    const EditField('total_description', 'Total description', kind: FieldKind.multiline, lines: 3),
+    const EditField('superior_rating', 'Superior Rating', kind: FieldKind.number),
+    const EditField('peer_rating', 'Peer Rating', kind: FieldKind.number),
+    const EditField('self_rating', 'Self Rating', kind: FieldKind.number),
+    const EditField('student_rating', 'Student Rating', kind: FieldKind.number),
+    const EditField('total_rating', 'Total Rating', kind: FieldKind.number),
+    const EditField('total_description', 'Total Description', kind: FieldKind.multiline, lines: 3),
   ], row);
   if (data == null) return;
   await saveRow(context, 'evaluation_records', row?['id'], data, refresh);
@@ -891,17 +948,17 @@ Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, Voi
 Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
   final cycles = await cycleOptions();
-  final data = await showRecordDialog(context, row == null ? 'Add ranking record' : 'Edit ranking record', [
+  final data = await showRecordDialog(context, row == null ? 'Add Ranking Record' : 'Edit Ranking Record', [
     EditField('employee_id', 'Employee', kind: FieldKind.dropdown, required: true, options: employees),
-    EditField('cycle_id', 'Ranking cycle', kind: FieldKind.dropdown, required: true, options: cycles),
+    EditField('cycle_id', 'Ranking Cycle', kind: FieldKind.dropdown, required: true, options: cycles),
     const EditField('appointment', 'Appointment'),
-    const EditField('previous_rank_text', 'Previous rank'),
-    const EditField('previous_salary', 'Previous salary', kind: FieldKind.number),
-    const EditField('applied_rank_text', 'Applied rank'),
-    const EditField('applied_salary', 'Applied salary', kind: FieldKind.number),
-    const EditField('points_earned', 'Points earned', kind: FieldKind.number),
-    const EditField('approved_rank_text', 'Approved rank'),
-    const EditField('approved_salary', 'Approved salary', kind: FieldKind.number),
+    const EditField('previous_rank_text', 'Previous Rank'),
+    const EditField('previous_salary', 'Previous Salary', kind: FieldKind.number),
+    const EditField('applied_rank_text', 'Applied Rank'),
+    const EditField('applied_salary', 'Applied Salary', kind: FieldKind.number),
+    const EditField('points_earned', 'Points Earned', kind: FieldKind.number),
+    const EditField('approved_rank_text', 'Approved Rank'),
+    const EditField('approved_salary', 'Approved Salary', kind: FieldKind.number),
   ], row);
   if (data == null) return;
   await saveRow(context, 'ranking_applications', row?['id'], data, refresh);
@@ -913,14 +970,14 @@ Future<void> saveRow(BuildContext context, String table, Object? id, Map<String,
     data['updated_at'] = DateTime.now().toIso8601String();
     if (id == null) {
       await db.from(table).insert(data);
-      showSnack(context, 'Record added.');
+      showSnack(context, 'Record Added.');
     } else {
       await db.from(table).update(data).eq('id', id);
-      showSnack(context, 'Record updated.');
+      showSnack(context, 'Record Updated.');
     }
     refresh();
   } catch (e) {
-    showSnack(context, 'Save failed: $e');
+    showSnack(context, 'Save Failed: $e');
   }
 }
 
@@ -932,6 +989,27 @@ Object? valueFor(Map<String, dynamic> row, String key) {
   return row[key];
 }
 
+int compareRows(Map<String, dynamic> a, Map<String, dynamic> b, String key, bool ascending) {
+  final result = compareValues(valueFor(a, key), valueFor(b, key));
+  return ascending ? result : -result;
+}
+
+int compareValues(Object? a, Object? b) {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+
+  final na = num.tryParse(a.toString());
+  final nb = num.tryParse(b.toString());
+  if (na != null && nb != null) return na.compareTo(nb);
+
+  final da = DateTime.tryParse(a.toString());
+  final dbb = DateTime.tryParse(b.toString());
+  if (da != null && dbb != null) return da.compareTo(dbb);
+
+  return formatValue(a).toLowerCase().compareTo(formatValue(b).toLowerCase());
+}
+
 String searchableText(Map<String, dynamic> row) {
   final values = <String>[];
   void walk(Object? v) {
@@ -939,7 +1017,7 @@ String searchableText(Map<String, dynamic> row) {
     if (v is Map) {
       for (final x in v.values) { walk(x); }
     } else {
-      values.add(v.toString().toLowerCase());
+      values.add(formatValue(v).toLowerCase());
     }
   }
   walk(row);
@@ -960,7 +1038,31 @@ String formatValue(Object? value) {
   if (text.isEmpty || text.toLowerCase() == 'null') return '-';
   final date = DateTime.tryParse(text);
   if (date != null && text.contains('-')) return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  return text.replaceAll('_', ' ');
+  return toTitleCase(text.replaceAll('_', ' ').replaceAll(RegExp(r'\s+'), ' '));
+}
+
+String toTitleCase(String input) {
+  final lowerWords = {'and', 'or', 'of', 'in', 'on', 'for', 'to', 'the', 'a', 'an'};
+  final acronyms = {'LPT', 'MAED', 'MAT', 'MA', 'MBA', 'MIT', 'PhD', 'NC', 'PRC', 'HR', 'MIS', 'OAA', 'OSA', 'TESDA', 'CBIT', 'CRIM', 'CSSH', 'GAD', 'SDS'};
+  final words = input.split(' ');
+  return words.asMap().entries.map((entry) {
+    final index = entry.key;
+    final word = entry.value;
+    if (word.isEmpty) return word;
+    final clean = word.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
+    final upperClean = clean.toUpperCase();
+    if (acronyms.contains(upperClean)) return word.toUpperCase();
+    if (RegExp(r'^[IVXLCM]+$').hasMatch(upperClean)) return word.toUpperCase();
+    final lower = word.toLowerCase();
+    if (index != 0 && lowerWords.contains(lower)) return lower;
+    return word.split('-').map(capitalizeWord).join('-');
+  }).join(' ');
+}
+
+String capitalizeWord(String word) {
+  if (word.isEmpty) return word;
+  if (word.length == 1) return word.toUpperCase();
+  return word[0].toUpperCase() + word.substring(1).toLowerCase();
 }
 
 String formatNumber(Object? value) {
