@@ -2,6 +2,7 @@
 import 'dart:html' as html;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const projectUrl = String.fromEnvironment(
@@ -45,10 +46,7 @@ class HrApp extends StatelessWidget {
         cardTheme: CardThemeData(
           elevation: 0,
           color: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: _line),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: const BorderSide(color: _line)),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
@@ -86,27 +84,11 @@ class SetupPage extends StatelessWidget {
   const SetupPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: SizedBox(
-          width: 720,
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(28),
-              child: Text('Start the app with your Supabase public client key using --dart-define.'),
-            ),
-          ),
+  Widget build(BuildContext context) => const Scaffold(
+        body: Center(
+          child: SizedBox(width: 720, child: Card(child: Padding(padding: EdgeInsets.all(28), child: Text('Start the app with your Supabase public client key using --dart-define.')))),
         ),
-      ),
-    );
-  }
-}
-
-class NavItem {
-  final String label;
-  final IconData icon;
-  const NavItem(this.label, this.icon);
+      );
 }
 
 class ShellPage extends StatefulWidget {
@@ -130,17 +112,20 @@ class _ShellPageState extends State<ShellPage> {
       const RankingPage(),
       const ReportsPage(),
     ];
-
     return Scaffold(
-      body: Row(
-        children: [
-          AppSidebar(selectedIndex: index, onChanged: (i) => setState(() => index = i)),
-          const VerticalDivider(width: 1, color: _line),
-          Expanded(child: pages[index]),
-        ],
-      ),
+      body: Row(children: [
+        AppSidebar(selectedIndex: index, onChanged: (i) => setState(() => index = i)),
+        const VerticalDivider(width: 1, color: _line),
+        Expanded(child: pages[index]),
+      ]),
     );
   }
+}
+
+class NavItem {
+  final String label;
+  final IconData icon;
+  const NavItem(this.label, this.icon);
 }
 
 class AppSidebar extends StatelessWidget {
@@ -160,46 +145,36 @@ class AppSidebar extends StatelessWidget {
       NavItem('Ranking', Icons.leaderboard_rounded),
       NavItem('Reports', Icons.print_rounded),
     ];
-
     return Container(
       width: 240,
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_primary, Color(0xFF4F46E5)]),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [BoxShadow(color: Color(0x332563EB), blurRadius: 18, offset: Offset(0, 8))],
-                ),
-                child: const Icon(Icons.school_rounded, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(child: Text('HR Monitoring', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _ink))),
-            ],
-          ),
-          const SizedBox(height: 7),
-          const Text('Faculty and staff records', style: TextStyle(fontSize: 12, color: _muted, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 30),
-          for (var i = 0; i < items.length; i++)
-            SidebarItem(label: items[i].label, icon: items[i].icon, selected: selectedIndex == i, onTap: () => onChanged(i)),
-          const Spacer(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
           Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDBEAFE))),
-            child: const Text(
-              'Duplicate linked employee records are prevented when adding module records.',
-              style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_primary, Color(0xFF4F46E5)]),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [BoxShadow(color: Color(0x332563EB), blurRadius: 18, offset: Offset(0, 8))],
             ),
+            child: const Icon(Icons.school_rounded, color: Colors.white),
           ),
-        ],
-      ),
+          const SizedBox(width: 12),
+          const Expanded(child: Text('HR Monitoring', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _ink))),
+        ]),
+        const SizedBox(height: 7),
+        const Text('Faculty and staff records', style: TextStyle(fontSize: 12, color: _muted, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 30),
+        for (var i = 0; i < items.length; i++) SidebarItem(label: items[i].label, icon: items[i].icon, selected: selectedIndex == i, onTap: () => onChanged(i)),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDBEAFE))),
+          child: const Text('Employee add flow now includes full profile, contract, and credential details.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35, fontWeight: FontWeight.w600)),
+        ),
+      ]),
     );
   }
 }
@@ -213,31 +188,27 @@ class SidebarItem extends StatelessWidget {
   const SidebarItem({super.key, required this.label, required this.icon, required this.selected, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFFEFF6FF) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: selected ? const Color(0xFFDBEAFE) : Colors.transparent),
-          ),
-          child: Row(
-            children: [
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFFEFF6FF) : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: selected ? const Color(0xFFDBEAFE) : Colors.transparent),
+            ),
+            child: Row(children: [
               Icon(icon, color: selected ? _primary : const Color(0xFF64748B), size: 22),
               const SizedBox(width: 12),
               Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w900 : FontWeight.w700, color: selected ? _primary : _ink)),
-            ],
+            ]),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class PageFrame extends StatelessWidget {
@@ -248,27 +219,26 @@ class PageFrame extends StatelessWidget {
   const PageFrame({super.key, required this.title, required this.subtitle, required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: const TextStyle(fontSize: 30, height: 1.08, fontWeight: FontWeight.w900, color: _ink, letterSpacing: -0.7)),
           const SizedBox(height: 8),
           Text(subtitle, style: const TextStyle(color: Color(0xFF52637A), fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 22),
           Expanded(child: child),
-        ],
-      ),
-    );
-  }
+        ]),
+      );
 }
 
-Future<List<dynamic>> loadEmployees({int limit = 1500}) => db.from('employees').select('id, full_name, appointment, designation, employee_type, employment_status, current_salary, license_summary').order('full_name').limit(limit);
-Future<List<dynamic>> loadContracts({int limit = 1500}) => db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, employees(full_name)').order('contract_end_date', ascending: true).limit(limit);
-Future<List<dynamic>> loadLicenses({int limit = 1500}) => db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(limit);
-Future<List<dynamic>> loadCertificates({int limit = 1500}) => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(limit);
+Future<List<dynamic>> loadEmployees({int limit = 1500}) => db
+    .from('employees')
+    .select('id, full_name, bio_number, gender, education_level, date_hired, starting_date, employment_status, designation, employee_type, civil_status, teaching_status, current_salary, license_summary, birth_date, address, contact_number, email, guardian_name, guardian_relationship, guardian_contact, guardian_address, school_graduated, degree_course, notes')
+    .order('full_name')
+    .limit(limit);
+Future<List<dynamic>> loadContracts({int limit = 1500}) => db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, attachment_url, employees(full_name)').order('contract_end_date', ascending: true).limit(limit);
+Future<List<dynamic>> loadLicenses({int limit = 1500}) => db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, attachment_url, employees(full_name)').order('expiry_date').limit(limit);
+Future<List<dynamic>> loadCertificates({int limit = 1500}) => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, attachment_url, employees(full_name)').order('expiry_date').limit(limit);
 Future<List<dynamic>> loadEvaluations({int limit = 1500}) => db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(limit);
 Future<List<dynamic>> loadRankings({int limit = 1500}) => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
 
@@ -277,29 +247,26 @@ class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key, required this.onNavigate});
 
   @override
-  Widget build(BuildContext context) {
-    return PageFrame(
-      title: 'Dashboard',
-      subtitle: 'At-a-glance summary of imported Excel records.',
-      child: FutureBuilder<List<dynamic>>(
-        future: db.from('hr_dashboard_counts').select(),
-        builder: (_, snap) {
-          if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-          if (snap.hasError) return ErrorBox('${snap.error}');
-          final row = snap.data?.isNotEmpty == true ? snap.data!.first as Map<String, dynamic> : <String, dynamic>{};
-          final cards = [
-            Metric('Active Employees', row['active_employees'], Icons.people_alt_rounded, const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
-            Metric('Active Faculty', row['active_faculty'], Icons.school_rounded, const Color(0xFFF0FDF4), const Color(0xFF15803D)),
-            Metric('For Renewal', row['contracts_for_renewal'], Icons.schedule_rounded, const Color(0xFFFFFBEB), const Color(0xFFB45309)),
-            Metric('Expired Contracts', row['expired_contracts'], Icons.warning_amber_rounded, const Color(0xFFFEF2F2), const Color(0xFFB91C1C)),
-            Metric('Licenses Due', row['licenses_due'], Icons.badge_rounded, const Color(0xFFF5F3FF), const Color(0xFF6D28D9)),
-            Metric('Certificates Due', row['certificates_due'], Icons.workspace_premium_rounded, const Color(0xFFECFEFF), const Color(0xFF0E7490)),
-            Metric('Ranking Records', row['ranking_applications'], Icons.leaderboard_rounded, const Color(0xFFF8FAFC), _ink),
-          ];
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Dashboard',
+        subtitle: 'At-a-glance summary of imported Excel records.',
+        child: FutureBuilder<List<dynamic>>(
+          future: db.from('hr_dashboard_counts').select(),
+          builder: (_, snap) {
+            if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+            if (snap.hasError) return ErrorBox('${snap.error}');
+            final row = snap.data?.isNotEmpty == true ? snap.data!.first as Map<String, dynamic> : <String, dynamic>{};
+            final cards = [
+              Metric('Active Employees', row['active_employees'], Icons.people_alt_rounded, const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
+              Metric('Active Faculty', row['active_faculty'], Icons.school_rounded, const Color(0xFFF0FDF4), const Color(0xFF15803D)),
+              Metric('For Renewal', row['contracts_for_renewal'], Icons.schedule_rounded, const Color(0xFFFFFBEB), const Color(0xFFB45309)),
+              Metric('Expired Contracts', row['expired_contracts'], Icons.warning_amber_rounded, const Color(0xFFFEF2F2), const Color(0xFFB91C1C)),
+              Metric('Licenses Due', row['licenses_due'], Icons.badge_rounded, const Color(0xFFF5F3FF), const Color(0xFF6D28D9)),
+              Metric('Certificates Due', row['certificates_due'], Icons.workspace_premium_rounded, const Color(0xFFECFEFF), const Color(0xFF0E7490)),
+              Metric('Ranking Records', row['ranking_applications'], Icons.leaderboard_rounded, const Color(0xFFF8FAFC), _ink),
+            ];
+            return SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(spacing: 16, runSpacing: 16, children: cards.map((m) => MetricCard(m)).toList()),
                 const SizedBox(height: 24),
                 Wrap(spacing: 14, runSpacing: 14, children: [
@@ -308,13 +275,11 @@ class DashboardPage extends StatelessWidget {
                   QuickCard('Manage Credentials', Icons.badge_rounded, () => onNavigate(3)),
                   QuickCard('Print Reports', Icons.print_rounded, () => onNavigate(6)),
                 ]),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+              ]),
+            );
+          },
+        ),
+      );
 }
 
 class Metric {
@@ -331,16 +296,13 @@ class MetricCard extends StatelessWidget {
   const MetricCard(this.metric, {super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 255,
-      height: 136,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+  Widget build(BuildContext context) => SizedBox(
+        width: 255,
+        height: 136,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Container(width: 42, height: 42, decoration: BoxDecoration(color: metric.bg, borderRadius: BorderRadius.circular(14)), child: Icon(metric.icon, color: metric.fg)),
                 const Spacer(),
@@ -348,12 +310,10 @@ class MetricCard extends StatelessWidget {
               ]),
               const Spacer(),
               Text(metric.title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
-            ],
+            ]),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class QuickCard extends StatelessWidget {
@@ -363,26 +323,24 @@ class QuickCard extends StatelessWidget {
   const QuickCard(this.title, this.icon, this.onTap, {super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 250,
-      child: Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(children: [
-              Icon(icon, color: _primary),
-              const SizedBox(width: 12),
-              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))),
-              const Icon(Icons.chevron_right_rounded, color: _muted),
-            ]),
+  Widget build(BuildContext context) => SizedBox(
+        width: 250,
+        child: Card(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(children: [
+                Icon(icon, color: _primary),
+                const SizedBox(width: 12),
+                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))),
+                const Icon(Icons.chevron_right_rounded, color: _muted),
+              ]),
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class EmployeesPage extends StatelessWidget {
@@ -391,20 +349,21 @@ class EmployeesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Employees',
-        subtitle: 'Create, edit, delete, and search employee or faculty master records.',
+        subtitle: 'Add full employee information, contract, credentials, and view complete records.',
         child: CrudTable(
           load: () => loadEmployees(),
-          searchHint: 'Search employees, appointment, status, or license',
+          searchHint: 'Search employee, bio number, gender, education, status, or date hired',
           addLabel: 'Add Employee',
           columns: const [
             GridCol('full_name', 'Employee Name', flex: 3, primary: true),
-            GridCol('appointment', 'Appointment', flex: 2),
-            GridCol('designation', 'Designation', flex: 2),
-            GridCol('employee_type', 'Type'),
+            GridCol('bio_number', 'Bio Number'),
+            GridCol('gender', 'Gender'),
+            GridCol('education_level', 'Educational Attainment', flex: 2),
+            GridCol('date_hired_display', 'Date Hired'),
             GridCol('employment_status', 'Status', isStatus: true),
-            GridCol('current_salary', 'Salary', isMoney: true),
           ],
-          onAdd: (ctx, refresh) => editEmployee(ctx, null, refresh),
+          onAdd: (ctx, refresh) => addEmployeeFull(ctx, refresh),
+          onView: viewEmployee,
           onEdit: editEmployee,
           onDelete: (row) => db.from('employees').delete().eq('id', row['id']),
         ),
@@ -445,9 +404,9 @@ class CredentialsPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Credentials',
         subtitle: 'Manage licenses and national certificates linked to employees.',
-        child: DefaultTabController(
+        child: const DefaultTabController(
           length: 2,
-          child: Column(children: const [
+          child: Column(children: [
             Align(alignment: Alignment.centerLeft, child: SizedBox(width: 430, child: TabBar(tabs: [Tab(text: 'Licenses'), Tab(text: 'National Certificates')]))),
             SizedBox(height: 16),
             Expanded(child: TabBarView(children: [LicensesTab(), CertificatesTab()])),
@@ -563,12 +522,12 @@ class GridCol {
   final bool isStatus;
   final bool isMoney;
   final bool isNumber;
-
   const GridCol(this.key, this.label, {this.flex = 1, this.primary = false, this.isStatus = false, this.isMoney = false, this.isNumber = false});
 }
 
 typedef AddHandler = Future<void> Function(BuildContext context, VoidCallback refresh);
 typedef EditHandler = Future<void> Function(BuildContext context, Map<String, dynamic> row, VoidCallback refresh);
+typedef ViewHandler = Future<void> Function(BuildContext context, Map<String, dynamic> row);
 
 class CrudTable extends StatefulWidget {
   final Future<List<dynamic>> Function() load;
@@ -578,9 +537,10 @@ class CrudTable extends StatefulWidget {
   final List<GridCol> columns;
   final AddHandler? onAdd;
   final EditHandler onEdit;
+  final ViewHandler? onView;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
-  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, required this.onDelete});
+  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, required this.onDelete});
 
   @override
   State<CrudTable> createState() => _CrudTableState();
@@ -606,93 +566,95 @@ class _CrudTableState extends State<CrudTable> {
       });
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: future,
-      builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-        if (snap.hasError) return ErrorBox('${snap.error}');
-
-        final rows = (snap.data ?? []).map((item) => Map<String, dynamic>.from(item as Map)).toList();
-        final filtered = query.trim().isEmpty ? rows : rows.where((row) => searchableText(row).contains(query.toLowerCase())).toList();
-        final activeSortKey = sortKey ?? widget.columns.first.key;
-        final sorted = [...filtered]..sort((a, b) => compareRows(a, b, activeSortKey, sortAscending));
-        final pageCount = sorted.isEmpty ? 1 : ((sorted.length - 1) ~/ _pageSize) + 1;
-        final safePage = page.clamp(0, pageCount - 1).toInt();
-        final startIndex = sorted.isEmpty ? 0 : safePage * _pageSize;
-        final pageRows = sorted.skip(startIndex).take(_pageSize).toList();
-        final endIndex = sorted.isEmpty ? 0 : startIndex + pageRows.length;
-
-        return Column(children: [
-          TableToolbar(
-            total: rows.length,
-            showing: sorted.length,
-            hint: widget.searchHint,
-            addLabel: widget.addLabel,
-            allowAdd: widget.allowAdd && widget.onAdd != null,
-            columns: widget.columns,
-            sortKey: activeSortKey,
-            sortAscending: sortAscending,
-            onSearch: (value) => setState(() {
-              query = value;
-              page = 0;
-            }),
-            onRefresh: refresh,
-            onAdd: widget.onAdd == null ? null : () => widget.onAdd!(context, refresh),
-            onSortChanged: (value) => setState(() {
-              sortKey = value ?? widget.columns.first.key;
-              page = 0;
-            }),
-            onToggleSortDirection: () => setState(() {
-              sortAscending = !sortAscending;
-              page = 0;
-            }),
-          ),
-          const SizedBox(height: 14),
-          Expanded(child: sorted.isEmpty ? const EmptyBox() : buildTable(pageRows, activeSortKey)),
-          const SizedBox(height: 14),
-          PaginationFooter(
-            page: safePage,
-            pageCount: pageCount,
-            start: startIndex + 1,
-            end: endIndex,
-            total: sorted.length,
-            onPrevious: safePage > 0 ? () => setState(() => page = safePage - 1) : null,
-            onNext: safePage < pageCount - 1 ? () => setState(() => page = safePage + 1) : null,
-          ),
-        ]);
-      },
-    );
-  }
-
-  Widget buildTable(List<Map<String, dynamic>> rows, String activeSortKey) {
-    return Card(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Column(children: [
-          TableHeader(columns: widget.columns, sortKey: activeSortKey, sortAscending: sortAscending, showActions: true, onSort: (key) {
-            setState(() {
-              if (sortKey == key) {
+  Widget build(BuildContext context) => FutureBuilder<List<dynamic>>(
+        future: future,
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+          if (snap.hasError) return ErrorBox('${snap.error}');
+          final rows = (snap.data ?? []).map((item) => normalizeRow(Map<String, dynamic>.from(item as Map))).toList();
+          final filtered = query.trim().isEmpty ? rows : rows.where((row) => searchableText(row).contains(query.toLowerCase())).toList();
+          final activeSortKey = sortKey ?? widget.columns.first.key;
+          final sorted = [...filtered]..sort((a, b) => compareRows(a, b, activeSortKey, sortAscending));
+          final pageCount = sorted.isEmpty ? 1 : ((sorted.length - 1) ~/ _pageSize) + 1;
+          final safePage = page.clamp(0, pageCount - 1).toInt();
+          final startIndex = sorted.isEmpty ? 0 : safePage * _pageSize;
+          final pageRows = sorted.skip(startIndex).take(_pageSize).toList();
+          final endIndex = sorted.isEmpty ? 0 : startIndex + pageRows.length;
+          return Column(children: [
+            TableToolbar(
+              total: rows.length,
+              showing: sorted.length,
+              hint: widget.searchHint,
+              addLabel: widget.addLabel,
+              allowAdd: widget.allowAdd && widget.onAdd != null,
+              columns: widget.columns,
+              sortKey: activeSortKey,
+              sortAscending: sortAscending,
+              onSearch: (value) => setState(() {
+                query = value;
+                page = 0;
+              }),
+              onRefresh: refresh,
+              onAdd: widget.onAdd == null ? null : () => widget.onAdd!(context, refresh),
+              onSortChanged: (value) => setState(() {
+                sortKey = value ?? widget.columns.first.key;
+                page = 0;
+              }),
+              onToggleSortDirection: () => setState(() {
                 sortAscending = !sortAscending;
-              } else {
-                sortKey = key;
-                sortAscending = true;
-              }
-              page = 0;
-            });
-          }),
-          const Divider(height: 1, color: _line),
-          Expanded(
-            child: ListView.separated(
-              itemCount: rows.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: _line),
-              itemBuilder: (_, i) => TableRowItem(row: rows[i], columns: widget.columns, index: i, onEdit: () => widget.onEdit(context, rows[i], refresh), onDelete: () => confirmDelete(context, rows[i])),
+                page = 0;
+              }),
             ),
-          ),
-        ]),
-      ),
-    );
-  }
+            const SizedBox(height: 14),
+            Expanded(child: sorted.isEmpty ? const EmptyBox() : buildTable(pageRows, activeSortKey)),
+            const SizedBox(height: 14),
+            PaginationFooter(
+              page: safePage,
+              pageCount: pageCount,
+              start: sorted.isEmpty ? 0 : startIndex + 1,
+              end: endIndex,
+              total: sorted.length,
+              onPrevious: safePage > 0 ? () => setState(() => page = safePage - 1) : null,
+              onNext: safePage < pageCount - 1 ? () => setState(() => page = safePage + 1) : null,
+            ),
+          ]);
+        },
+      );
+
+  Widget buildTable(List<Map<String, dynamic>> rows, String activeSortKey) => Card(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Column(children: [
+            TableHeader(columns: widget.columns, sortKey: activeSortKey, sortAscending: sortAscending, showActions: true, actionWidth: widget.onView == null ? 96 : 142, onSort: (key) {
+              setState(() {
+                if (sortKey == key) {
+                  sortAscending = !sortAscending;
+                } else {
+                  sortKey = key;
+                  sortAscending = true;
+                }
+                page = 0;
+              });
+            }),
+            const Divider(height: 1, color: _line),
+            Expanded(
+              child: ListView.separated(
+                itemCount: rows.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: _line),
+                itemBuilder: (_, i) => TableRowItem(
+                  row: rows[i],
+                  columns: widget.columns,
+                  index: i,
+                  actionWidth: widget.onView == null ? 96 : 142,
+                  onView: widget.onView == null ? null : () => widget.onView!(context, rows[i]),
+                  onEdit: () => widget.onEdit(context, rows[i], refresh),
+                  onDelete: () => confirmDelete(context, rows[i]),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      );
 
   Future<void> confirmDelete(BuildContext context, Map<String, dynamic> row) async {
     final ok = await showDialog<bool>(
@@ -735,42 +697,36 @@ class TableToolbar extends StatelessWidget {
   const TableToolbar({super.key, required this.total, required this.showing, required this.hint, required this.addLabel, required this.allowAdd, required this.columns, required this.sortKey, required this.sortAscending, required this.onSearch, required this.onRefresh, required this.onAdd, required this.onSortChanged, required this.onToggleSortDirection});
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: LayoutBuilder(builder: (context, constraints) {
-          final compact = constraints.maxWidth < 940;
-          final search = SizedBox(
-            width: compact ? constraints.maxWidth : 360,
-            child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded), hintText: hint, filled: true, fillColor: const Color(0xFFF8FAFC))),
-          );
-          final sort = SizedBox(
-            width: 188,
-            child: DropdownButtonFormField<String>(value: sortKey, isExpanded: true, decoration: const InputDecoration(labelText: 'Sort By'), items: columns.map((c) => DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis))).toList(), onChanged: onSortChanged),
-          );
-          final widgets = <Widget>[
-            search,
-            sort,
-            OutlinedButton.icon(onPressed: onToggleSortDirection, icon: Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 18), label: Text(sortAscending ? 'A-Z' : 'Z-A')),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999), border: Border.all(color: _line)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.table_rows_rounded, size: 18, color: _accent),
-                const SizedBox(width: 8),
-                Text('$showing Of $total', style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w800)),
-              ]),
-            ),
-            OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh')),
-          ];
-          if (allowAdd && onAdd != null) widgets.add(FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add_rounded), label: Text(addLabel)));
-          if (compact) return Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: widgets);
-          return Row(children: [Expanded(child: search), for (final w in widgets.skip(1)) ...[const SizedBox(width: 10), w]]);
-        }),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final compact = constraints.maxWidth < 940;
+            final search = SizedBox(
+              width: compact ? constraints.maxWidth : 360,
+              child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded), hintText: hint, filled: true, fillColor: const Color(0xFFF8FAFC))),
+            );
+            final sort = SizedBox(
+              width: 188,
+              child: DropdownButtonFormField<String>(value: sortKey, isExpanded: true, decoration: const InputDecoration(labelText: 'Sort By'), items: columns.map((c) => DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis))).toList(), onChanged: onSortChanged),
+            );
+            final widgets = <Widget>[
+              search,
+              sort,
+              OutlinedButton.icon(onPressed: onToggleSortDirection, icon: Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 18), label: Text(sortAscending ? 'A-Z' : 'Z-A')),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999), border: Border.all(color: _line)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.table_rows_rounded, size: 18, color: _accent), const SizedBox(width: 8), Text('$showing Of $total', style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w800))]),
+              ),
+              OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh')),
+            ];
+            if (allowAdd && onAdd != null) widgets.add(FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add_rounded), label: Text(addLabel)));
+            if (compact) return Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: widgets);
+            return Row(children: [Expanded(child: search), for (final w in widgets.skip(1)) ...[const SizedBox(width: 10), w]]);
+          }),
+        ),
+      );
 }
 
 class TableHeader extends StatelessWidget {
@@ -778,71 +734,70 @@ class TableHeader extends StatelessWidget {
   final String sortKey;
   final bool sortAscending;
   final bool showActions;
+  final double actionWidth;
   final ValueChanged<String> onSort;
 
-  const TableHeader({super.key, required this.columns, required this.sortKey, required this.sortAscending, required this.showActions, required this.onSort});
+  const TableHeader({super.key, required this.columns, required this.sortKey, required this.sortAscending, required this.showActions, required this.actionWidth, required this.onSort});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8FAFC),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(children: [
-        for (final col in columns)
-          Expanded(
-            flex: col.flex,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => onSort(col.key),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Row(children: [
-                  Expanded(child: Text(col.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
-                  if (sortKey == col.key) Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 15, color: _primary),
-                ]),
+  Widget build(BuildContext context) => Container(
+        color: const Color(0xFFF8FAFC),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(children: [
+          for (final col in columns)
+            Expanded(
+              flex: col.flex,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => onSort(col.key),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Row(children: [
+                    Expanded(child: Text(col.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
+                    if (sortKey == col.key) Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 15, color: _primary),
+                  ]),
+                ),
               ),
             ),
-          ),
-        if (showActions) const SizedBox(width: 96, child: Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
-      ]),
-    );
-  }
+          if (showActions) SizedBox(width: actionWidth, child: const Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
+        ]),
+      );
 }
 
 class TableRowItem extends StatelessWidget {
   final Map<String, dynamic> row;
   final List<GridCol> columns;
   final int index;
+  final double actionWidth;
+  final VoidCallback? onView;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.onEdit, required this.onDelete});
+  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, required this.onDelete});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: index.isEven ? Colors.white : const Color(0xFFFBFDFF),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      constraints: const BoxConstraints(minHeight: 62),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        for (final col in columns) Expanded(flex: col.flex, child: Padding(padding: const EdgeInsets.only(right: 10), child: tableCell(col, valueFor(row, col.key)))),
-        SizedBox(width: 96, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_rounded, color: _primary, size: 20)),
-          IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),
-        ])),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        color: index.isEven ? Colors.white : const Color(0xFFFBFDFF),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 62),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          for (final col in columns) Expanded(flex: col.flex, child: Padding(padding: const EdgeInsets.only(right: 10), child: tableCell(col, valueFor(row, col.key)))),
+          SizedBox(
+            width: actionWidth,
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              if (onView != null) IconButton(tooltip: 'View', onPressed: onView, icon: const Icon(Icons.visibility_rounded, color: Color(0xFF0E7490), size: 20)),
+              IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_rounded, color: _primary, size: 20)),
+              IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),
+            ]),
+          ),
+        ]),
+      );
 }
 
 Widget tableCell(GridCol col, Object? raw) {
   if (col.isStatus) return Align(alignment: Alignment.centerLeft, child: StatusChip(formatValue(raw)));
   final text = col.isMoney ? formatMoney(raw) : col.isNumber ? formatNumber(raw) : formatValue(raw);
-  return Tooltip(
-    message: text,
-    waitDuration: const Duration(milliseconds: 600),
-    child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500, color: _ink, fontSize: 13, height: 1.25)),
-  );
+  return Tooltip(message: text, waitDuration: const Duration(milliseconds: 600), child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500, color: _ink, fontSize: 13, height: 1.25)));
 }
 
 class PaginationFooter extends StatelessWidget {
@@ -857,19 +812,17 @@ class PaginationFooter extends StatelessWidget {
   const PaginationFooter({super.key, required this.page, required this.pageCount, required this.start, required this.end, required this.total, this.onPrevious, this.onNext});
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(children: [
-          Expanded(child: Text(total == 0 ? 'No Records' : 'Showing $start-$end Of $total - Page ${page + 1} Of $pageCount - 10 Per Page', style: const TextStyle(color: _muted, fontWeight: FontWeight.w800))),
-          OutlinedButton.icon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left_rounded), label: const Text('Previous')),
-          const SizedBox(width: 8),
-          FilledButton.icon(onPressed: onNext, icon: const Icon(Icons.chevron_right_rounded), label: const Text('Next')),
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(children: [
+            Expanded(child: Text(total == 0 ? 'No Records' : 'Showing $start-$end Of $total - Page ${page + 1} Of $pageCount - 10 Per Page', style: const TextStyle(color: _muted, fontWeight: FontWeight.w800))),
+            OutlinedButton.icon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left_rounded), label: const Text('Previous')),
+            const SizedBox(width: 8),
+            FilledButton.icon(onPressed: onNext, icon: const Icon(Icons.chevron_right_rounded), label: const Text('Next')),
+          ]),
+        ),
+      );
 }
 
 class StatusChip extends StatelessWidget {
@@ -889,7 +842,7 @@ class StatusChip extends StatelessWidget {
       bg = const Color(0xFFFEF3C7);
       fg = const Color(0xFF92400E);
     }
-    if (v.contains('expired') || v.contains('inactive') || v.contains('separated')) {
+    if (v.contains('expired') || v.contains('inactive') || v.contains('separated') || v.contains('resigned')) {
       bg = const Color(0xFFFEE2E2);
       fg = const Color(0xFF991B1B);
     }
@@ -928,7 +881,6 @@ class EditField {
   final bool required;
   final List<EditOption> options;
   final int lines;
-
   const EditField(this.key, this.label, {this.kind = FieldKind.text, this.required = false, this.options = const [], this.lines = 1});
 }
 
@@ -951,11 +903,28 @@ class ReadOnlyEmployeeBox extends StatelessWidget {
       );
 }
 
-Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String title, List<EditField> fields, Map<String, dynamic>? initial, {String? readOnlyEmployeeName}) async {
+class DialogSectionTitle extends StatelessWidget {
+  final String title;
+  const DialogSectionTitle(this.title, {super.key});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 728,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 2),
+          child: Row(children: [
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _ink)),
+            const SizedBox(width: 12),
+            const Expanded(child: Divider(color: _line)),
+          ]),
+        ),
+      );
+}
+
+Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String title, List<EditField> fields, Map<String, dynamic>? initial, {String? readOnlyEmployeeName, List<Widget> prefix = const []}) async {
   final formKey = GlobalKey<FormState>();
   final controllers = <String, TextEditingController>{};
   final selected = <String, String?>{};
-
   for (final f in fields) {
     final raw = initial?[f.key]?.toString();
     if (f.kind == FieldKind.dropdown) {
@@ -964,7 +933,6 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
       controllers[f.key] = TextEditingController(text: formatEditValue(initial?[f.key]));
     }
   }
-
   final result = await showDialog<Map<String, dynamic>>(
     context: context,
     builder: (_) => StatefulBuilder(
@@ -975,40 +943,37 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
           child: Form(
             key: formKey,
             child: SingleChildScrollView(
-              child: Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                children: [
-                  if (readOnlyEmployeeName != null) ReadOnlyEmployeeBox(readOnlyEmployeeName),
-                  ...fields.map((f) {
-                    final width = f.kind == FieldKind.multiline ? 728.0 : 354.0;
-                    if (f.kind == FieldKind.dropdown) {
-                      final opts = uniqueOptions(f.options);
-                      return SizedBox(
-                        width: width,
-                        child: DropdownButtonFormField<String>(
-                          value: optionValueOrFirst(selected[f.key], opts, f.required),
-                          isExpanded: true,
-                          decoration: InputDecoration(labelText: f.label),
-                          items: opts.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
-                          validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
-                          onChanged: (v) => setDialogState(() => selected[f.key] = v),
-                        ),
-                      );
-                    }
+              child: Wrap(spacing: 14, runSpacing: 14, children: [
+                if (readOnlyEmployeeName != null) ReadOnlyEmployeeBox(readOnlyEmployeeName),
+                ...prefix,
+                ...fields.map((f) {
+                  final width = f.kind == FieldKind.multiline ? 728.0 : 354.0;
+                  if (f.kind == FieldKind.dropdown) {
+                    final opts = uniqueOptions(f.options);
                     return SizedBox(
                       width: width,
-                      child: TextFormField(
-                        controller: controllers[f.key],
-                        maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
-                        keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
-                        decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
-                        validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      child: DropdownButtonFormField<String>(
+                        value: optionValueOrFirst(selected[f.key], opts, f.required),
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: f.label),
+                        items: opts.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+                        validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
+                        onChanged: (v) => setDialogState(() => selected[f.key] = v),
                       ),
                     );
-                  }),
-                ],
-              ),
+                  }
+                  return SizedBox(
+                    width: width,
+                    child: TextFormField(
+                      controller: controllers[f.key],
+                      maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
+                      keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
+                      decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
+                      validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                  );
+                }),
+              ]),
             ),
           ),
         ),
@@ -1029,11 +994,154 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
       ),
     ),
   );
-
   for (final c in controllers.values) {
     c.dispose();
   }
   return result;
+}
+
+Future<void> addEmployeeFull(BuildContext context, VoidCallback refresh) async {
+  final data = await showRecordDialog(context, 'Add Employee', addEmployeeFields(), null);
+  if (data == null) return;
+  final employee = extractKeys(data, employeeKeys);
+  employee['name_key'] = normalizeName(employee['full_name']?.toString() ?? '');
+  employee['date_hired'] ??= employee['starting_date'];
+  employee['starting_date'] ??= employee['date_hired'];
+
+  try {
+    final inserted = await db.from('employees').insert(employee).select('id').single();
+    final employeeId = inserted['id'];
+    final contract = extractKeys(data, contractKeys)..['employee_id'] = employeeId;
+    if (hasUsefulValue(contract, ['contract_type', 'contract_start_date', 'contract_end_date', 'attachment_url'])) {
+      contract['status'] ??= 'On-going';
+      await db.from('employee_contracts').insert(contract);
+    }
+    final credentialType = data['credential_kind']?.toString() ?? 'license';
+    if (credentialType == 'certificate') {
+      final certificate = extractKeys(data, certificateKeys)..['employee_id'] = employeeId;
+      if (hasUsefulValue(certificate, ['certificate_name', 'certificate_number', 'expiry_date', 'attachment_url'])) {
+        certificate['certificate_type'] ??= 'National Certificate';
+        certificate['status'] ??= 'Active';
+        await db.from('employee_certificates').insert(certificate);
+      }
+    } else {
+      final license = extractKeys(data, licenseKeys)..['employee_id'] = employeeId;
+      if (hasUsefulValue(license, ['license_name', 'license_number', 'expiry_date', 'attachment_url'])) {
+        license['status'] ??= 'Active';
+        await db.from('employee_licenses').insert(license);
+      }
+    }
+    refresh();
+    showSnack(context, 'Employee, contract, and credential details saved.');
+  } catch (e) {
+    showSnack(context, 'Save Failed: $e');
+  }
+}
+
+Future<void> viewEmployee(BuildContext context, Map<String, dynamic> row) async {
+  try {
+    final contracts = await db.from('employee_contracts').select().eq('employee_id', row['id']).order('contract_start_date', ascending: false);
+    final licenses = await db.from('employee_licenses').select().eq('employee_id', row['id']).order('expiry_date');
+    final certificates = await db.from('employee_certificates').select().eq('employee_id', row['id']).order('expiry_date');
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(formatValue(row['full_name'])),
+        content: SizedBox(
+          width: 820,
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              detailSection('Personal Information', row, const {
+                'Bio Number': 'bio_number',
+                'Gender': 'gender',
+                'Civil Status': 'civil_status',
+                'Birth Date': 'birth_date',
+                'Address': 'address',
+                'Contact Number': 'contact_number',
+                'Email': 'email',
+              }),
+              detailSection('Educational Background', row, const {
+                'Educational Attainment': 'education_level',
+                'School Graduated': 'school_graduated',
+                'Degree / Course': 'degree_course',
+              }),
+              detailSection('Guardian Information', row, const {
+                'Guardian Name': 'guardian_name',
+                'Relationship': 'guardian_relationship',
+                'Guardian Contact': 'guardian_contact',
+                'Guardian Address': 'guardian_address',
+              }),
+              detailSection('Employment Information', row, const {
+                'Designation': 'designation',
+                'Employee Type': 'employee_type',
+                'Teaching Status': 'teaching_status',
+                'Date Hired': 'date_hired_display',
+                'Employee Status': 'employment_status',
+                'Current Salary': 'current_salary',
+                'License Summary': 'license_summary',
+                'Notes': 'notes',
+              }),
+              relatedSection('Contracts', contracts, const ['contract_type', 'contract_start_date', 'duration_months', 'contract_end_date', 'status', 'attachment_url']),
+              relatedSection('Licenses', licenses, const ['license_name', 'license_number', 'issued_date', 'expiry_date', 'status', 'attachment_url']),
+              relatedSection('Certificates', certificates, const ['certificate_type', 'certificate_name', 'certificate_number', 'issued_date', 'expiry_date', 'status', 'attachment_url']),
+            ]),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      ),
+    );
+  } catch (e) {
+    showSnack(context, 'View Failed: $e');
+  }
+}
+
+Widget detailSection(String title, Map<String, dynamic> row, Map<String, String> fields) => Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _ink)),
+        const SizedBox(height: 8),
+        Wrap(spacing: 10, runSpacing: 10, children: [for (final item in fields.entries) DetailTile(item.key, formatDetailValue(valueFor(row, item.value), item.value))]),
+      ]),
+    );
+
+Widget relatedSection(String title, List<dynamic> records, List<String> keys) => Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _ink)),
+        const SizedBox(height: 8),
+        if (records.isEmpty)
+          const Text('No record added.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600))
+        else
+          for (final rec in records)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14), border: Border.all(color: _line)),
+              child: Wrap(spacing: 8, runSpacing: 8, children: [for (final key in keys) DetailTile(titleCase(key), formatDetailValue((rec as Map)[key], key))]),
+            ),
+      ]),
+    );
+
+class DetailTile extends StatelessWidget {
+  final String label;
+  final String value;
+  const DetailTile(this.label, this.value, {super.key});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 245,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _line)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: _muted, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 3),
+            Text(value, style: const TextStyle(fontSize: 13, color: _ink, fontWeight: FontWeight.w700)),
+          ]),
+        ),
+      );
 }
 
 Future<List<EditOption>> employeeOptions() async {
@@ -1048,7 +1156,7 @@ Future<List<EditOption>> cycleOptions() async {
 
 Future<List<EditOption>> rankOptions() async {
   try {
-    final rows = await db.from('ranks').select('name, default_salary, salary_grade, point_bracket, rank_group').order('sort_order').order('name').limit(500);
+    final rows = await db.from('ranks').select('name, default_salary, salary_grade').order('sort_order').order('name').limit(500);
     final out = <EditOption>[];
     final seen = <String>{};
     for (final r in rows) {
@@ -1091,19 +1199,13 @@ Future<void> editEmployee(BuildContext context, Map<String, dynamic>? row, VoidC
   final data = await showRecordDialog(
     context,
     row == null ? 'Add Employee' : 'Edit Employee',
-    const [
-      EditField('full_name', 'Full Name', required: true),
-      EditField('appointment', 'Appointment'),
-      EditField('designation', 'Designation'),
-      EditField('employee_type', 'Employee Type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full Time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part Time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
-      EditField('employment_status', 'Employment Status', kind: FieldKind.dropdown, options: [EditOption('active', 'Active'), EditOption('inactive', 'Inactive'), EditOption('separated', 'Separated')]),
-      EditField('current_salary', 'Current Salary', kind: FieldKind.number),
-      EditField('license_summary', 'License Summary'),
-    ],
-    row,
+    employeeEditFields(),
+    normalizeRow(row ?? {}),
   );
   if (data == null) return;
   data['name_key'] = normalizeName(data['full_name']?.toString() ?? '');
+  data['date_hired'] ??= data['starting_date'];
+  data['starting_date'] ??= data['date_hired'];
   await saveRow(context, 'employees', row?['id'], data, refresh);
 }
 
@@ -1119,7 +1221,8 @@ Future<void> editContract(BuildContext context, Map<String, dynamic>? row, VoidC
       const EditField('contract_start_date', 'Start Date', kind: FieldKind.date),
       const EditField('duration_months', 'Duration In Months', kind: FieldKind.integer),
       const EditField('contract_end_date', 'End Date', kind: FieldKind.date),
-      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('On-going', 'On-going'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
+      const EditField('attachment_url', 'Attachment URL'),
+      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('On-going', 'On-going'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived'), EditOption('Resigned', 'Resigned')]),
     ],
     row,
     readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
@@ -1141,6 +1244,7 @@ Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCa
       const EditField('license_number', 'License Number'),
       const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
       const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
+      const EditField('attachment_url', 'Attachment URL'),
       const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
     row,
@@ -1164,6 +1268,7 @@ Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, Vo
       const EditField('certificate_number', 'Certificate Number'),
       const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
       const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
+      const EditField('attachment_url', 'Attachment URL'),
       const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
     row,
@@ -1190,7 +1295,7 @@ Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, Voi
       const EditField('self_rating', 'Self Rating', kind: FieldKind.number),
       const EditField('student_rating', 'Student Rating', kind: FieldKind.number),
       const EditField('total_rating', 'Total Rating', kind: FieldKind.number),
-      const EditField('total_description', 'Total Description', kind: FieldKind.multiline, lines: 3),
+      const EditField('total_description', 'Description'),
     ],
     row,
     readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
@@ -1232,11 +1337,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
           height: 440,
           child: ranks.isEmpty
               ? const Center(child: Text('No rank reference found. You can type manually.'))
-              : ListView.separated(
-                  itemCount: ranks.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, i) => ListTile(title: Text(ranks[i].label), onTap: () => Navigator.pop(context, ranks[i])),
-                ),
+              : ListView.separated(itemCount: ranks.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (_, i) => ListTile(title: Text(ranks[i].label), onTap: () => Navigator.pop(context, ranks[i]))),
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel'))],
       ),
@@ -1290,14 +1391,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                 textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
                 rankTextBox('Approved Rank', approvedRank, () => pickRank(approvedRank, approvedSalary)),
                 textBox('Approved Salary', approvedSalary, kind: FieldKind.number),
-                SizedBox(
-                  width: 728,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-                    child: Text(isAdd ? 'Select an employee for the new ranking record. Duplicate employees are not allowed.' : 'Employee name is locked here. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)),
-                  ),
-                ),
+                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select an employee for the new ranking record. Duplicate employees are not allowed.' : 'Employee name is locked here. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
               ]),
             ),
           ),
@@ -1326,17 +1420,13 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
       ),
     ),
   );
-
   for (final c in [appointment, previousRank, previousSalary, appliedRank, appliedSalary, points, approvedRank, approvedSalary]) {
     c.dispose();
   }
   return result;
 }
 
-Widget textBox(String label, TextEditingController controller, {FieldKind kind = FieldKind.text}) => SizedBox(
-      width: 354,
-      child: TextFormField(controller: controller, keyboardType: kind == FieldKind.number || kind == FieldKind.integer ? TextInputType.number : TextInputType.text, maxLines: kind == FieldKind.multiline ? 3 : 1, decoration: InputDecoration(labelText: label)),
-    );
+Widget textBox(String label, TextEditingController controller, {FieldKind kind = FieldKind.text}) => SizedBox(width: 354, child: TextFormField(controller: controller, keyboardType: kind == FieldKind.number || kind == FieldKind.integer ? TextInputType.number : TextInputType.text, maxLines: kind == FieldKind.multiline ? 3 : 1, decoration: InputDecoration(labelText: label)));
 
 Widget rankTextBox(String label, TextEditingController controller, VoidCallback onPick) => SizedBox(
       width: 354,
@@ -1384,11 +1474,11 @@ class _ReportsPageState extends State<ReportsPage> {
   List<ReportConfig> get reports => [
         ReportConfig('Employee Master List', () => loadEmployees(limit: 5000), const [
           GridCol('full_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('appointment', 'Appointment', flex: 2),
-          GridCol('designation', 'Designation', flex: 2),
-          GridCol('employee_type', 'Type'),
+          GridCol('bio_number', 'Bio Number'),
+          GridCol('gender', 'Gender'),
+          GridCol('education_level', 'Educational Attainment', flex: 2),
+          GridCol('date_hired_display', 'Date Hired'),
           GridCol('employment_status', 'Status'),
-          GridCol('current_salary', 'Salary', isMoney: true),
         ]),
         ReportConfig('Contract Monitoring Report', () => loadContracts(limit: 5000), const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
@@ -1434,7 +1524,7 @@ class _ReportsPageState extends State<ReportsPage> {
     final printWindow = html.window.open('about:blank', '_blank');
     try {
       final data = await config.load();
-      final rows = data.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+      final rows = data.map((item) => normalizeRow(Map<String, dynamic>.from(item as Map))).toList();
       final markup = buildPrintableReportHtml(config.title, config.columns, rows);
       final blob = html.Blob([markup], 'text/html');
       final url = html.Url.createObjectUrlFromBlob(blob);
@@ -1484,7 +1574,7 @@ class _ReportsPageState extends State<ReportsPage> {
             builder: (context, snap) {
               if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
               if (snap.hasError) return ErrorBox('${snap.error}');
-              final rows = (snap.data ?? []).map((item) => Map<String, dynamic>.from(item as Map)).toList();
+              final rows = (snap.data ?? []).map((item) => normalizeRow(Map<String, dynamic>.from(item as Map))).toList();
               return ReportPreview(title: config.title, columns: config.columns, rows: rows);
             },
           ),
@@ -1501,258 +1591,241 @@ class ReportPreview extends StatelessWidget {
   const ReportPreview({super.key, required this.title, required this.columns, required this.rows});
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Column(children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            color: const Color(0xFFF8FAFC),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _ink)),
-              const SizedBox(height: 4),
-              Text('Generated ${DateTime.now().toString().split('.').first} - ${rows.length} records', style: const TextStyle(color: _muted, fontWeight: FontWeight.w600)),
-            ]),
-          ),
-          const Divider(height: 1, color: _line),
-          TableHeader(columns: columns, sortKey: '', sortAscending: true, showActions: false, onSort: (_) {}),
-          const Divider(height: 1, color: _line),
-          Expanded(
-            child: rows.isEmpty
-                ? const EmptyBox()
-                : ListView.separated(
-                    itemCount: rows.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: _line),
-                    itemBuilder: (_, i) => ReportRow(row: rows[i], columns: columns, index: i),
-                  ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class ReportRow extends StatelessWidget {
-  final Map<String, dynamic> row;
-  final List<GridCol> columns;
-  final int index;
-  const ReportRow({super.key, required this.row, required this.columns, required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: index.isEven ? Colors.white : const Color(0xFFFBFDFF),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-      child: Row(children: [for (final col in columns) Expanded(flex: col.flex, child: Padding(padding: const EdgeInsets.only(right: 10), child: tableCell(col, valueFor(row, col.key))))]),
-    );
-  }
+  Widget build(BuildContext context) => Card(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Column(children: [
+            Container(width: double.infinity, color: const Color(0xFFF8FAFC), padding: const EdgeInsets.all(16), child: Text('$title Preview', style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))),
+            const Divider(height: 1, color: _line),
+            Expanded(
+              child: rows.isEmpty
+                  ? const EmptyBox()
+                  : ListView.separated(
+                      itemCount: rows.take(50).length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: _line),
+                      itemBuilder: (_, i) => Container(
+                        padding: const EdgeInsets.all(14),
+                        child: Wrap(spacing: 12, runSpacing: 8, children: [
+                          for (final c in columns)
+                            SizedBox(width: 180, child: Text('${c.label}: ${c.isMoney ? formatMoney(valueFor(rows[i], c.key)) : formatValue(valueFor(rows[i], c.key))}', maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: c.primary ? FontWeight.w800 : FontWeight.w500, color: _ink))),
+                        ]),
+                      ),
+                    ),
+            ),
+          ]),
+        ),
+      );
 }
 
 String buildPrintableReportHtml(String title, List<GridCol> columns, List<Map<String, dynamic>> rows) {
-  final date = DateTime.now().toString().split('.').first;
-  final header = columns.map((c) => '<th>${escapeHtml(c.label)}</th>').join();
-  final body = rows.map((row) {
-    final cells = columns.map((c) => '<td>${escapeHtml(displayForReport(c, valueFor(row, c.key)))}</td>').join();
-    return '<tr>$cells</tr>';
-  }).join();
-  return '''<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>${escapeHtml(title)}</title>
-<style>
-@page { size: A4 landscape; margin: 10mm; }
-* { box-sizing: border-box; }
-body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; }
-h1 { font-size: 20px; margin: 0 0 4px; }
-.meta { color: #475569; font-size: 11px; margin-bottom: 14px; }
-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
-th { text-align: left; background: #f1f5f9; font-weight: 700; }
-th, td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: top; word-wrap: break-word; }
-tr:nth-child(even) td { background: #f8fafc; }
-@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-</style>
-<script>
-window.addEventListener('load', function () {
-  setTimeout(function () { window.focus(); window.print(); }, 350);
-});
-</script>
-</head>
-<body>
-<h1>${escapeHtml(title)}</h1>
-<div class="meta">Generated $date • ${rows.length} records</div>
-<table><thead><tr>$header</tr></thead><tbody>$body</tbody></table>
-</body>
-</html>''';
+  final cols = columns.map((c) => '<th>${escapeHtml(c.label)}</th>').join();
+  final body = rows.map((r) => '<tr>${columns.map((c) => '<td>${escapeHtml(c.isMoney ? formatMoney(valueFor(r, c.key)) : formatValue(valueFor(r, c.key)))}</td>').join()}</tr>').join();
+  return '''<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#0f172a}h1{font-size:18px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:top}th{background:#eff6ff}</style></head><body><h1>${escapeHtml(title)}</h1><table><thead><tr>$cols</tr></thead><tbody>$body</tbody></table><script>window.print();</script></body></html>''';
 }
 
-String displayForReport(GridCol col, Object? raw) {
-  if (col.isMoney) return formatMoney(raw);
-  if (col.isNumber) return formatNumber(raw);
-  return formatValue(raw);
+List<EditField> employeeEditFields() => const [
+      EditField('full_name', 'Full Name', required: true),
+      EditField('bio_number', 'Bio Number'),
+      EditField('gender', 'Gender', kind: FieldKind.dropdown, options: [EditOption('Male', 'Male'), EditOption('Female', 'Female')]),
+      EditField('civil_status', 'Civil Status'),
+      EditField('birth_date', 'Birth Date', kind: FieldKind.date),
+      EditField('address', 'Address', kind: FieldKind.multiline, lines: 2),
+      EditField('contact_number', 'Contact Number'),
+      EditField('email', 'Email'),
+      EditField('education_level', 'Educational Attainment'),
+      EditField('school_graduated', 'School Graduated'),
+      EditField('degree_course', 'Degree / Course'),
+      EditField('guardian_name', 'Guardian Name'),
+      EditField('guardian_relationship', 'Guardian Relationship'),
+      EditField('guardian_contact', 'Guardian Contact'),
+      EditField('guardian_address', 'Guardian Address', kind: FieldKind.multiline, lines: 2),
+      EditField('designation', 'Designation'),
+      EditField('employee_type', 'Employee Type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full Time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part Time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
+      EditField('teaching_status', 'Teaching Status'),
+      EditField('employment_status', 'Employee Status', kind: FieldKind.dropdown, options: [EditOption('active', 'Active'), EditOption('inactive', 'Inactive'), EditOption('separated', 'Separated'), EditOption('resigned', 'Resigned')]),
+      EditField('date_hired', 'Date Hired', kind: FieldKind.date),
+      EditField('current_salary', 'Current Salary', kind: FieldKind.number),
+      EditField('license_summary', 'License Summary'),
+      EditField('notes', 'Notes', kind: FieldKind.multiline, lines: 3),
+    ];
+
+List<EditField> addEmployeeFields() => const [
+      EditField('full_name', 'Full Name', required: true),
+      EditField('bio_number', 'Bio Number'),
+      EditField('gender', 'Gender', kind: FieldKind.dropdown, options: [EditOption('Male', 'Male'), EditOption('Female', 'Female')]),
+      EditField('civil_status', 'Civil Status'),
+      EditField('birth_date', 'Birth Date', kind: FieldKind.date),
+      EditField('address', 'Address', kind: FieldKind.multiline, lines: 2),
+      EditField('contact_number', 'Contact Number'),
+      EditField('email', 'Email'),
+      EditField('education_level', 'Educational Attainment'),
+      EditField('school_graduated', 'School Graduated'),
+      EditField('degree_course', 'Degree / Course'),
+      EditField('guardian_name', 'Guardian Name'),
+      EditField('guardian_relationship', 'Guardian Relationship'),
+      EditField('guardian_contact', 'Guardian Contact'),
+      EditField('guardian_address', 'Guardian Address', kind: FieldKind.multiline, lines: 2),
+      EditField('designation', 'Designation'),
+      EditField('employee_type', 'Employee Type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full Time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part Time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
+      EditField('teaching_status', 'Teaching Status'),
+      EditField('employment_status', 'Employee Status', kind: FieldKind.dropdown, options: [EditOption('active', 'Active'), EditOption('inactive', 'Inactive'), EditOption('separated', 'Separated'), EditOption('resigned', 'Resigned')]),
+      EditField('date_hired', 'Date Hired', kind: FieldKind.date),
+      EditField('current_salary', 'Current Salary', kind: FieldKind.number),
+      EditField('license_summary', 'License Summary'),
+      EditField('notes', 'Notes', kind: FieldKind.multiline, lines: 3),
+      EditField('contract_type', 'Contract Type'),
+      EditField('contract_start_date', 'Contract Start Date', kind: FieldKind.date),
+      EditField('duration_months', 'Contract Duration In Months', kind: FieldKind.integer),
+      EditField('contract_end_date', 'Contract End Date', kind: FieldKind.date),
+      EditField('contract_attachment_url', 'Contract Attachment URL'),
+      EditField('contract_status', 'Contract Status', kind: FieldKind.dropdown, options: [EditOption('On-going', 'On-going'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived'), EditOption('Resigned', 'Resigned')]),
+      EditField('credential_kind', 'Credential Type To Add', kind: FieldKind.dropdown, options: [EditOption('license', 'License'), EditOption('certificate', 'National Certificate')]),
+      EditField('license_name', 'License Name'),
+      EditField('license_number', 'License Number'),
+      EditField('license_issued_date', 'License Issued Date', kind: FieldKind.date),
+      EditField('license_expiry_date', 'License Expiry Date', kind: FieldKind.date),
+      EditField('license_attachment_url', 'License Attachment URL'),
+      EditField('license_status', 'License Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
+      EditField('certificate_type', 'Certificate Type'),
+      EditField('certificate_name', 'Certificate Name'),
+      EditField('certificate_number', 'Certificate Number'),
+      EditField('certificate_issued_date', 'Certificate Issued Date', kind: FieldKind.date),
+      EditField('certificate_expiry_date', 'Certificate Expiry Date', kind: FieldKind.date),
+      EditField('certificate_attachment_url', 'Certificate Attachment URL'),
+      EditField('certificate_status', 'Certificate Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
+    ];
+
+const employeeKeys = ['full_name', 'bio_number', 'gender', 'civil_status', 'birth_date', 'address', 'contact_number', 'email', 'education_level', 'school_graduated', 'degree_course', 'guardian_name', 'guardian_relationship', 'guardian_contact', 'guardian_address', 'designation', 'employee_type', 'teaching_status', 'employment_status', 'date_hired', 'starting_date', 'current_salary', 'license_summary', 'notes'];
+const contractKeys = ['contract_type', 'contract_start_date', 'duration_months', 'contract_end_date', 'status', 'attachment_url'];
+const licenseKeys = ['license_name', 'license_number', 'issued_date', 'expiry_date', 'status', 'attachment_url'];
+const certificateKeys = ['certificate_type', 'certificate_name', 'certificate_number', 'issued_date', 'expiry_date', 'status', 'attachment_url'];
+
+Map<String, dynamic> extractKeys(Map<String, dynamic> data, List<String> keys) {
+  final out = <String, dynamic>{};
+  for (final key in keys) {
+    Object? value;
+    if (data.containsKey(key)) value = data[key];
+    final isContract = keys.contains('contract_type');
+    final isLicense = keys.contains('license_name');
+    final isCertificate = keys.contains('certificate_name');
+    if (key == 'status') {
+      value = isContract ? data['contract_status'] : isLicense ? data['license_status'] : isCertificate ? data['certificate_status'] : data[key];
+    }
+    if (key == 'attachment_url') {
+      value = isContract ? data['contract_attachment_url'] : isLicense ? data['license_attachment_url'] : isCertificate ? data['certificate_attachment_url'] : data[key];
+    }
+    if (key == 'issued_date') value = isLicense ? data['license_issued_date'] : isCertificate ? data['certificate_issued_date'] : data[key];
+    if (key == 'expiry_date') value = isLicense ? data['license_expiry_date'] : isCertificate ? data['certificate_expiry_date'] : data[key];
+    if (value != null && value.toString().trim().isNotEmpty) out[key] = value;
+  }
+  return out;
 }
 
-String escapeHtml(Object? value) {
-  return (value?.toString() ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+bool hasUsefulValue(Map<String, dynamic> data, List<String> keys) => keys.any((k) => data[k] != null && data[k].toString().trim().isNotEmpty);
+
+Object? parseFieldValue(String text, FieldKind kind) {
+  final value = text.trim();
+  if (value.isEmpty) return null;
+  if (kind == FieldKind.number) return num.tryParse(value);
+  if (kind == FieldKind.integer) return int.tryParse(value);
+  return value;
+}
+
+Object? emptyToNull(Object? value) {
+  if (value == null) return null;
+  final text = value.toString().trim();
+  return text.isEmpty ? null : value;
+}
+
+String? optionValueOrFirst(String? raw, List<EditOption> options, bool required) {
+  final values = options.map((o) => o.value).toSet();
+  if (raw != null && raw.isNotEmpty && values.contains(raw)) return raw;
+  if (required && options.isNotEmpty) return options.first.value;
+  if (!required && raw != null && raw.isNotEmpty && values.contains(raw)) return raw;
+  return null;
 }
 
 List<EditOption> uniqueOptions(List<EditOption> options) {
   final seen = <String>{};
   final out = <EditOption>[];
-  for (final option in options) {
-    if (seen.add(option.value)) out.add(option);
+  for (final o in options) {
+    if (seen.add(o.value)) out.add(o);
   }
   return out;
 }
 
-String? optionValueOrFirst(String? value, List<EditOption> options, bool requiredField) {
-  final unique = uniqueOptions(options);
-  if (value != null && unique.any((o) => o.value == value)) return value;
-  if (requiredField && unique.isNotEmpty) return unique.first.value;
-  if (unique.any((o) => o.value == '')) return '';
-  return null;
+Map<String, dynamic> normalizeRow(Map<String, dynamic> row) {
+  final out = Map<String, dynamic>.from(row);
+  if (out['employees'] is Map) out['employee_name'] = out['employees']['full_name'];
+  if (out['ranking_cycles'] is Map) out['cycle_name'] = out['ranking_cycles']['name'];
+  if (out['date_hired'] == null || out['date_hired'].toString().isEmpty) out['date_hired'] = out['starting_date'];
+  out['date_hired_display'] = out['date_hired'] ?? out['starting_date'];
+  if (out.containsKey('contract_end_date')) out['days_left'] = daysLeft(out['contract_end_date']);
+  return out;
 }
 
-Object? parseFieldValue(String text, FieldKind kind) {
-  final t = text.trim();
-  if (t.isEmpty) return null;
-  if (kind == FieldKind.number) return num.tryParse(t);
-  if (kind == FieldKind.integer) return int.tryParse(t);
-  return t;
-}
+Object? valueFor(Map<String, dynamic> row, String key) => normalizeRow(row)[key];
 
-String? emptyToNull(String? value) => value == null || value.trim().isEmpty ? null : value.trim();
+String searchableText(Map<String, dynamic> row) => row.values.map((v) {
+      if (v is Map) return v.values.join(' ');
+      return '$v';
+    }).join(' ').toLowerCase();
 
-void showSnack(BuildContext context, String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-
-Object? valueFor(Map<String, dynamic> row, String key) {
-  if (key == 'employee_name') return row['employees'] is Map ? row['employees']['full_name'] : null;
-  if (key == 'cycle_name') return row['ranking_cycles'] is Map ? row['ranking_cycles']['name'] : null;
-  if (key == 'days_left') return contractDaysLeft(row['contract_end_date']);
-  return row[key];
-}
-
-int? contractDaysLeft(Object? endDate) {
-  final raw = endDate?.toString();
-  if (raw == null || raw.trim().isEmpty) return null;
-  final date = DateTime.tryParse(raw);
-  if (date == null) return null;
-  final today = DateTime.now();
-  final base = DateTime(today.year, today.month, today.day);
-  final end = DateTime(date.year, date.month, date.day);
-  return end.difference(base).inDays;
-}
-
-int compareRows(Map<String, dynamic> a, Map<String, dynamic> b, String key, bool ascending) {
-  final result = compareValues(valueFor(a, key), valueFor(b, key));
-  return ascending ? result : -result;
-}
-
-int compareValues(Object? a, Object? b) {
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  final na = num.tryParse(a.toString());
-  final nb = num.tryParse(b.toString());
-  if (na != null && nb != null) return na.compareTo(nb);
-  final da = DateTime.tryParse(a.toString());
-  final dbb = DateTime.tryParse(b.toString());
-  if (da != null && dbb != null) return da.compareTo(dbb);
-  return formatValue(a).toLowerCase().compareTo(formatValue(b).toLowerCase());
-}
-
-String searchableText(Map<String, dynamic> row) {
-  final values = <String>[];
-  void walk(Object? v) {
-    if (v == null) return;
-    if (v is Map) {
-      for (final x in v.values) {
-        walk(x);
-      }
-    } else {
-      values.add(formatValue(v).toLowerCase());
-    }
+int compareRows(Map<String, dynamic> a, Map<String, dynamic> b, String key, bool asc) {
+  final av = valueFor(a, key);
+  final bv = valueFor(b, key);
+  final an = num.tryParse('${av ?? ''}');
+  final bn = num.tryParse('${bv ?? ''}');
+  int result;
+  if (an != null && bn != null) {
+    result = an.compareTo(bn);
+  } else {
+    result = formatValue(av).toLowerCase().compareTo(formatValue(bv).toLowerCase());
   }
-  walk(row);
-  values.add(formatValue(valueFor(row, 'days_left')).toLowerCase());
-  return values.join(' ');
+  return asc ? result : -result;
 }
-
-String formatEditValue(Object? value) {
-  if (value == null) return '';
-  final text = value.toString();
-  return text == 'null' ? '' : text;
-}
-
-String normalizeName(String value) => value.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
-String normalizeRankKey(String value) => value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
 String formatValue(Object? value) {
   if (value == null) return '-';
-  final text = value.toString().trim();
-  if (text.isEmpty || text.toLowerCase() == 'null') return '-';
-  final date = DateTime.tryParse(text);
-  if (date != null && text.contains('-')) return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  return toTitleCase(text.replaceAll('_', ' ').replaceAll(RegExp(r'\s+'), ' '));
+  final text = value.toString();
+  if (text.trim().isEmpty) return '-';
+  if (RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(text)) return text.substring(0, 10);
+  return text;
 }
 
-String toTitleCase(String input) {
-  final acronyms = <String, String>{
-    'LPT': 'LPT',
-    'MAED': 'MAED',
-    'MAT': 'MAT',
-    'MA': 'MA',
-    'MBA': 'MBA',
-    'MIT': 'MIT',
-    'PHD': 'PhD',
-    'NC': 'NC',
-    'PRC': 'PRC',
-    'HR': 'HR',
-    'MIS': 'MIS',
-    'OAA': 'OAA',
-    'OSA': 'OSA',
-    'TESDA': 'TESDA',
-    'CBIT': 'CBIT',
-    'CRIM': 'CRIM',
-    'CSSH': 'CSSH',
-    'GAD': 'GAD',
-    'SDS': 'SDS',
-    'BPE': 'BPE',
-    'MSCRIM': 'MSCRIM',
-    'RCRIM': 'RCRIM',
-  };
-  return input.split(' ').map((word) {
-    if (word.isEmpty) return word;
-    final clean = word.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
-    if (acronyms.containsKey(clean)) return word.toUpperCase().replaceFirst(clean, acronyms[clean]!);
-    if (RegExp(r'^[IVXLCM]+$').hasMatch(clean)) return word.toUpperCase();
-    return word.split('-').map(capitalizeWord).join('-');
-  }).join(' ');
-}
+String formatEditValue(Object? value) => value == null ? '' : formatValue(value) == '-' ? '' : formatValue(value);
 
-String capitalizeWord(String word) {
-  if (word.isEmpty) return word;
-  if (word.length == 1) return word.toUpperCase();
-  return word[0].toUpperCase() + word.substring(1).toLowerCase();
-}
-
-String formatNumber(Object? value) {
-  final n = num.tryParse(value?.toString() ?? '');
-  if (n == null) return '-';
-  return n % 1 == 0 ? n.toInt().toString() : n.toStringAsFixed(2);
+String formatDetailValue(Object? value, String key) {
+  if (key.contains('salary')) return formatMoney(value);
+  return formatValue(value);
 }
 
 String formatMoney(Object? value) {
-  final n = num.tryParse(value?.toString() ?? '');
-  if (n == null) return '-';
-  final s = n.toStringAsFixed(2).split('.');
-  final whole = s.first.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
-  return '₱$whole.${s.last}';
+  final n = num.tryParse('${value ?? ''}');
+  if (n == null) return formatValue(value);
+  return NumberFormat.currency(symbol: 'PHP ', decimalDigits: 2).format(n);
+}
+
+String formatNumber(Object? value) {
+  final n = num.tryParse('${value ?? ''}');
+  if (n == null) return formatValue(value);
+  return n % 1 == 0 ? n.toInt().toString() : n.toStringAsFixed(2);
+}
+
+int? daysLeft(Object? date) {
+  if (date == null) return null;
+  final parsed = DateTime.tryParse(date.toString());
+  if (parsed == null) return null;
+  final today = DateTime.now();
+  final base = DateTime(today.year, today.month, today.day);
+  return DateTime(parsed.year, parsed.month, parsed.day).difference(base).inDays;
+}
+
+String normalizeName(String input) => input.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+String normalizeRankKey(String input) => input.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+String titleCase(String input) => input.split('_').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+String escapeHtml(String input) => input.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+
+void showSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
