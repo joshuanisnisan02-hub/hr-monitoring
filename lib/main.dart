@@ -41,7 +41,7 @@ class HrApp extends StatelessWidget {
             fillColor: Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _primary, width: 1.4)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _primary, width: 1.5)),
           ),
         ),
         home: publicClientKey.isEmpty ? const SetupPage() : const ShellPage(),
@@ -50,16 +50,26 @@ class HrApp extends StatelessWidget {
 
 class SetupPage extends StatelessWidget {
   const SetupPage({super.key});
+
   @override
   Widget build(BuildContext context) => const Scaffold(
         body: Center(
-          child: SizedBox(width: 720, child: Card(child: Padding(padding: EdgeInsets.all(28), child: Text('Start the app with your Supabase public client key using --dart-define.')))),
+          child: SizedBox(
+            width: 720,
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(28),
+                child: Text('Start the app with your Supabase public client key using --dart-define.'),
+              ),
+            ),
+          ),
         ),
       );
 }
 
 class ShellPage extends StatefulWidget {
   const ShellPage({super.key});
+
   @override
   State<ShellPage> createState() => _ShellPageState();
 }
@@ -77,6 +87,7 @@ class _ShellPageState extends State<ShellPage> {
       const EvaluationsPage(),
       const RankingPage(),
     ];
+
     return Scaffold(
       body: Row(children: [
         AppSidebar(selectedIndex: index, onChanged: (i) => setState(() => index = i)),
@@ -102,8 +113,9 @@ class AppSidebar extends StatelessWidget {
       ('Evaluations', Icons.rate_review_outlined),
       ('Ranking', Icons.leaderboard_outlined),
     ];
+
     return Container(
-      width: 250,
+      width: 240,
       color: Colors.white,
       padding: const EdgeInsets.all(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -115,13 +127,12 @@ class AppSidebar extends StatelessWidget {
         const SizedBox(height: 6),
         const Text('Faculty and staff records', style: TextStyle(fontSize: 12, color: _muted)),
         const SizedBox(height: 26),
-        for (var i = 0; i < items.length; i++)
-          SidebarItem(label: items[i].$1, icon: items[i].$2, selected: selectedIndex == i, onTap: () => onChanged(i)),
+        for (var i = 0; i < items.length; i++) SidebarItem(label: items[i].$1, icon: items[i].$2, selected: selectedIndex == i, onTap: () => onChanged(i)),
         const Spacer(),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-          child: const Text('CRUD is enabled. Use Add, Edit, and Delete actions on each module.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
+          child: const Text('Use Add, Edit, and Delete on each module. Records are shown as compact cards to avoid horizontal scrolling.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
         ),
       ]),
     );
@@ -142,7 +153,7 @@ class SidebarItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+            duration: const Duration(milliseconds: 140),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(color: selected ? const Color(0xFFEFF6FF) : Colors.transparent, borderRadius: BorderRadius.circular(14)),
             child: Row(children: [
@@ -159,21 +170,15 @@ class PageFrame extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget child;
-  final Widget? action;
-  const PageFrame({super.key, required this.title, required this.subtitle, required this.child, this.action});
+  const PageFrame({super.key, required this.title, required this.subtitle, required this.child});
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(fontSize: 30, height: 1.1, fontWeight: FontWeight.w900, color: _ink)),
-              const SizedBox(height: 8),
-              Text(subtitle, style: const TextStyle(color: _muted)),
-            ])),
-            if (action != null) action!,
-          ]),
+          Text(title, style: const TextStyle(fontSize: 30, height: 1.1, fontWeight: FontWeight.w900, color: _ink)),
+          const SizedBox(height: 8),
+          Text(subtitle, style: const TextStyle(color: _muted)),
           const SizedBox(height: 22),
           Expanded(child: child),
         ]),
@@ -232,10 +237,11 @@ class Metric {
 class MetricCard extends StatelessWidget {
   final Metric metric;
   const MetricCard(this.metric, {super.key});
+
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 260,
-        height: 138,
+        width: 255,
+        height: 134,
         child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: metric.bg, borderRadius: BorderRadius.circular(13)), child: Icon(metric.icon, color: metric.fg)), const Spacer(), Text('${metric.value ?? 0}', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: _ink))]),
           const Spacer(),
@@ -249,6 +255,7 @@ class QuickCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   const QuickCard(this.title, this.icon, this.onTap, {super.key});
+
   @override
   Widget build(BuildContext context) => SizedBox(
         width: 250,
@@ -258,25 +265,23 @@ class QuickCard extends StatelessWidget {
 
 class EmployeesPage extends StatelessWidget {
   const EmployeesPage({super.key});
-
   Future<List<dynamic>> load() => db.from('employees').select('id, full_name, appointment, designation, employee_type, employment_status, current_salary, license_summary').order('full_name').limit(1500);
 
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Employees',
         subtitle: 'Create, edit, delete, and search employee or faculty master records.',
-        child: CrudTable(
+        child: CrudList(
           load: load,
           searchHint: 'Search employee name, appointment, status, or license',
           addLabel: 'Add employee',
-          columns: const [
-            TableCol('full_name', 'Employee Name', width: 230),
-            TableCol('appointment', 'Appointment', width: 150),
-            TableCol('designation', 'Designation', width: 180),
-            TableCol('employee_type', 'Type', width: 130),
-            TableCol('employment_status', 'Status', isStatus: true, width: 120),
-            TableCol('current_salary', 'Salary', isMoney: true, width: 130),
-            TableCol('license_summary', 'License', width: 160),
+          titleKey: 'full_name',
+          subtitleKeys: const ['appointment', 'designation'],
+          fields: const [
+            ListField('employment_status', 'Status', isStatus: true),
+            ListField('employee_type', 'Type'),
+            ListField('current_salary', 'Salary', isMoney: true),
+            ListField('license_summary', 'License'),
           ],
           onAdd: (ctx, refresh) => editEmployee(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editEmployee(ctx, row, refresh),
@@ -287,24 +292,23 @@ class EmployeesPage extends StatelessWidget {
 
 class ContractsPage extends StatelessWidget {
   const ContractsPage({super.key});
-
   Future<List<dynamic>> load() => db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, employees(full_name)').order('contract_end_date', ascending: true).limit(1500);
 
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Contracts',
         subtitle: 'Manage contract records without breaking the Excel contract monitoring flow.',
-        child: CrudTable(
+        child: CrudList(
           load: load,
           searchHint: 'Search employee, contract type, date, or status',
           addLabel: 'Add contract',
-          columns: const [
-            TableCol('employee_name', 'Employee Name', width: 230),
-            TableCol('contract_type', 'Contract Type', width: 170),
-            TableCol('contract_start_date', 'Start Date', width: 120),
-            TableCol('duration_months', 'Months', isNumber: true, width: 90),
-            TableCol('contract_end_date', 'End Date', width: 120),
-            TableCol('status', 'Status', isStatus: true, width: 130),
+          titleKey: 'employee_name',
+          subtitleKeys: const ['contract_type'],
+          fields: const [
+            ListField('status', 'Status', isStatus: true),
+            ListField('contract_start_date', 'Start'),
+            ListField('duration_months', 'Months', isNumber: true),
+            ListField('contract_end_date', 'End'),
           ],
           onAdd: (ctx, refresh) => editContract(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editContract(ctx, row, refresh),
@@ -323,7 +327,7 @@ class CredentialsPage extends StatelessWidget {
         child: DefaultTabController(
           length: 2,
           child: Column(children: const [
-            Align(alignment: Alignment.centerLeft, child: SizedBox(width: 420, child: TabBar(tabs: [Tab(text: 'Licenses'), Tab(text: 'National Certificates')]))),
+            Align(alignment: Alignment.centerLeft, child: SizedBox(width: 430, child: TabBar(tabs: [Tab(text: 'Licenses'), Tab(text: 'National Certificates')]))),
             SizedBox(height: 16),
             Expanded(child: TabBarView(children: [LicensesTab(), CertificatesTab()])),
           ]),
@@ -334,18 +338,19 @@ class CredentialsPage extends StatelessWidget {
 class LicensesTab extends StatelessWidget {
   const LicensesTab({super.key});
   Future<List<dynamic>> load() => db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(1500);
+
   @override
-  Widget build(BuildContext context) => CrudTable(
+  Widget build(BuildContext context) => CrudList(
         load: load,
         searchHint: 'Search employee, license name, number, or status',
         addLabel: 'Add license',
-        columns: const [
-          TableCol('employee_name', 'Employee Name', width: 230),
-          TableCol('license_name', 'License', width: 210),
-          TableCol('license_number', 'License No.', width: 150),
-          TableCol('issued_date', 'Issued', width: 120),
-          TableCol('expiry_date', 'Expiry', width: 120),
-          TableCol('status', 'Status', isStatus: true, width: 130),
+        titleKey: 'employee_name',
+        subtitleKeys: const ['license_name'],
+        fields: const [
+          ListField('status', 'Status', isStatus: true),
+          ListField('license_number', 'License No.'),
+          ListField('issued_date', 'Issued'),
+          ListField('expiry_date', 'Expiry'),
         ],
         onAdd: (ctx, refresh) => editLicense(ctx, null, refresh),
         onEdit: (ctx, row, refresh) => editLicense(ctx, row, refresh),
@@ -356,18 +361,19 @@ class LicensesTab extends StatelessWidget {
 class CertificatesTab extends StatelessWidget {
   const CertificatesTab({super.key});
   Future<List<dynamic>> load() => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(1500);
+
   @override
-  Widget build(BuildContext context) => CrudTable(
+  Widget build(BuildContext context) => CrudList(
         load: load,
         searchHint: 'Search employee, certificate, number, or status',
         addLabel: 'Add certificate',
-        columns: const [
-          TableCol('employee_name', 'Employee Name', width: 230),
-          TableCol('certificate_type', 'Type', width: 160),
-          TableCol('certificate_name', 'Certificate', width: 220),
-          TableCol('certificate_number', 'Certificate No.', width: 160),
-          TableCol('expiry_date', 'Expiry', width: 120),
-          TableCol('status', 'Status', isStatus: true, width: 130),
+        titleKey: 'employee_name',
+        subtitleKeys: const ['certificate_name'],
+        fields: const [
+          ListField('status', 'Status', isStatus: true),
+          ListField('certificate_type', 'Type'),
+          ListField('certificate_number', 'Certificate No.'),
+          ListField('expiry_date', 'Expiry'),
         ],
         onAdd: (ctx, refresh) => editCertificate(ctx, null, refresh),
         onEdit: (ctx, row, refresh) => editCertificate(ctx, row, refresh),
@@ -378,24 +384,23 @@ class CertificatesTab extends StatelessWidget {
 class EvaluationsPage extends StatelessWidget {
   const EvaluationsPage({super.key});
   Future<List<dynamic>> load() => db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(1500);
+
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Evaluations',
         subtitle: 'Manage evaluation ratings by academic year and semester.',
-        child: CrudTable(
+        child: CrudList(
           load: load,
           searchHint: 'Search employee, academic year, semester, or description',
           addLabel: 'Add evaluation',
-          columns: const [
-            TableCol('employee_name', 'Employee Name', width: 230),
-            TableCol('academic_year', 'Academic Year', width: 140),
-            TableCol('semester', 'Semester', width: 120),
-            TableCol('superior_rating', 'Superior', isNumber: true, width: 100),
-            TableCol('peer_rating', 'Peer', isNumber: true, width: 90),
-            TableCol('self_rating', 'Self', isNumber: true, width: 90),
-            TableCol('student_rating', 'Student', isNumber: true, width: 100),
-            TableCol('total_rating', 'Total', isNumber: true, width: 90),
-            TableCol('total_description', 'Description', width: 160),
+          titleKey: 'employee_name',
+          subtitleKeys: const ['academic_year', 'semester'],
+          fields: const [
+            ListField('total_rating', 'Total', isNumber: true),
+            ListField('superior_rating', 'Superior', isNumber: true),
+            ListField('peer_rating', 'Peer', isNumber: true),
+            ListField('student_rating', 'Student', isNumber: true),
+            ListField('total_description', 'Description'),
           ],
           onAdd: (ctx, refresh) => editEvaluation(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editEvaluation(ctx, row, refresh),
@@ -407,24 +412,23 @@ class EvaluationsPage extends StatelessWidget {
 class RankingPage extends StatelessWidget {
   const RankingPage({super.key});
   Future<List<dynamic>> load() => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(1500);
+
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Ranking',
         subtitle: 'Manage faculty ranking applications, points, ranks, and salaries.',
-        child: CrudTable(
+        child: CrudList(
           load: load,
           searchHint: 'Search employee, cycle, rank, or appointment',
           addLabel: 'Add ranking',
-          columns: const [
-            TableCol('employee_name', 'Employee Name', width: 230),
-            TableCol('cycle_name', 'Cycle', width: 160),
-            TableCol('appointment', 'Appointment', width: 140),
-            TableCol('previous_rank_text', 'Previous Rank', width: 170),
-            TableCol('previous_salary', 'Prev. Salary', isMoney: true, width: 130),
-            TableCol('applied_rank_text', 'Applied Rank', width: 170),
-            TableCol('points_earned', 'Points', isNumber: true, width: 90),
-            TableCol('approved_rank_text', 'Approved Rank', width: 170),
-            TableCol('approved_salary', 'Approved Salary', isMoney: true, width: 140),
+          titleKey: 'employee_name',
+          subtitleKeys: const ['cycle_name', 'appointment'],
+          fields: const [
+            ListField('points_earned', 'Points', isNumber: true),
+            ListField('previous_rank_text', 'Previous Rank'),
+            ListField('applied_rank_text', 'Applied Rank'),
+            ListField('approved_rank_text', 'Approved Rank'),
+            ListField('approved_salary', 'Approved Salary', isMoney: true),
           ],
           onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editRanking(ctx, row, refresh),
@@ -433,34 +437,47 @@ class RankingPage extends StatelessWidget {
       );
 }
 
-class TableCol {
+class ListField {
   final String key;
   final String label;
   final bool isStatus;
   final bool isMoney;
   final bool isNumber;
-  final double width;
-  const TableCol(this.key, this.label, {this.isStatus = false, this.isMoney = false, this.isNumber = false, this.width = 150});
+  const ListField(this.key, this.label, {this.isStatus = false, this.isMoney = false, this.isNumber = false});
 }
 
 typedef AddHandler = Future<void> Function(BuildContext context, VoidCallback refresh);
 typedef EditHandler = Future<void> Function(BuildContext context, Map<String, dynamic> row, VoidCallback refresh);
 
-class CrudTable extends StatefulWidget {
+class CrudList extends StatefulWidget {
   final Future<List<dynamic>> Function() load;
-  final List<TableCol> columns;
   final String searchHint;
   final String addLabel;
+  final String titleKey;
+  final List<String> subtitleKeys;
+  final List<ListField> fields;
   final AddHandler onAdd;
   final EditHandler onEdit;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
-  const CrudTable({super.key, required this.load, required this.columns, required this.searchHint, required this.addLabel, required this.onAdd, required this.onEdit, required this.onDelete});
+
+  const CrudList({
+    super.key,
+    required this.load,
+    required this.searchHint,
+    required this.addLabel,
+    required this.titleKey,
+    required this.subtitleKeys,
+    required this.fields,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
-  State<CrudTable> createState() => _CrudTableState();
+  State<CrudList> createState() => _CrudListState();
 }
 
-class _CrudTableState extends State<CrudTable> {
+class _CrudListState extends State<CrudList> {
   late Future<List<dynamic>> future;
   String query = '';
 
@@ -480,8 +497,9 @@ class _CrudTableState extends State<CrudTable> {
           if (snap.hasError) return ErrorBox('${snap.error}');
           final rows = snap.data?.cast<Map<String, dynamic>>() ?? [];
           final filtered = query.trim().isEmpty ? rows : rows.where((r) => searchableText(r).contains(query.toLowerCase())).toList();
+
           return Column(children: [
-            TableToolbar(
+            ListToolbar(
               total: rows.length,
               showing: filtered.length,
               hint: widget.searchHint,
@@ -491,42 +509,25 @@ class _CrudTableState extends State<CrudTable> {
               onAdd: () => widget.onAdd(context, refresh),
             ),
             const SizedBox(height: 12),
-            Expanded(child: filtered.isEmpty ? const EmptyBox() : buildTable(filtered)),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const EmptyBox()
+                  : ListView.separated(
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => RecordCard(
+                        row: filtered[i],
+                        titleKey: widget.titleKey,
+                        subtitleKeys: widget.subtitleKeys,
+                        fields: widget.fields,
+                        onEdit: () => widget.onEdit(context, filtered[i], refresh),
+                        onDelete: () => confirmDelete(context, filtered[i]),
+                      ),
+                    ),
+            ),
           ]);
         },
-      );
-
-  Widget buildTable(List<Map<String, dynamic>> rows) => Card(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Scrollbar(
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  headingRowHeight: 48,
-                  dataRowMinHeight: 54,
-                  dataRowMaxHeight: 74,
-                  horizontalMargin: 18,
-                  columnSpacing: 18,
-                  headingRowColor: MaterialStateProperty.all(const Color(0xFFF8FAFC)),
-                  columns: [
-                    ...widget.columns.map((c) => DataColumn(label: SizedBox(width: c.width, child: Text(c.label, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))))),
-                    const DataColumn(label: SizedBox(width: 120, child: Text('Actions', style: TextStyle(fontWeight: FontWeight.w900, color: _ink)))),
-                  ],
-                  rows: rows.map((row) => DataRow(cells: [
-                    ...widget.columns.map((c) => DataCell(SizedBox(width: c.width, child: tableCell(c, valueFor(row, c.key))))),
-                    DataCell(SizedBox(width: 120, child: Row(children: [
-                      IconButton(tooltip: 'Edit', icon: const Icon(Icons.edit_outlined, color: _primary), onPressed: () => widget.onEdit(context, row, refresh)),
-                      IconButton(tooltip: 'Delete', icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)), onPressed: () => confirmDelete(context, row)),
-                    ]))),
-                  ])).toList(),
-                ),
-              ),
-            ),
-          ),
-        ),
       );
 
   Future<void> confirmDelete(BuildContext context, Map<String, dynamic> row) async {
@@ -534,7 +535,7 @@ class _CrudTableState extends State<CrudTable> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete record?'),
-        content: Text('This will remove ${valueFor(row, 'employee_name') ?? valueFor(row, 'full_name') ?? 'this record'} from this module.'),
+        content: Text('This will remove ${formatValue(valueFor(row, widget.titleKey))} from this module.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
@@ -552,7 +553,7 @@ class _CrudTableState extends State<CrudTable> {
   }
 }
 
-class TableToolbar extends StatelessWidget {
+class ListToolbar extends StatelessWidget {
   final int total;
   final int showing;
   final String hint;
@@ -560,27 +561,86 @@ class TableToolbar extends StatelessWidget {
   final ValueChanged<String> onSearch;
   final VoidCallback onRefresh;
   final VoidCallback onAdd;
-  const TableToolbar({super.key, required this.total, required this.showing, required this.hint, required this.addLabel, required this.onSearch, required this.onRefresh, required this.onAdd});
+  const ListToolbar({super.key, required this.total, required this.showing, required this.hint, required this.addLabel, required this.onSearch, required this.onRefresh, required this.onAdd});
 
   @override
-  Widget build(BuildContext context) => Wrap(spacing: 12, runSpacing: 12, crossAxisAlignment: WrapCrossAlignment.center, children: [
-        SizedBox(width: 430, child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)))),
-        Chip(avatar: const Icon(Icons.table_rows_outlined, size: 18), label: Text('Showing $showing of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
+  Widget build(BuildContext context) => Row(children: [
+        Expanded(
+          child: TextField(
+            onChanged: onSearch,
+            decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Chip(avatar: const Icon(Icons.list_alt_outlined, size: 18), label: Text('$showing of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
+        const SizedBox(width: 12),
         OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
+        const SizedBox(width: 12),
         FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add), label: Text(addLabel)),
       ]);
 }
 
-Widget tableCell(TableCol col, Object? value) {
-  if (col.isStatus) return Align(alignment: Alignment.centerLeft, child: StatusChip(formatValue(value)));
-  if (col.isMoney) return Text(formatMoney(value), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700));
-  if (col.isNumber) return Text(formatNumber(value), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700));
-  return Text(formatValue(value), maxLines: 2, overflow: TextOverflow.ellipsis);
+class RecordCard extends StatelessWidget {
+  final Map<String, dynamic> row;
+  final String titleKey;
+  final List<String> subtitleKeys;
+  final List<ListField> fields;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  const RecordCard({super.key, required this.row, required this.titleKey, required this.subtitleKeys, required this.fields, required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = formatValue(valueFor(row, titleKey));
+    final subtitles = subtitleKeys.map((k) => formatValue(valueFor(row, k))).where((v) => v != '-' && v.trim().isNotEmpty).join(' • ');
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 15)),
+              if (subtitles.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(subtitles, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _muted, fontSize: 13)),
+              ],
+              const SizedBox(height: 12),
+              Wrap(spacing: 10, runSpacing: 10, children: fields.map((f) => FieldPill(field: f, value: valueFor(row, f.key))).toList()),
+            ]),
+          ),
+          const SizedBox(width: 10),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_outlined, color: _primary)),
+            IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626))),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+class FieldPill extends StatelessWidget {
+  final ListField field;
+  final Object? value;
+  const FieldPill({super.key, required this.field, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    if (field.isStatus) return StatusChip(formatValue(value));
+    final display = field.isMoney ? formatMoney(value) : field.isNumber ? formatNumber(value) : formatValue(value);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: _line)),
+      child: Text('${field.label}: $display', style: const TextStyle(fontSize: 12, color: _ink, fontWeight: FontWeight.w700)),
+    );
+  }
 }
 
 class StatusChip extends StatelessWidget {
   final String label;
   const StatusChip(this.label, {super.key});
+
   @override
   Widget build(BuildContext context) {
     final v = label.toLowerCase();
@@ -588,19 +648,21 @@ class StatusChip extends StatelessWidget {
     if (v.contains('active') || v.contains('ongoing') || v.contains('on-going')) { bg = const Color(0xFFDCFCE7); fg = const Color(0xFF166534); }
     if (v.contains('renewal') || v.contains('due')) { bg = const Color(0xFFFEF3C7); fg = const Color(0xFF92400E); }
     if (v.contains('expired') || v.contains('inactive') || v.contains('separated')) { bg = const Color(0xFFFEE2E2); fg = const Color(0xFF991B1B); }
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)), child: Text(label, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900)));
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)), child: Text(label, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900)));
   }
 }
 
 class ErrorBox extends StatelessWidget {
   final String message;
   const ErrorBox(this.message, {super.key});
+
   @override
   Widget build(BuildContext context) => Card(color: const Color(0xFFFFF7ED), child: Padding(padding: const EdgeInsets.all(18), child: Text('Unable to load records: $message', style: const TextStyle(color: Color(0xFF9A3412)))));
 }
 
 class EmptyBox extends StatelessWidget {
   const EmptyBox({super.key});
+
   @override
   Widget build(BuildContext context) => const Card(child: Center(child: Padding(padding: EdgeInsets.all(34), child: Text('No matching records found.', style: TextStyle(color: _muted, fontWeight: FontWeight.w700)))));
 }
@@ -627,10 +689,11 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
   final formKey = GlobalKey<FormState>();
   final controllers = <String, TextEditingController>{};
   final selected = <String, String?>{};
+
   for (final f in fields) {
     final v = initial?[f.key];
     if (f.kind == FieldKind.dropdown) {
-      selected[f.key] = v?.toString().isNotEmpty == true ? v.toString() : (f.required && f.options.isNotEmpty ? f.options.first.value : null);
+      selected[f.key] = v?.toString().isNotEmpty == true ? v.toString() : (f.options.isNotEmpty ? f.options.first.value : null);
     } else {
       controllers[f.key] = TextEditingController(text: formatEditValue(v));
     }
@@ -654,7 +717,7 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
                         value: selected[f.key],
                         isExpanded: true,
                         decoration: InputDecoration(labelText: f.label),
-                        items: f.options.map((o) => DropdownMenuItem(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+                        items: f.options.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
                         validator: (_) => f.required && (selected[f.key] == null || selected[f.key]!.isEmpty) ? 'Required' : null,
                         onChanged: (v) => setDialogState(() => selected[f.key] = v),
                       ),
@@ -764,6 +827,7 @@ Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, Vo
     const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
   ], row);
   if (data == null) return;
+  data['certificate_type'] ??= 'National Certificate';
   await saveRow(context, 'employee_certificates', row?['id'], data, refresh);
 }
 
@@ -832,8 +896,11 @@ String searchableText(Map<String, dynamic> row) {
   final values = <String>[];
   void walk(Object? v) {
     if (v == null) return;
-    if (v is Map) { for (final x in v.values) { walk(x); } }
-    else { values.add(v.toString().toLowerCase()); }
+    if (v is Map) {
+      for (final x in v.values) { walk(x); }
+    } else {
+      values.add(v.toString().toLowerCase());
+    }
   }
   walk(row);
   return values.join(' ');
