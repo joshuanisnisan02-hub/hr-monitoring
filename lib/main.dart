@@ -194,7 +194,7 @@ class AppSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDBEAFE))),
             child: const Text(
-              'Add buttons are enabled. Existing linked employee names are read-only outside Employees.',
+              'Duplicate linked employee records are prevented when adding module records.',
               style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
             ),
           ),
@@ -265,29 +265,12 @@ class PageFrame extends StatelessWidget {
   }
 }
 
-Future<List<dynamic>> loadEmployees({int limit = 1500}) {
-  return db.from('employees').select('id, full_name, appointment, designation, employee_type, employment_status, current_salary, license_summary').order('full_name').limit(limit);
-}
-
-Future<List<dynamic>> loadContracts({int limit = 1500}) {
-  return db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, employees(full_name)').order('contract_end_date', ascending: true).limit(limit);
-}
-
-Future<List<dynamic>> loadLicenses({int limit = 1500}) {
-  return db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(limit);
-}
-
-Future<List<dynamic>> loadCertificates({int limit = 1500}) {
-  return db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(limit);
-}
-
-Future<List<dynamic>> loadEvaluations({int limit = 1500}) {
-  return db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(limit);
-}
-
-Future<List<dynamic>> loadRankings({int limit = 1500}) {
-  return db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
-}
+Future<List<dynamic>> loadEmployees({int limit = 1500}) => db.from('employees').select('id, full_name, appointment, designation, employee_type, employment_status, current_salary, license_summary').order('full_name').limit(limit);
+Future<List<dynamic>> loadContracts({int limit = 1500}) => db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, employees(full_name)').order('contract_end_date', ascending: true).limit(limit);
+Future<List<dynamic>> loadLicenses({int limit = 1500}) => db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(limit);
+Future<List<dynamic>> loadCertificates({int limit = 1500}) => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(limit);
+Future<List<dynamic>> loadEvaluations({int limit = 1500}) => db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(limit);
+Future<List<dynamic>> loadRankings({int limit = 1500}) => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
 
 class DashboardPage extends StatelessWidget {
   final ValueChanged<int> onNavigate;
@@ -406,184 +389,170 @@ class EmployeesPage extends StatelessWidget {
   const EmployeesPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return PageFrame(
-      title: 'Employees',
-      subtitle: 'Create, edit, delete, and search employee or faculty master records.',
-      child: CrudTable(
-        load: () => loadEmployees(),
-        searchHint: 'Search employees, appointment, status, or license',
-        addLabel: 'Add Employee',
-        columns: const [
-          GridCol('full_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('appointment', 'Appointment', flex: 2),
-          GridCol('designation', 'Designation', flex: 2),
-          GridCol('employee_type', 'Type'),
-          GridCol('employment_status', 'Status', isStatus: true),
-          GridCol('current_salary', 'Salary', isMoney: true),
-        ],
-        onAdd: (ctx, refresh) => editEmployee(ctx, null, refresh),
-        onEdit: editEmployee,
-        onDelete: (row) => db.from('employees').delete().eq('id', row['id']),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Employees',
+        subtitle: 'Create, edit, delete, and search employee or faculty master records.',
+        child: CrudTable(
+          load: () => loadEmployees(),
+          searchHint: 'Search employees, appointment, status, or license',
+          addLabel: 'Add Employee',
+          columns: const [
+            GridCol('full_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('appointment', 'Appointment', flex: 2),
+            GridCol('designation', 'Designation', flex: 2),
+            GridCol('employee_type', 'Type'),
+            GridCol('employment_status', 'Status', isStatus: true),
+            GridCol('current_salary', 'Salary', isMoney: true),
+          ],
+          onAdd: (ctx, refresh) => editEmployee(ctx, null, refresh),
+          onEdit: editEmployee,
+          onDelete: (row) => db.from('employees').delete().eq('id', row['id']),
+        ),
+      );
 }
 
 class ContractsPage extends StatelessWidget {
   const ContractsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return PageFrame(
-      title: 'Contracts',
-      subtitle: 'Manage contract records with dynamic total days left.',
-      child: CrudTable(
-        load: () => loadContracts(),
-        searchHint: 'Search employee, contract type, date, or status',
-        addLabel: 'Add Contract',
-        columns: const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('contract_type', 'Contract Type', flex: 2),
-          GridCol('status', 'Status', isStatus: true),
-          GridCol('contract_start_date', 'Start'),
-          GridCol('duration_months', 'Months', isNumber: true),
-          GridCol('contract_end_date', 'End'),
-          GridCol('days_left', 'Days Left', isNumber: true),
-        ],
-        onAdd: (ctx, refresh) => editContract(ctx, null, refresh),
-        onEdit: editContract,
-        onDelete: (row) => db.from('employee_contracts').delete().eq('id', row['id']),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Contracts',
+        subtitle: 'Manage contract records with dynamic total days left.',
+        child: CrudTable(
+          load: () => loadContracts(),
+          searchHint: 'Search employee, contract type, date, or status',
+          addLabel: 'Add Contract',
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('contract_type', 'Contract Type', flex: 2),
+            GridCol('status', 'Status', isStatus: true),
+            GridCol('contract_start_date', 'Start'),
+            GridCol('duration_months', 'Months', isNumber: true),
+            GridCol('contract_end_date', 'End'),
+            GridCol('days_left', 'Days Left', isNumber: true),
+          ],
+          onAdd: (ctx, refresh) => editContract(ctx, null, refresh),
+          onEdit: editContract,
+          onDelete: (row) => db.from('employee_contracts').delete().eq('id', row['id']),
+        ),
+      );
 }
 
 class CredentialsPage extends StatelessWidget {
   const CredentialsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return PageFrame(
-      title: 'Credentials',
-      subtitle: 'Manage licenses and national certificates linked to employees.',
-      child: DefaultTabController(
-        length: 2,
-        child: Column(children: const [
-          Align(alignment: Alignment.centerLeft, child: SizedBox(width: 430, child: TabBar(tabs: [Tab(text: 'Licenses'), Tab(text: 'National Certificates')]))),
-          SizedBox(height: 16),
-          Expanded(child: TabBarView(children: [LicensesTab(), CertificatesTab()])),
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Credentials',
+        subtitle: 'Manage licenses and national certificates linked to employees.',
+        child: DefaultTabController(
+          length: 2,
+          child: Column(children: const [
+            Align(alignment: Alignment.centerLeft, child: SizedBox(width: 430, child: TabBar(tabs: [Tab(text: 'Licenses'), Tab(text: 'National Certificates')]))),
+            SizedBox(height: 16),
+            Expanded(child: TabBarView(children: [LicensesTab(), CertificatesTab()])),
+          ]),
+        ),
+      );
 }
 
 class LicensesTab extends StatelessWidget {
   const LicensesTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return CrudTable(
-      load: () => loadLicenses(),
-      searchHint: 'Search employee, license name, number, or status',
-      addLabel: 'Add License',
-      columns: const [
-        GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-        GridCol('license_name', 'License', flex: 2),
-        GridCol('license_number', 'License No.', flex: 2),
-        GridCol('issued_date', 'Issued'),
-        GridCol('expiry_date', 'Expiry'),
-        GridCol('status', 'Status', isStatus: true),
-      ],
-      onAdd: (ctx, refresh) => editLicense(ctx, null, refresh),
-      onEdit: editLicense,
-      onDelete: (row) => db.from('employee_licenses').delete().eq('id', row['id']),
-    );
-  }
+  Widget build(BuildContext context) => CrudTable(
+        load: () => loadLicenses(),
+        searchHint: 'Search employee, license name, number, or status',
+        addLabel: 'Add License',
+        columns: const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('license_name', 'License', flex: 2),
+          GridCol('license_number', 'License No.', flex: 2),
+          GridCol('issued_date', 'Issued'),
+          GridCol('expiry_date', 'Expiry'),
+          GridCol('status', 'Status', isStatus: true),
+        ],
+        onAdd: (ctx, refresh) => editLicense(ctx, null, refresh),
+        onEdit: editLicense,
+        onDelete: (row) => db.from('employee_licenses').delete().eq('id', row['id']),
+      );
 }
 
 class CertificatesTab extends StatelessWidget {
   const CertificatesTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return CrudTable(
-      load: () => loadCertificates(),
-      searchHint: 'Search employee, certificate, number, or status',
-      addLabel: 'Add Certificate',
-      columns: const [
-        GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-        GridCol('certificate_name', 'Certificate', flex: 3),
-        GridCol('certificate_type', 'Type', flex: 2),
-        GridCol('certificate_number', 'Certificate No.', flex: 2),
-        GridCol('expiry_date', 'Expiry'),
-        GridCol('status', 'Status', isStatus: true),
-      ],
-      onAdd: (ctx, refresh) => editCertificate(ctx, null, refresh),
-      onEdit: editCertificate,
-      onDelete: (row) => db.from('employee_certificates').delete().eq('id', row['id']),
-    );
-  }
+  Widget build(BuildContext context) => CrudTable(
+        load: () => loadCertificates(),
+        searchHint: 'Search employee, certificate, number, or status',
+        addLabel: 'Add Certificate',
+        columns: const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('certificate_name', 'Certificate', flex: 3),
+          GridCol('certificate_type', 'Type', flex: 2),
+          GridCol('certificate_number', 'Certificate No.', flex: 2),
+          GridCol('expiry_date', 'Expiry'),
+          GridCol('status', 'Status', isStatus: true),
+        ],
+        onAdd: (ctx, refresh) => editCertificate(ctx, null, refresh),
+        onEdit: editCertificate,
+        onDelete: (row) => db.from('employee_certificates').delete().eq('id', row['id']),
+      );
 }
 
 class EvaluationsPage extends StatelessWidget {
   const EvaluationsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return PageFrame(
-      title: 'Evaluations',
-      subtitle: 'Manage evaluation ratings by academic year and semester.',
-      child: CrudTable(
-        load: () => loadEvaluations(),
-        searchHint: 'Search employee, academic year, semester, or description',
-        addLabel: 'Add Evaluation',
-        columns: const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('academic_year', 'A.Y.'),
-          GridCol('semester', 'Semester'),
-          GridCol('superior_rating', 'Superior', isNumber: true),
-          GridCol('peer_rating', 'Peer', isNumber: true),
-          GridCol('student_rating', 'Student', isNumber: true),
-          GridCol('total_rating', 'Total', isNumber: true),
-          GridCol('total_description', 'Description', flex: 2),
-        ],
-        onAdd: (ctx, refresh) => editEvaluation(ctx, null, refresh),
-        onEdit: editEvaluation,
-        onDelete: (row) => db.from('evaluation_records').delete().eq('id', row['id']),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Evaluations',
+        subtitle: 'Manage evaluation ratings by academic year and semester.',
+        child: CrudTable(
+          load: () => loadEvaluations(),
+          searchHint: 'Search employee, academic year, semester, or description',
+          addLabel: 'Add Evaluation',
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('academic_year', 'A.Y.'),
+            GridCol('semester', 'Semester'),
+            GridCol('superior_rating', 'Superior', isNumber: true),
+            GridCol('peer_rating', 'Peer', isNumber: true),
+            GridCol('student_rating', 'Student', isNumber: true),
+            GridCol('total_rating', 'Total', isNumber: true),
+            GridCol('total_description', 'Description', flex: 2),
+          ],
+          onAdd: (ctx, refresh) => editEvaluation(ctx, null, refresh),
+          onEdit: editEvaluation,
+          onDelete: (row) => db.from('evaluation_records').delete().eq('id', row['id']),
+        ),
+      );
 }
 
 class RankingPage extends StatelessWidget {
   const RankingPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return PageFrame(
-      title: 'Ranking',
-      subtitle: 'Manage faculty ranking applications. Employee name is read-only when editing existing records.',
-      child: CrudTable(
-        load: () => loadRankings(),
-        searchHint: 'Search employee, cycle, rank, or appointment',
-        addLabel: 'Add Ranking',
-        columns: const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('cycle_name', 'Cycle', flex: 2),
-          GridCol('previous_rank_text', 'Previous', flex: 2),
-          GridCol('applied_rank_text', 'Applied', flex: 2),
-          GridCol('points_earned', 'Points', isNumber: true),
-          GridCol('approved_rank_text', 'Approved', flex: 2),
-          GridCol('approved_salary', 'Salary', isMoney: true),
-        ],
-        onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
-        onEdit: editRanking,
-        onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Ranking',
+        subtitle: 'Manage faculty ranking applications. Employee name is read-only when editing existing records.',
+        child: CrudTable(
+          load: () => loadRankings(),
+          searchHint: 'Search employee, cycle, rank, or appointment',
+          addLabel: 'Add Ranking',
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('cycle_name', 'Cycle', flex: 2),
+            GridCol('previous_rank_text', 'Previous', flex: 2),
+            GridCol('applied_rank_text', 'Applied', flex: 2),
+            GridCol('points_earned', 'Points', isNumber: true),
+            GridCol('approved_rank_text', 'Approved', flex: 2),
+            GridCol('approved_salary', 'Salary', isMoney: true),
+          ],
+          onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
+          onEdit: editRanking,
+          onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
+        ),
+      );
 }
 
 class GridCol {
@@ -933,18 +902,14 @@ class ErrorBox extends StatelessWidget {
   const ErrorBox(this.message, {super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Card(color: const Color(0xFFFFF7ED), child: Padding(padding: const EdgeInsets.all(18), child: Text('Unable To Load Records: $message', style: const TextStyle(color: Color(0xFF9A3412)))));
-  }
+  Widget build(BuildContext context) => Card(color: const Color(0xFFFFF7ED), child: Padding(padding: const EdgeInsets.all(18), child: Text('Unable To Load Records: $message', style: const TextStyle(color: Color(0xFF9A3412)))));
 }
 
 class EmptyBox extends StatelessWidget {
   const EmptyBox({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Card(child: Center(child: Padding(padding: EdgeInsets.all(34), child: Text('No Matching Records Found.', style: TextStyle(color: _muted, fontWeight: FontWeight.w700)))));
-  }
+  Widget build(BuildContext context) => const Card(child: Center(child: Padding(padding: EdgeInsets.all(34), child: Text('No Matching Records Found.', style: TextStyle(color: _muted, fontWeight: FontWeight.w700)))));
 }
 
 enum FieldKind { text, number, integer, date, dropdown, multiline }
@@ -972,22 +937,18 @@ class ReadOnlyEmployeeBox extends StatelessWidget {
   const ReadOnlyEmployeeBox(this.employeeName, {super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 728,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Employee Name', style: TextStyle(color: Color(0xFF1E40AF), fontWeight: FontWeight.w700, fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(employeeName, style: const TextStyle(color: _ink, fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          const Text('Linked record - edit the name only in the Employees module.', style: TextStyle(color: _muted, fontSize: 12, fontWeight: FontWeight.w500)),
-        ]),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SizedBox(
+        width: 728,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Employee Name', style: TextStyle(color: Color(0xFF1E40AF), fontWeight: FontWeight.w700, fontSize: 12)),
+            const SizedBox(height: 4),
+            Text(employeeName, style: const TextStyle(color: _ink, fontSize: 15, fontWeight: FontWeight.w800)),
+          ]),
+        ),
+      );
 }
 
 Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String title, List<EditField> fields, Map<String, dynamic>? initial, {String? readOnlyEmployeeName}) async {
@@ -1111,6 +1072,21 @@ String linkedEmployeeName(Map<String, dynamic>? row) {
   return 'Linked Employee';
 }
 
+Future<bool> ensureNoEmployeeDuplicate(BuildContext context, String tableName, Object? employeeId, String moduleName) async {
+  if (employeeId == null || employeeId.toString().trim().isEmpty) return true;
+  try {
+    final existing = await db.from(tableName).select('id').eq('employee_id', employeeId).limit(1);
+    if (existing.isNotEmpty) {
+      showSnack(context, 'Duplicate prevented: this employee already has a $moduleName record.');
+      return false;
+    }
+    return true;
+  } catch (e) {
+    showSnack(context, 'Duplicate check failed: $e');
+    return false;
+  }
+}
+
 Future<void> editEmployee(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final data = await showRecordDialog(
     context,
@@ -1149,6 +1125,7 @@ Future<void> editContract(BuildContext context, Map<String, dynamic>? row, VoidC
     readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
+  if (isAdd && !await ensureNoEmployeeDuplicate(context, 'employee_contracts', data['employee_id'], 'contract')) return;
   await saveRow(context, 'employee_contracts', row?['id'], data, refresh);
 }
 
@@ -1170,6 +1147,7 @@ Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCa
     readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
+  if (isAdd && !await ensureNoEmployeeDuplicate(context, 'employee_licenses', data['employee_id'], 'license')) return;
   await saveRow(context, 'employee_licenses', row?['id'], data, refresh);
 }
 
@@ -1192,6 +1170,7 @@ Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, Vo
     readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
+  if (isAdd && !await ensureNoEmployeeDuplicate(context, 'employee_certificates', data['employee_id'], 'certificate')) return;
   data['certificate_type'] ??= 'National Certificate';
   await saveRow(context, 'employee_certificates', row?['id'], data, refresh);
 }
@@ -1217,19 +1196,15 @@ Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, Voi
     readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
+  if (isAdd && !await ensureNoEmployeeDuplicate(context, 'evaluation_records', data['employee_id'], 'evaluation')) return;
   await saveRow(context, 'evaluation_records', row?['id'], data, refresh);
 }
 
 Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final isAdd = row == null;
-  final data = await showRankingDialog(
-    context,
-    isAdd ? await employeeOptions() : const <EditOption>[],
-    await cycleOptions(),
-    await rankOptions(),
-    row,
-  );
+  final data = await showRankingDialog(context, isAdd ? await employeeOptions() : const <EditOption>[], await cycleOptions(), await rankOptions(), row);
   if (data == null) return;
+  if (isAdd && !await ensureNoEmployeeDuplicate(context, 'ranking_applications', data['employee_id'], 'ranking')) return;
   await saveRow(context, 'ranking_applications', row?['id'], data, refresh);
 }
 
@@ -1320,7 +1295,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-                    child: Text(isAdd ? 'Select an employee for the new ranking record. Type ranks manually or use Pick to auto-fill salary.' : 'Employee name is locked here. Edit names in Employees. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)),
+                    child: Text(isAdd ? 'Select an employee for the new ranking record. Duplicate employees are not allowed.' : 'Employee name is locked here. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)),
                   ),
                 ),
               ]),
@@ -1358,27 +1333,23 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
   return result;
 }
 
-Widget textBox(String label, TextEditingController controller, {FieldKind kind = FieldKind.text}) {
-  return SizedBox(
-    width: 354,
-    child: TextFormField(controller: controller, keyboardType: kind == FieldKind.number || kind == FieldKind.integer ? TextInputType.number : TextInputType.text, maxLines: kind == FieldKind.multiline ? 3 : 1, decoration: InputDecoration(labelText: label)),
-  );
-}
+Widget textBox(String label, TextEditingController controller, {FieldKind kind = FieldKind.text}) => SizedBox(
+      width: 354,
+      child: TextFormField(controller: controller, keyboardType: kind == FieldKind.number || kind == FieldKind.integer ? TextInputType.number : TextInputType.text, maxLines: kind == FieldKind.multiline ? 3 : 1, decoration: InputDecoration(labelText: label)),
+    );
 
-Widget rankTextBox(String label, TextEditingController controller, VoidCallback onPick) {
-  return SizedBox(
-    width: 354,
-    child: Row(children: [
-      Expanded(child: TextFormField(controller: controller, decoration: InputDecoration(labelText: label))),
-      const SizedBox(width: 8),
-      OutlinedButton(onPressed: onPick, child: const Text('Pick')),
-    ]),
-  );
-}
+Widget rankTextBox(String label, TextEditingController controller, VoidCallback onPick) => SizedBox(
+      width: 354,
+      child: Row(children: [
+        Expanded(child: TextFormField(controller: controller, decoration: InputDecoration(labelText: label))),
+        const SizedBox(width: 8),
+        OutlinedButton(onPressed: onPick, child: const Text('Pick')),
+      ]),
+    );
 
 Future<void> saveRow(BuildContext context, String table, Object? id, Map<String, dynamic> data, VoidCallback refresh) async {
   try {
-    data.removeWhere((key, value) => key == 'id' || value == null);
+    data.removeWhere((key, value) => key == 'id');
     data['updated_at'] = DateTime.now().toIso8601String();
     if (id == null) {
       await db.from(table).insert(data);
@@ -1459,6 +1430,24 @@ class _ReportsPageState extends State<ReportsPage> {
         ]),
       ];
 
+  Future<void> printCurrentReport(ReportConfig config) async {
+    final printWindow = html.window.open('about:blank', '_blank');
+    try {
+      final data = await config.load();
+      final rows = data.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+      final markup = buildPrintableReportHtml(config.title, config.columns, rows);
+      final blob = html.Blob([markup], 'text/html');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      if (printWindow != null) {
+        printWindow.location.href = url;
+      } else {
+        html.window.open(url, '_blank');
+      }
+    } catch (e) {
+      if (mounted) showSnack(context, 'Print Failed: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = reports[selected];
@@ -1481,9 +1470,9 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton.icon(onPressed: () => html.window.print(), icon: const Icon(Icons.print_rounded), label: const Text('Print Report')),
+              FilledButton.icon(onPressed: () => printCurrentReport(config), icon: const Icon(Icons.print_rounded), label: const Text('Print Report')),
               const SizedBox(width: 12),
-              const Expanded(child: Text('Select a report, then click Print Report.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600))),
+              const Expanded(child: Text('Opens a print-ready A4 landscape report.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600))),
             ]),
           ),
         ),
@@ -1559,6 +1548,59 @@ class ReportRow extends StatelessWidget {
       child: Row(children: [for (final col in columns) Expanded(flex: col.flex, child: Padding(padding: const EdgeInsets.only(right: 10), child: tableCell(col, valueFor(row, col.key))))]),
     );
   }
+}
+
+String buildPrintableReportHtml(String title, List<GridCol> columns, List<Map<String, dynamic>> rows) {
+  final date = DateTime.now().toString().split('.').first;
+  final header = columns.map((c) => '<th>${escapeHtml(c.label)}</th>').join();
+  final body = rows.map((row) {
+    final cells = columns.map((c) => '<td>${escapeHtml(displayForReport(c, valueFor(row, c.key)))}</td>').join();
+    return '<tr>$cells</tr>';
+  }).join();
+  return '''<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(title)}</title>
+<style>
+@page { size: A4 landscape; margin: 10mm; }
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+.meta { color: #475569; font-size: 11px; margin-bottom: 14px; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
+th { text-align: left; background: #f1f5f9; font-weight: 700; }
+th, td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: top; word-wrap: break-word; }
+tr:nth-child(even) td { background: #f8fafc; }
+@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+<script>
+window.addEventListener('load', function () {
+  setTimeout(function () { window.focus(); window.print(); }, 350);
+});
+</script>
+</head>
+<body>
+<h1>${escapeHtml(title)}</h1>
+<div class="meta">Generated $date • ${rows.length} records</div>
+<table><thead><tr>$header</tr></thead><tbody>$body</tbody></table>
+</body>
+</html>''';
+}
+
+String displayForReport(GridCol col, Object? raw) {
+  if (col.isMoney) return formatMoney(raw);
+  if (col.isNumber) return formatNumber(raw);
+  return formatValue(raw);
+}
+
+String escapeHtml(Object? value) {
+  return (value?.toString() ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
 }
 
 List<EditOption> uniqueOptions(List<EditOption> options) {
