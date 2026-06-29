@@ -40,7 +40,7 @@ The public client key is intentionally not committed to GitHub.
 
 ## Supabase
 
-The database migration has been applied to project `iysbzkdczngvafvtwpjn`. A copy is also saved in `supabase/migrations/20260629_create_hr_monitoring_core.sql` for version tracking.
+The database migration was applied directly to project `iysbzkdczngvafvtwpjn` through the connected Supabase tool.
 
 ## Current implementation status
 
