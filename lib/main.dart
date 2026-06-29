@@ -53,7 +53,6 @@ class ShellPage extends StatefulWidget {
 
 class _ShellPageState extends State<ShellPage> {
   int index = 0;
-  static const labels = ['Dashboard', 'Employees', 'Contracts', 'Credentials', 'Evaluations', 'Ranking'];
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -124,7 +123,7 @@ class EmployeesPage extends StatelessWidget {
       actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))],
     ));
     if (ok == true && name.text.trim().isNotEmpty) {
-      await Supabase.instance.client.from('employees').insert({'full_name': name.text.trim(), 'appointment': appointment.text.trim(), 'current_salary': num.tryParse(salary.text.trim()), 'source_workbook': 'Manual Entry'});
+      await Supabase.instance.client.from('employees').insert({'name_key': name.text.trim().toUpperCase(), 'full_name': name.text.trim(), 'appointment': appointment.text.trim(), 'current_salary': num.tryParse(salary.text.trim()), 'source_workbook': 'Manual Entry'});
       onSaved();
     }
   }
@@ -146,11 +145,11 @@ class CredentialsPage extends StatelessWidget {
     child: ListView(children: const [
       Text('Licenses', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
       SizedBox(height: 12),
-      DataQueryView(table: 'employee_licenses', columns: ['license_name', 'license_number', 'issued_date', 'expiry_date', 'status']),
+      DataQueryView(table: 'hr_license_monitoring', columns: ['full_name', 'license_name', 'license_number', 'issued_date', 'expiry_date', 'computed_status']),
       SizedBox(height: 24),
       Text('National Certificates', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
       SizedBox(height: 12),
-      DataQueryView(table: 'employee_certificates', columns: ['certificate_type', 'certificate_name', 'certificate_number', 'expiry_date', 'status']),
+      DataQueryView(table: 'hr_certificate_monitoring', columns: ['full_name', 'certificate_type', 'certificate_name', 'certificate_number', 'expiry_date', 'computed_status']),
     ]),
   );
 }
