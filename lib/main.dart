@@ -4,7 +4,7 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'hr_modern_app_v2.dart';
+import 'hr_logged_in_app.dart';
 
 const projectUrl = String.fromEnvironment(
   'SUPABASE_URL',
@@ -37,9 +37,9 @@ class _LoginGateAppState extends State<LoginGateApp> {
     role = html.window.localStorage['hr_role'];
   }
 
-  void login(String newRole) {
-    html.window.localStorage['hr_role'] = newRole;
-    setState(() => role = newRole);
+  void login(String nextRole) {
+    html.window.localStorage['hr_role'] = nextRole;
+    setState(() => role = nextRole);
   }
 
   void logout() {
@@ -49,47 +49,10 @@ class _LoginGateAppState extends State<LoginGateApp> {
 
   @override
   Widget build(BuildContext context) {
-    if (role == null) return LoginPage(onLogin: login);
-    return Stack(
-      children: [
-        const HrModernAppV2(),
-        Positioned(
-          top: 18,
-          right: 24,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 8))],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 15,
-                    backgroundColor: const Color(0xFFEFF6FF),
-                    child: Icon(role == 'Admin' ? Icons.admin_panel_settings_rounded : Icons.badge_rounded, color: const Color(0xFF2563EB), size: 17),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(role!, style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, fontSize: 13)),
-                  const SizedBox(width: 10),
-                  TextButton.icon(
-                    onPressed: logout,
-                    icon: const Icon(Icons.logout_rounded, size: 17),
-                    label: const Text('Logout'),
-                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFDC2626), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), minimumSize: Size.zero),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+    if (role != null) {
+      return HrLoggedInApp(role: role!, onLogout: logout);
+    }
+    return LoginPage(onLogin: login);
   }
 }
 
@@ -132,6 +95,14 @@ class _LoginPageState extends State<LoginPage> {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
         fontFamily: 'Arial',
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF4B5FA7),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+          ),
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
