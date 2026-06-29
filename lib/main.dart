@@ -134,7 +134,7 @@ class AppSidebar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-          child: const Text('Records are paginated: 10 per page. Use search to filter across all records.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
+          child: const Text('Records are shown in compact tables, 10 rows per page.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
         ),
       ]),
     );
@@ -273,17 +273,17 @@ class EmployeesPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Employees',
         subtitle: 'Create, edit, delete, and search employee or faculty master records.',
-        child: CrudList(
+        child: CrudTable(
           load: load,
           searchHint: 'Search employee name, appointment, status, or license',
           addLabel: 'Add employee',
-          titleKey: 'full_name',
-          subtitleKeys: const ['appointment', 'designation'],
-          fields: const [
-            ListField('employment_status', 'Status', isStatus: true),
-            ListField('employee_type', 'Type'),
-            ListField('current_salary', 'Salary', isMoney: true),
-            ListField('license_summary', 'License'),
+          columns: const [
+            GridCol('full_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('appointment', 'Appointment', flex: 2),
+            GridCol('designation', 'Designation', flex: 2),
+            GridCol('employee_type', 'Type', flex: 1),
+            GridCol('employment_status', 'Status', flex: 1, isStatus: true),
+            GridCol('current_salary', 'Salary', flex: 1, isMoney: true),
           ],
           onAdd: (ctx, refresh) => editEmployee(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editEmployee(ctx, row, refresh),
@@ -300,17 +300,17 @@ class ContractsPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Contracts',
         subtitle: 'Manage contract records without breaking the Excel contract monitoring flow.',
-        child: CrudList(
+        child: CrudTable(
           load: load,
           searchHint: 'Search employee, contract type, date, or status',
           addLabel: 'Add contract',
-          titleKey: 'employee_name',
-          subtitleKeys: const ['contract_type'],
-          fields: const [
-            ListField('status', 'Status', isStatus: true),
-            ListField('contract_start_date', 'Start'),
-            ListField('duration_months', 'Months', isNumber: true),
-            ListField('contract_end_date', 'End'),
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('contract_type', 'Contract Type', flex: 2),
+            GridCol('status', 'Status', flex: 1, isStatus: true),
+            GridCol('contract_start_date', 'Start', flex: 1),
+            GridCol('duration_months', 'Months', flex: 1, isNumber: true),
+            GridCol('contract_end_date', 'End', flex: 1),
           ],
           onAdd: (ctx, refresh) => editContract(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editContract(ctx, row, refresh),
@@ -342,17 +342,17 @@ class LicensesTab extends StatelessWidget {
   Future<List<dynamic>> load() => db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(1500);
 
   @override
-  Widget build(BuildContext context) => CrudList(
+  Widget build(BuildContext context) => CrudTable(
         load: load,
         searchHint: 'Search employee, license name, number, or status',
         addLabel: 'Add license',
-        titleKey: 'employee_name',
-        subtitleKeys: const ['license_name'],
-        fields: const [
-          ListField('status', 'Status', isStatus: true),
-          ListField('license_number', 'License No.'),
-          ListField('issued_date', 'Issued'),
-          ListField('expiry_date', 'Expiry'),
+        columns: const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('license_name', 'License', flex: 2),
+          GridCol('license_number', 'License No.', flex: 2),
+          GridCol('issued_date', 'Issued', flex: 1),
+          GridCol('expiry_date', 'Expiry', flex: 1),
+          GridCol('status', 'Status', flex: 1, isStatus: true),
         ],
         onAdd: (ctx, refresh) => editLicense(ctx, null, refresh),
         onEdit: (ctx, row, refresh) => editLicense(ctx, row, refresh),
@@ -365,17 +365,17 @@ class CertificatesTab extends StatelessWidget {
   Future<List<dynamic>> load() => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(1500);
 
   @override
-  Widget build(BuildContext context) => CrudList(
+  Widget build(BuildContext context) => CrudTable(
         load: load,
         searchHint: 'Search employee, certificate, number, or status',
         addLabel: 'Add certificate',
-        titleKey: 'employee_name',
-        subtitleKeys: const ['certificate_name'],
-        fields: const [
-          ListField('status', 'Status', isStatus: true),
-          ListField('certificate_type', 'Type'),
-          ListField('certificate_number', 'Certificate No.'),
-          ListField('expiry_date', 'Expiry'),
+        columns: const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('certificate_name', 'Certificate', flex: 3),
+          GridCol('certificate_type', 'Type', flex: 2),
+          GridCol('certificate_number', 'Certificate No.', flex: 2),
+          GridCol('expiry_date', 'Expiry', flex: 1),
+          GridCol('status', 'Status', flex: 1, isStatus: true),
         ],
         onAdd: (ctx, refresh) => editCertificate(ctx, null, refresh),
         onEdit: (ctx, row, refresh) => editCertificate(ctx, row, refresh),
@@ -391,18 +391,19 @@ class EvaluationsPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Evaluations',
         subtitle: 'Manage evaluation ratings by academic year and semester.',
-        child: CrudList(
+        child: CrudTable(
           load: load,
           searchHint: 'Search employee, academic year, semester, or description',
           addLabel: 'Add evaluation',
-          titleKey: 'employee_name',
-          subtitleKeys: const ['academic_year', 'semester'],
-          fields: const [
-            ListField('total_rating', 'Total', isNumber: true),
-            ListField('superior_rating', 'Superior', isNumber: true),
-            ListField('peer_rating', 'Peer', isNumber: true),
-            ListField('student_rating', 'Student', isNumber: true),
-            ListField('total_description', 'Description'),
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('academic_year', 'A.Y.', flex: 1),
+            GridCol('semester', 'Semester', flex: 1),
+            GridCol('superior_rating', 'Superior', flex: 1, isNumber: true),
+            GridCol('peer_rating', 'Peer', flex: 1, isNumber: true),
+            GridCol('student_rating', 'Student', flex: 1, isNumber: true),
+            GridCol('total_rating', 'Total', flex: 1, isNumber: true),
+            GridCol('total_description', 'Description', flex: 2),
           ],
           onAdd: (ctx, refresh) => editEvaluation(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editEvaluation(ctx, row, refresh),
@@ -419,18 +420,18 @@ class RankingPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Ranking',
         subtitle: 'Manage faculty ranking applications, points, ranks, and salaries.',
-        child: CrudList(
+        child: CrudTable(
           load: load,
           searchHint: 'Search employee, cycle, rank, or appointment',
           addLabel: 'Add ranking',
-          titleKey: 'employee_name',
-          subtitleKeys: const ['cycle_name', 'appointment'],
-          fields: const [
-            ListField('points_earned', 'Points', isNumber: true),
-            ListField('previous_rank_text', 'Previous Rank'),
-            ListField('applied_rank_text', 'Applied Rank'),
-            ListField('approved_rank_text', 'Approved Rank'),
-            ListField('approved_salary', 'Approved Salary', isMoney: true),
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('cycle_name', 'Cycle', flex: 2),
+            GridCol('previous_rank_text', 'Previous', flex: 2),
+            GridCol('applied_rank_text', 'Applied', flex: 2),
+            GridCol('points_earned', 'Points', flex: 1, isNumber: true),
+            GridCol('approved_rank_text', 'Approved', flex: 2),
+            GridCol('approved_salary', 'Salary', flex: 1, isMoney: true),
           ],
           onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
           onEdit: (ctx, row, refresh) => editRanking(ctx, row, refresh),
@@ -439,36 +440,36 @@ class RankingPage extends StatelessWidget {
       );
 }
 
-class ListField {
+class GridCol {
   final String key;
   final String label;
+  final int flex;
+  final bool primary;
   final bool isStatus;
   final bool isMoney;
   final bool isNumber;
-  const ListField(this.key, this.label, {this.isStatus = false, this.isMoney = false, this.isNumber = false});
+  const GridCol(this.key, this.label, {this.flex = 1, this.primary = false, this.isStatus = false, this.isMoney = false, this.isNumber = false});
 }
 
 typedef AddHandler = Future<void> Function(BuildContext context, VoidCallback refresh);
 typedef EditHandler = Future<void> Function(BuildContext context, Map<String, dynamic> row, VoidCallback refresh);
 
-class CrudList extends StatefulWidget {
+class CrudTable extends StatefulWidget {
   final Future<List<dynamic>> Function() load;
   final String searchHint;
   final String addLabel;
-  final String titleKey;
-  final List<String> subtitleKeys;
-  final List<ListField> fields;
+  final List<GridCol> columns;
   final AddHandler onAdd;
   final EditHandler onEdit;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
-  const CrudList({super.key, required this.load, required this.searchHint, required this.addLabel, required this.titleKey, required this.subtitleKeys, required this.fields, required this.onAdd, required this.onEdit, required this.onDelete});
+  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, required this.columns, required this.onAdd, required this.onEdit, required this.onDelete});
 
   @override
-  State<CrudList> createState() => _CrudListState();
+  State<CrudTable> createState() => _CrudTableState();
 }
 
-class _CrudListState extends State<CrudList> {
+class _CrudTableState extends State<CrudTable> {
   late Future<List<dynamic>> future;
   String query = '';
   int page = 0;
@@ -505,7 +506,7 @@ class _CrudListState extends State<CrudList> {
           final endIndex = filtered.isEmpty ? 0 : startIndex + pageRows.length;
 
           return Column(children: [
-            ListToolbar(
+            TableToolbar(
               total: rows.length,
               showing: filtered.length,
               hint: widget.searchHint,
@@ -515,23 +516,7 @@ class _CrudListState extends State<CrudList> {
               onAdd: () => widget.onAdd(context, refresh),
             ),
             const SizedBox(height: 12),
-            Expanded(
-              child: filtered.isEmpty
-                  ? const EmptyBox()
-                  : ListView.separated(
-                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                      itemCount: pageRows.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => RecordCard(
-                        row: pageRows[i],
-                        titleKey: widget.titleKey,
-                        subtitleKeys: widget.subtitleKeys,
-                        fields: widget.fields,
-                        onEdit: () => widget.onEdit(context, pageRows[i], refresh),
-                        onDelete: () => confirmDelete(context, pageRows[i]),
-                      ),
-                    ),
-            ),
+            Expanded(child: filtered.isEmpty ? const EmptyBox() : buildTable(pageRows)),
             const SizedBox(height: 12),
             PaginationFooter(
               page: safePage,
@@ -546,12 +531,34 @@ class _CrudListState extends State<CrudList> {
         },
       );
 
+  Widget buildTable(List<Map<String, dynamic>> rows) => Card(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Column(children: [
+            TableHeader(columns: widget.columns),
+            const Divider(height: 1, color: _line),
+            Expanded(
+              child: ListView.separated(
+                itemCount: rows.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: _line),
+                itemBuilder: (_, i) => TableRowItem(
+                  row: rows[i],
+                  columns: widget.columns,
+                  onEdit: () => widget.onEdit(context, rows[i], refresh),
+                  onDelete: () => confirmDelete(context, rows[i]),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      );
+
   Future<void> confirmDelete(BuildContext context, Map<String, dynamic> row) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete record?'),
-        content: Text('This will remove ${formatValue(valueFor(row, widget.titleKey))} from this module.'),
+        content: Text('This will remove ${formatValue(valueFor(row, widget.columns.first.key))} from this module.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
@@ -569,7 +576,7 @@ class _CrudListState extends State<CrudList> {
   }
 }
 
-class ListToolbar extends StatelessWidget {
+class TableToolbar extends StatelessWidget {
   final int total;
   final int showing;
   final String hint;
@@ -577,18 +584,69 @@ class ListToolbar extends StatelessWidget {
   final ValueChanged<String> onSearch;
   final VoidCallback onRefresh;
   final VoidCallback onAdd;
-  const ListToolbar({super.key, required this.total, required this.showing, required this.hint, required this.addLabel, required this.onSearch, required this.onRefresh, required this.onAdd});
+  const TableToolbar({super.key, required this.total, required this.showing, required this.hint, required this.addLabel, required this.onSearch, required this.onRefresh, required this.onAdd});
 
   @override
   Widget build(BuildContext context) => Row(children: [
         Expanded(child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)))),
         const SizedBox(width: 12),
-        Chip(avatar: const Icon(Icons.list_alt_outlined, size: 18), label: Text('$showing of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
+        Chip(avatar: const Icon(Icons.table_rows_outlined, size: 18), label: Text('$showing of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
         const SizedBox(width: 12),
         OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
         const SizedBox(width: 12),
         FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add), label: Text(addLabel)),
       ]);
+}
+
+class TableHeader extends StatelessWidget {
+  final List<GridCol> columns;
+  const TableHeader({super.key, required this.columns});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        color: const Color(0xFFF8FAFC),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(children: [
+          for (final col in columns)
+            Expanded(flex: col.flex, child: Text(col.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
+          const SizedBox(width: 96, child: Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
+        ]),
+      );
+}
+
+class TableRowItem extends StatelessWidget {
+  final Map<String, dynamic> row;
+  final List<GridCol> columns;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  const TableRowItem({super.key, required this.row, required this.columns, required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 58),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          for (final col in columns)
+            Expanded(flex: col.flex, child: Padding(padding: const EdgeInsets.only(right: 10), child: tableCell(col, valueFor(row, col.key)))),
+          SizedBox(
+            width: 96,
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_outlined, color: _primary, size: 20)),
+              IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline, color: _danger, size: 20)),
+            ]),
+          ),
+        ]),
+      );
+}
+
+Widget tableCell(GridCol col, Object? raw) {
+  if (col.isStatus) return Align(alignment: Alignment.centerLeft, child: StatusChip(formatValue(raw)));
+  final text = col.isMoney ? formatMoney(raw) : col.isNumber ? formatNumber(raw) : formatValue(raw);
+  return Tooltip(
+    message: text,
+    waitDuration: const Duration(milliseconds: 600),
+    child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500, color: _ink, fontSize: 13)),
+  );
 }
 
 class PaginationFooter extends StatelessWidget {
@@ -611,66 +669,9 @@ class PaginationFooter extends StatelessWidget {
           Expanded(child: Text(text, style: const TextStyle(color: _muted, fontWeight: FontWeight.w700))),
           OutlinedButton.icon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left), label: const Text('Previous')),
           const SizedBox(width: 8),
-          FilledButton.icon(onPressed: onNext, icon: const Text('Next'), label: const Icon(Icons.chevron_right)),
+          FilledButton.icon(onPressed: onNext, icon: const Icon(Icons.chevron_right), label: const Text('Next')),
         ]),
       ),
-    );
-  }
-}
-
-class RecordCard extends StatelessWidget {
-  final Map<String, dynamic> row;
-  final String titleKey;
-  final List<String> subtitleKeys;
-  final List<ListField> fields;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  const RecordCard({super.key, required this.row, required this.titleKey, required this.subtitleKeys, required this.fields, required this.onEdit, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    final title = formatValue(valueFor(row, titleKey));
-    final subtitles = subtitleKeys.map((k) => formatValue(valueFor(row, k))).where((v) => v != '-' && v.trim().isNotEmpty).join(' • ');
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 15)),
-              if (subtitles.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(subtitles, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _muted, fontSize: 13)),
-              ],
-              const SizedBox(height: 12),
-              Wrap(spacing: 10, runSpacing: 10, children: fields.map((f) => FieldPill(field: f, value: valueFor(row, f.key))).toList()),
-            ]),
-          ),
-          const SizedBox(width: 10),
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_outlined, color: _primary)),
-            IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline, color: _danger)),
-          ]),
-        ]),
-      ),
-    );
-  }
-}
-
-class FieldPill extends StatelessWidget {
-  final ListField field;
-  final Object? value;
-  const FieldPill({super.key, required this.field, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    if (field.isStatus) return StatusChip(formatValue(value));
-    final display = field.isMoney ? formatMoney(value) : field.isNumber ? formatNumber(value) : formatValue(value);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: _line)),
-      child: Text('${field.label}: $display', style: const TextStyle(fontSize: 12, color: _ink, fontWeight: FontWeight.w700)),
     );
   }
 }
@@ -686,7 +687,7 @@ class StatusChip extends StatelessWidget {
     if (v.contains('active') || v.contains('ongoing') || v.contains('on-going')) { bg = const Color(0xFFDCFCE7); fg = const Color(0xFF166534); }
     if (v.contains('renewal') || v.contains('due')) { bg = const Color(0xFFFEF3C7); fg = const Color(0xFF92400E); }
     if (v.contains('expired') || v.contains('inactive') || v.contains('separated')) { bg = const Color(0xFFFEE2E2); fg = const Color(0xFF991B1B); }
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)), child: Text(label, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900)));
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)), child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900)));
   }
 }
 
@@ -729,11 +730,12 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
   final selected = <String, String?>{};
 
   for (final f in fields) {
-    final v = initial?[f.key];
+    final raw = initial?[f.key]?.toString();
     if (f.kind == FieldKind.dropdown) {
-      selected[f.key] = v?.toString().isNotEmpty == true ? v.toString() : (f.options.isNotEmpty ? f.options.first.value : null);
+      final exists = raw != null && f.options.any((o) => o.value == raw);
+      selected[f.key] = exists ? raw : (f.options.isNotEmpty ? f.options.first.value : null);
     } else {
-      controllers[f.key] = TextEditingController(text: formatEditValue(v));
+      controllers[f.key] = TextEditingController(text: formatEditValue(initial?[f.key]));
     }
   }
 
