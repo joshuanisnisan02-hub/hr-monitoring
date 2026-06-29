@@ -1,3 +1,6 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -191,7 +194,7 @@ class AppSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDBEAFE))),
             child: const Text(
-              'Linked employee names are read-only in module records. Edit names only in Employees.',
+              'Add buttons are enabled. Existing linked employee names are read-only outside Employees.',
               style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
             ),
           ),
@@ -463,7 +466,7 @@ class CredentialsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return PageFrame(
       title: 'Credentials',
-      subtitle: 'Manage existing licenses and national certificates linked to employees.',
+      subtitle: 'Manage licenses and national certificates linked to employees.',
       child: DefaultTabController(
         length: 2,
         child: Column(children: const [
@@ -485,7 +488,6 @@ class LicensesTab extends StatelessWidget {
       load: () => loadLicenses(),
       searchHint: 'Search employee, license name, number, or status',
       addLabel: 'Add License',
-      allowAdd: false,
       columns: const [
         GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
         GridCol('license_name', 'License', flex: 2),
@@ -494,6 +496,7 @@ class LicensesTab extends StatelessWidget {
         GridCol('expiry_date', 'Expiry'),
         GridCol('status', 'Status', isStatus: true),
       ],
+      onAdd: (ctx, refresh) => editLicense(ctx, null, refresh),
       onEdit: editLicense,
       onDelete: (row) => db.from('employee_licenses').delete().eq('id', row['id']),
     );
@@ -509,7 +512,6 @@ class CertificatesTab extends StatelessWidget {
       load: () => loadCertificates(),
       searchHint: 'Search employee, certificate, number, or status',
       addLabel: 'Add Certificate',
-      allowAdd: false,
       columns: const [
         GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
         GridCol('certificate_name', 'Certificate', flex: 3),
@@ -518,6 +520,7 @@ class CertificatesTab extends StatelessWidget {
         GridCol('expiry_date', 'Expiry'),
         GridCol('status', 'Status', isStatus: true),
       ],
+      onAdd: (ctx, refresh) => editCertificate(ctx, null, refresh),
       onEdit: editCertificate,
       onDelete: (row) => db.from('employee_certificates').delete().eq('id', row['id']),
     );
@@ -531,12 +534,11 @@ class EvaluationsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return PageFrame(
       title: 'Evaluations',
-      subtitle: 'Manage existing evaluation ratings by academic year and semester.',
+      subtitle: 'Manage evaluation ratings by academic year and semester.',
       child: CrudTable(
         load: () => loadEvaluations(),
         searchHint: 'Search employee, academic year, semester, or description',
         addLabel: 'Add Evaluation',
-        allowAdd: false,
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('academic_year', 'A.Y.'),
@@ -547,6 +549,7 @@ class EvaluationsPage extends StatelessWidget {
           GridCol('total_rating', 'Total', isNumber: true),
           GridCol('total_description', 'Description', flex: 2),
         ],
+        onAdd: (ctx, refresh) => editEvaluation(ctx, null, refresh),
         onEdit: editEvaluation,
         onDelete: (row) => db.from('evaluation_records').delete().eq('id', row['id']),
       ),
@@ -561,12 +564,11 @@ class RankingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return PageFrame(
       title: 'Ranking',
-      subtitle: 'Manage existing faculty ranking applications. Employee name is read-only here.',
+      subtitle: 'Manage faculty ranking applications. Employee name is read-only when editing existing records.',
       child: CrudTable(
         load: () => loadRankings(),
         searchHint: 'Search employee, cycle, rank, or appointment',
         addLabel: 'Add Ranking',
-        allowAdd: false,
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('cycle_name', 'Cycle', flex: 2),
@@ -576,6 +578,7 @@ class RankingPage extends StatelessWidget {
           GridCol('approved_rank_text', 'Approved', flex: 2),
           GridCol('approved_salary', 'Salary', isMoney: true),
         ],
+        onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
         onEdit: editRanking,
         onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
       ),
@@ -1150,37 +1153,43 @@ Future<void> editContract(BuildContext context, Map<String, dynamic>? row, VoidC
 }
 
 Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
+  final isAdd = row == null;
+  final employees = isAdd ? await employeeOptions() : const <EditOption>[];
   final data = await showRecordDialog(
     context,
-    'Edit License',
-    const [
-      EditField('license_name', 'License Name', required: true),
-      EditField('license_number', 'License Number'),
-      EditField('issued_date', 'Issued Date', kind: FieldKind.date),
-      EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
-      EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
+    isAdd ? 'Add License' : 'Edit License',
+    [
+      if (isAdd) EditField('employee_id', 'Employee Name', kind: FieldKind.dropdown, required: true, options: employees),
+      const EditField('license_name', 'License Name', required: true),
+      const EditField('license_number', 'License Number'),
+      const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
+      const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
+      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
     row,
-    readOnlyEmployeeName: linkedEmployeeName(row),
+    readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
   await saveRow(context, 'employee_licenses', row?['id'], data, refresh);
 }
 
 Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
+  final isAdd = row == null;
+  final employees = isAdd ? await employeeOptions() : const <EditOption>[];
   final data = await showRecordDialog(
     context,
-    'Edit Certificate',
-    const [
-      EditField('certificate_type', 'Certificate Type'),
-      EditField('certificate_name', 'Certificate Name', required: true),
-      EditField('certificate_number', 'Certificate Number'),
-      EditField('issued_date', 'Issued Date', kind: FieldKind.date),
-      EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
-      EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
+    isAdd ? 'Add Certificate' : 'Edit Certificate',
+    [
+      if (isAdd) EditField('employee_id', 'Employee Name', kind: FieldKind.dropdown, required: true, options: employees),
+      const EditField('certificate_type', 'Certificate Type'),
+      const EditField('certificate_name', 'Certificate Name', required: true),
+      const EditField('certificate_number', 'Certificate Number'),
+      const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
+      const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
+      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
     row,
-    readOnlyEmployeeName: linkedEmployeeName(row),
+    readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
   data['certificate_type'] ??= 'National Certificate';
@@ -1188,34 +1197,46 @@ Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, Vo
 }
 
 Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
+  final isAdd = row == null;
+  final employees = isAdd ? await employeeOptions() : const <EditOption>[];
   final data = await showRecordDialog(
     context,
-    'Edit Evaluation',
-    const [
-      EditField('academic_year', 'Academic Year', required: true),
-      EditField('semester', 'Semester', required: true),
-      EditField('superior_rating', 'Superior Rating', kind: FieldKind.number),
-      EditField('peer_rating', 'Peer Rating', kind: FieldKind.number),
-      EditField('self_rating', 'Self Rating', kind: FieldKind.number),
-      EditField('student_rating', 'Student Rating', kind: FieldKind.number),
-      EditField('total_rating', 'Total Rating', kind: FieldKind.number),
-      EditField('total_description', 'Total Description', kind: FieldKind.multiline, lines: 3),
+    isAdd ? 'Add Evaluation' : 'Edit Evaluation',
+    [
+      if (isAdd) EditField('employee_id', 'Employee Name', kind: FieldKind.dropdown, required: true, options: employees),
+      const EditField('academic_year', 'Academic Year', required: true),
+      const EditField('semester', 'Semester', required: true),
+      const EditField('superior_rating', 'Superior Rating', kind: FieldKind.number),
+      const EditField('peer_rating', 'Peer Rating', kind: FieldKind.number),
+      const EditField('self_rating', 'Self Rating', kind: FieldKind.number),
+      const EditField('student_rating', 'Student Rating', kind: FieldKind.number),
+      const EditField('total_rating', 'Total Rating', kind: FieldKind.number),
+      const EditField('total_description', 'Total Description', kind: FieldKind.multiline, lines: 3),
     ],
     row,
-    readOnlyEmployeeName: linkedEmployeeName(row),
+    readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
   await saveRow(context, 'evaluation_records', row?['id'], data, refresh);
 }
 
 Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
-  final data = await showRankingDialog(context, await cycleOptions(), await rankOptions(), row);
+  final isAdd = row == null;
+  final data = await showRankingDialog(
+    context,
+    isAdd ? await employeeOptions() : const <EditOption>[],
+    await cycleOptions(),
+    await rankOptions(),
+    row,
+  );
   if (data == null) return;
   await saveRow(context, 'ranking_applications', row?['id'], data, refresh);
 }
 
-Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditOption> cycles, List<EditOption> ranks, Map<String, dynamic>? initial) async {
+Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditOption> employees, List<EditOption> cycles, List<EditOption> ranks, Map<String, dynamic>? initial) async {
+  final isAdd = initial == null;
   final formKey = GlobalKey<FormState>();
+  String? employeeId = isAdd ? optionValueOrFirst(null, employees, true) : initial?['employee_id']?.toString();
   String? cycleId = optionValueOrFirst(initial?['cycle_id']?.toString(), cycles, true);
   final appointment = TextEditingController(text: formatEditValue(initial?['appointment']));
   final previousRank = TextEditingController(text: formatEditValue(initial?['previous_rank_text']));
@@ -1254,14 +1275,27 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
     context: context,
     builder: (_) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: const Text('Edit Ranking Record'),
+        title: Text(isAdd ? 'Add Ranking Record' : 'Edit Ranking Record'),
         content: SizedBox(
           width: 760,
           child: Form(
             key: formKey,
             child: SingleChildScrollView(
               child: Wrap(spacing: 14, runSpacing: 14, children: [
-                ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
+                if (isAdd)
+                  SizedBox(
+                    width: 354,
+                    child: DropdownButtonFormField<String>(
+                      value: optionValueOrFirst(employeeId, employees, true),
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Employee Name'),
+                      items: uniqueOptions(employees).map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                      onChanged: (v) => setDialogState(() => employeeId = v),
+                    ),
+                  )
+                else
+                  ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
                 SizedBox(
                   width: 354,
                   child: DropdownButtonFormField<String>(
@@ -1286,7 +1320,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-                    child: const Text('Employee name is locked here. Edit names in Employees. Type ranks manually or use Pick to auto-fill salary.', style: TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)),
+                    child: Text(isAdd ? 'Select an employee for the new ranking record. Type ranks manually or use Pick to auto-fill salary.' : 'Employee name is locked here. Edit names in Employees. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)),
                   ),
                 ),
               ]),
@@ -1299,7 +1333,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
               Navigator.pop(context, {
-                'employee_id': initial?['employee_id'],
+                'employee_id': isAdd ? emptyToNull(employeeId) : initial?['employee_id'],
                 'cycle_id': emptyToNull(cycleId),
                 'appointment': emptyToNull(appointment.text),
                 'previous_rank_text': emptyToNull(previousRank.text),
@@ -1447,9 +1481,9 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton.icon(onPressed: () => showSnack(context, 'Press Ctrl + P to print the selected report.'), icon: const Icon(Icons.print_rounded), label: const Text('Print Report')),
+              FilledButton.icon(onPressed: () => html.window.print(), icon: const Icon(Icons.print_rounded), label: const Text('Print Report')),
               const SizedBox(width: 12),
-              const Expanded(child: Text('Select a report, then use Ctrl + P or your browser print option.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600))),
+              const Expanded(child: Text('Select a report, then click Print Report.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600))),
             ]),
           ),
         ),
