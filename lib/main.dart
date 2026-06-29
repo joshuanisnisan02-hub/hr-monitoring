@@ -9,6 +9,8 @@ const _ink = Color(0xFF0F172A);
 const _muted = Color(0xFF64748B);
 const _bg = Color(0xFFF8FAFC);
 const _line = Color(0xFFE2E8F0);
+const _danger = Color(0xFFDC2626);
+const _pageSize = 10;
 
 SupabaseClient get db => Supabase.instance.client;
 
@@ -41,7 +43,7 @@ class HrApp extends StatelessWidget {
             fillColor: Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _primary, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _primary, width: 1.4)),
           ),
         ),
         home: publicClientKey.isEmpty ? const SetupPage() : const ShellPage(),
@@ -132,7 +134,7 @@ class AppSidebar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-          child: const Text('Use Add, Edit, and Delete on each module. Records are shown as compact cards to avoid horizontal scrolling.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
+          child: const Text('Records are paginated: 10 per page. Use search to filter across all records.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
         ),
       ]),
     );
@@ -460,18 +462,7 @@ class CrudList extends StatefulWidget {
   final EditHandler onEdit;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
-  const CrudList({
-    super.key,
-    required this.load,
-    required this.searchHint,
-    required this.addLabel,
-    required this.titleKey,
-    required this.subtitleKeys,
-    required this.fields,
-    required this.onAdd,
-    required this.onEdit,
-    required this.onDelete,
-  });
+  const CrudList({super.key, required this.load, required this.searchHint, required this.addLabel, required this.titleKey, required this.subtitleKeys, required this.fields, required this.onAdd, required this.onEdit, required this.onDelete});
 
   @override
   State<CrudList> createState() => _CrudListState();
@@ -480,6 +471,7 @@ class CrudList extends StatefulWidget {
 class _CrudListState extends State<CrudList> {
   late Future<List<dynamic>> future;
   String query = '';
+  int page = 0;
 
   @override
   void initState() {
@@ -487,7 +479,15 @@ class _CrudListState extends State<CrudList> {
     future = widget.load();
   }
 
-  void refresh() => setState(() => future = widget.load());
+  void refresh() => setState(() {
+        future = widget.load();
+        page = 0;
+      });
+
+  void setSearch(String value) => setState(() {
+        query = value;
+        page = 0;
+      });
 
   @override
   Widget build(BuildContext context) => FutureBuilder<List<dynamic>>(
@@ -495,8 +495,14 @@ class _CrudListState extends State<CrudList> {
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
           if (snap.hasError) return ErrorBox('${snap.error}');
+
           final rows = snap.data?.cast<Map<String, dynamic>>() ?? [];
           final filtered = query.trim().isEmpty ? rows : rows.where((r) => searchableText(r).contains(query.toLowerCase())).toList();
+          final pageCount = filtered.isEmpty ? 1 : ((filtered.length - 1) ~/ _pageSize) + 1;
+          final safePage = page.clamp(0, pageCount - 1).toInt();
+          final startIndex = filtered.isEmpty ? 0 : safePage * _pageSize;
+          final pageRows = filtered.skip(startIndex).take(_pageSize).toList();
+          final endIndex = filtered.isEmpty ? 0 : startIndex + pageRows.length;
 
           return Column(children: [
             ListToolbar(
@@ -504,7 +510,7 @@ class _CrudListState extends State<CrudList> {
               showing: filtered.length,
               hint: widget.searchHint,
               addLabel: widget.addLabel,
-              onSearch: (v) => setState(() => query = v),
+              onSearch: setSearch,
               onRefresh: refresh,
               onAdd: () => widget.onAdd(context, refresh),
             ),
@@ -514,17 +520,27 @@ class _CrudListState extends State<CrudList> {
                   ? const EmptyBox()
                   : ListView.separated(
                       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                      itemCount: filtered.length,
+                      itemCount: pageRows.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (_, i) => RecordCard(
-                        row: filtered[i],
+                        row: pageRows[i],
                         titleKey: widget.titleKey,
                         subtitleKeys: widget.subtitleKeys,
                         fields: widget.fields,
-                        onEdit: () => widget.onEdit(context, filtered[i], refresh),
-                        onDelete: () => confirmDelete(context, filtered[i]),
+                        onEdit: () => widget.onEdit(context, pageRows[i], refresh),
+                        onDelete: () => confirmDelete(context, pageRows[i]),
                       ),
                     ),
+            ),
+            const SizedBox(height: 12),
+            PaginationFooter(
+              page: safePage,
+              pageCount: pageCount,
+              start: startIndex + 1,
+              end: endIndex,
+              total: filtered.length,
+              onPrevious: safePage > 0 ? () => setState(() => page = safePage - 1) : null,
+              onNext: safePage < pageCount - 1 ? () => setState(() => page = safePage + 1) : null,
             ),
           ]);
         },
@@ -565,12 +581,7 @@ class ListToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(children: [
-        Expanded(
-          child: TextField(
-            onChanged: onSearch,
-            decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)),
-          ),
-        ),
+        Expanded(child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)))),
         const SizedBox(width: 12),
         Chip(avatar: const Icon(Icons.list_alt_outlined, size: 18), label: Text('$showing of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
         const SizedBox(width: 12),
@@ -578,6 +589,33 @@ class ListToolbar extends StatelessWidget {
         const SizedBox(width: 12),
         FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add), label: Text(addLabel)),
       ]);
+}
+
+class PaginationFooter extends StatelessWidget {
+  final int page;
+  final int pageCount;
+  final int start;
+  final int end;
+  final int total;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+  const PaginationFooter({super.key, required this.page, required this.pageCount, required this.start, required this.end, required this.total, this.onPrevious, this.onNext});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = total == 0 ? 'No records' : 'Showing $start-$end of $total • Page ${page + 1} of $pageCount • 10 per page';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(children: [
+          Expanded(child: Text(text, style: const TextStyle(color: _muted, fontWeight: FontWeight.w700))),
+          OutlinedButton.icon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left), label: const Text('Previous')),
+          const SizedBox(width: 8),
+          FilledButton.icon(onPressed: onNext, icon: const Text('Next'), label: const Icon(Icons.chevron_right)),
+        ]),
+      ),
+    );
+  }
 }
 
 class RecordCard extends StatelessWidget {
@@ -612,7 +650,7 @@ class RecordCard extends StatelessWidget {
           const SizedBox(width: 10),
           Row(mainAxisSize: MainAxisSize.min, children: [
             IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_outlined, color: _primary)),
-            IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626))),
+            IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline, color: _danger)),
           ]),
         ]),
       ),
