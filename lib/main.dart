@@ -5,9 +5,12 @@ const projectUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https:/
 const publicClientKey = String.fromEnvironment('SUPABASE_PUBLIC_CLIENT_KEY');
 
 const _primary = Color(0xFF2563EB);
+const _primaryDark = Color(0xFF1E40AF);
 const _ink = Color(0xFF0F172A);
 const _muted = Color(0xFF64748B);
 const _bg = Color(0xFFF8FAFC);
+const _surface = Color(0xFFFFFFFF);
+const _soft = Color(0xFFF1F5F9);
 const _line = Color(0xFFE2E8F0);
 const _danger = Color(0xFFDC2626);
 const _pageSize = 10;
@@ -32,18 +35,38 @@ class HrApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           scaffoldBackgroundColor: _bg,
-          colorScheme: ColorScheme.fromSeed(seedColor: _primary),
+          colorScheme: ColorScheme.fromSeed(seedColor: _primary, brightness: Brightness.light),
+          fontFamily: 'Arial',
           cardTheme: CardThemeData(
             elevation: 0,
-            color: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: _line)),
+            color: _surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: const BorderSide(color: _line)),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF4B5FA7),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF4B5FA7),
+              side: const BorderSide(color: Color(0xFFCBD5E1)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+            ),
           ),
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
             fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _primary, width: 1.4)),
+            hintStyle: const TextStyle(color: _muted),
+            labelStyle: const TextStyle(color: _primaryDark, fontWeight: FontWeight.w600),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _line)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _line)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _primary, width: 1.6)),
           ),
         ),
         home: publicClientKey.isEmpty ? const SetupPage() : const ShellPage(),
@@ -108,33 +131,42 @@ class AppSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ('Dashboard', Icons.dashboard_outlined),
-      ('Employees', Icons.people_alt_outlined),
-      ('Contracts', Icons.assignment_outlined),
-      ('Credentials', Icons.badge_outlined),
-      ('Evaluations', Icons.rate_review_outlined),
-      ('Ranking', Icons.leaderboard_outlined),
+      ('Dashboard', Icons.dashboard_rounded),
+      ('Employees', Icons.groups_rounded),
+      ('Contracts', Icons.assignment_rounded),
+      ('Credentials', Icons.badge_rounded),
+      ('Evaluations', Icons.rate_review_rounded),
+      ('Ranking', Icons.leaderboard_rounded),
     ];
 
     return Container(
       width: 240,
       color: Colors.white,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 42, height: 42, decoration: BoxDecoration(color: _primary, borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.school, color: Colors.white)),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_primary, Color(0xFF4F46E5)]),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [BoxShadow(color: Color(0x332563EB), blurRadius: 18, offset: Offset(0, 8))],
+            ),
+            child: const Icon(Icons.school_rounded, color: Colors.white),
+          ),
           const SizedBox(width: 12),
           const Expanded(child: Text('HR Monitoring', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _ink))),
         ]),
-        const SizedBox(height: 6),
-        const Text('Faculty and staff records', style: TextStyle(fontSize: 12, color: _muted)),
-        const SizedBox(height: 26),
+        const SizedBox(height: 7),
+        const Text('Faculty and staff records', style: TextStyle(fontSize: 12, color: _muted, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 30),
         for (var i = 0; i < items.length; i++) SidebarItem(label: items[i].$1, icon: items[i].$2, selected: selectedIndex == i, onTap: () => onChanged(i)),
         const Spacer(),
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
-          child: const Text('Tables use title case text and sortable columns.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35)),
+          decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDBEAFE))),
+          child: const Text('Modern table view with search, sorting, 10 rows per page, and quick actions.', style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35, fontWeight: FontWeight.w600)),
         ),
       ]),
     );
@@ -150,18 +182,22 @@ class SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: 9),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            decoration: BoxDecoration(color: selected ? const Color(0xFFEFF6FF) : Colors.transparent, borderRadius: BorderRadius.circular(14)),
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFFEFF6FF) : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: selected ? const Color(0xFFDBEAFE) : Colors.transparent),
+            ),
             child: Row(children: [
-              Icon(icon, color: selected ? _primary : _muted),
+              Icon(icon, color: selected ? _primary : const Color(0xFF64748B), size: 22),
               const SizedBox(width: 12),
-              Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w900 : FontWeight.w600, color: selected ? _primary : _ink)),
+              Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w900 : FontWeight.w700, color: selected ? _primary : _ink)),
             ]),
           ),
         ),
@@ -178,9 +214,9 @@ class PageFrame extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 30, height: 1.1, fontWeight: FontWeight.w900, color: _ink)),
+          Text(title, style: const TextStyle(fontSize: 30, height: 1.08, fontWeight: FontWeight.w900, color: _ink, letterSpacing: -0.7)),
           const SizedBox(height: 8),
-          Text(subtitle, style: const TextStyle(color: _muted)),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF52637A), fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 22),
           Expanded(child: child),
         ]),
@@ -202,23 +238,23 @@ class DashboardPage extends StatelessWidget {
             if (snap.hasError) return ErrorBox('${snap.error}');
             final row = snap.data?.isNotEmpty == true ? snap.data!.first as Map<String, dynamic> : <String, dynamic>{};
             final cards = [
-              Metric('Active Employees', row['active_employees'], Icons.people_alt_outlined, const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
-              Metric('Active Faculty', row['active_faculty'], Icons.school_outlined, const Color(0xFFF0FDF4), const Color(0xFF15803D)),
-              Metric('For Renewal', row['contracts_for_renewal'], Icons.schedule_outlined, const Color(0xFFFFFBEB), const Color(0xFFB45309)),
+              Metric('Active Employees', row['active_employees'], Icons.people_alt_rounded, const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
+              Metric('Active Faculty', row['active_faculty'], Icons.school_rounded, const Color(0xFFF0FDF4), const Color(0xFF15803D)),
+              Metric('For Renewal', row['contracts_for_renewal'], Icons.schedule_rounded, const Color(0xFFFFFBEB), const Color(0xFFB45309)),
               Metric('Expired Contracts', row['expired_contracts'], Icons.warning_amber_rounded, const Color(0xFFFEF2F2), const Color(0xFFB91C1C)),
-              Metric('Licenses Due', row['licenses_due'], Icons.badge_outlined, const Color(0xFFF5F3FF), const Color(0xFF6D28D9)),
-              Metric('Certificates Due', row['certificates_due'], Icons.workspace_premium_outlined, const Color(0xFFECFEFF), const Color(0xFF0E7490)),
-              Metric('Ranking Records', row['ranking_applications'], Icons.leaderboard_outlined, const Color(0xFFF8FAFC), _ink),
+              Metric('Licenses Due', row['licenses_due'], Icons.badge_rounded, const Color(0xFFF5F3FF), const Color(0xFF6D28D9)),
+              Metric('Certificates Due', row['certificates_due'], Icons.workspace_premium_rounded, const Color(0xFFECFEFF), const Color(0xFF0E7490)),
+              Metric('Ranking Records', row['ranking_applications'], Icons.leaderboard_rounded, const Color(0xFFF8FAFC), _ink),
             ];
             return SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(spacing: 16, runSpacing: 16, children: cards.map((m) => MetricCard(m)).toList()),
                 const SizedBox(height: 24),
                 Wrap(spacing: 14, runSpacing: 14, children: [
-                  QuickCard('Manage Employees', Icons.people_alt_outlined, () => onNavigate(1)),
-                  QuickCard('Manage Contracts', Icons.assignment_outlined, () => onNavigate(2)),
-                  QuickCard('Manage Credentials', Icons.badge_outlined, () => onNavigate(3)),
-                  QuickCard('Manage Ranking', Icons.leaderboard_outlined, () => onNavigate(5)),
+                  QuickCard('Manage Employees', Icons.people_alt_rounded, () => onNavigate(1)),
+                  QuickCard('Manage Contracts', Icons.assignment_rounded, () => onNavigate(2)),
+                  QuickCard('Manage Credentials', Icons.badge_rounded, () => onNavigate(3)),
+                  QuickCard('Manage Ranking', Icons.leaderboard_rounded, () => onNavigate(5)),
                 ]),
               ]),
             );
@@ -243,12 +279,21 @@ class MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
         width: 255,
-        height: 134,
-        child: Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: metric.bg, borderRadius: BorderRadius.circular(13)), child: Icon(metric.icon, color: metric.fg)), const Spacer(), Text('${metric.value ?? 0}', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: _ink))]),
-          const Spacer(),
-          Text(metric.title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
-        ]))),
+        height: 136,
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(width: 42, height: 42, decoration: BoxDecoration(color: metric.bg, borderRadius: BorderRadius.circular(14)), child: Icon(metric.icon, color: metric.fg)),
+                const Spacer(),
+                Text('${metric.value ?? 0}', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: _ink, letterSpacing: -0.7)),
+              ]),
+              const Spacer(),
+              Text(metric.title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+            ]),
+          ),
+        ),
       );
 }
 
@@ -261,7 +306,21 @@ class QuickCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
         width: 250,
-        child: Card(child: InkWell(borderRadius: BorderRadius.circular(18), onTap: onTap, child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [Icon(icon, color: _primary), const SizedBox(width: 12), Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))), const Icon(Icons.chevron_right, color: _muted)])))),
+        child: Card(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(children: [
+                Icon(icon, color: _primary),
+                const SizedBox(width: 12),
+                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))),
+                const Icon(Icons.chevron_right_rounded, color: _muted),
+              ]),
+            ),
+          ),
+        ),
       );
 }
 
@@ -275,7 +334,7 @@ class EmployeesPage extends StatelessWidget {
         subtitle: 'Create, edit, delete, and search employee or faculty master records.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search Employee Name, Appointment, Status, Or License',
+          searchHint: 'Search employees, appointment, status, or license',
           addLabel: 'Add Employee',
           columns: const [
             GridCol('full_name', 'Employee Name', flex: 3, primary: true),
@@ -302,7 +361,7 @@ class ContractsPage extends StatelessWidget {
         subtitle: 'Manage contract records without breaking the Excel contract monitoring flow.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search Employee, Contract Type, Date, Or Status',
+          searchHint: 'Search employee, contract type, date, or status',
           addLabel: 'Add Contract',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
@@ -344,7 +403,7 @@ class LicensesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CrudTable(
         load: load,
-        searchHint: 'Search Employee, License Name, Number, Or Status',
+        searchHint: 'Search employee, license name, number, or status',
         addLabel: 'Add License',
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
@@ -367,7 +426,7 @@ class CertificatesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CrudTable(
         load: load,
-        searchHint: 'Search Employee, Certificate, Number, Or Status',
+        searchHint: 'Search employee, certificate, number, or status',
         addLabel: 'Add Certificate',
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
@@ -393,7 +452,7 @@ class EvaluationsPage extends StatelessWidget {
         subtitle: 'Manage evaluation ratings by academic year and semester.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search Employee, Academic Year, Semester, Or Description',
+          searchHint: 'Search employee, academic year, semester, or description',
           addLabel: 'Add Evaluation',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
@@ -422,7 +481,7 @@ class RankingPage extends StatelessWidget {
         subtitle: 'Manage faculty ranking applications, points, ranks, and salaries.',
         child: CrudTable(
           load: load,
-          searchHint: 'Search Employee, Cycle, Rank, Or Appointment',
+          searchHint: 'Search employee, cycle, rank, or appointment',
           addLabel: 'Add Ranking',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
@@ -535,9 +594,9 @@ class _CrudTableState extends State<CrudTable> {
               onSortChanged: setSort,
               onToggleSortDirection: toggleSortDirection,
             ),
-            const SizedBox(height: 12),
-            Expanded(child: sorted.isEmpty ? const EmptyBox() : buildTable(pageRows)),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            Expanded(child: sorted.isEmpty ? const EmptyBox() : buildTable(pageRows, activeSortKey)),
+            const SizedBox(height: 14),
             PaginationFooter(
               page: safePage,
               pageCount: pageCount,
@@ -551,11 +610,26 @@ class _CrudTableState extends State<CrudTable> {
         },
       );
 
-  Widget buildTable(List<Map<String, dynamic>> rows) => Card(
+  Widget buildTable(List<Map<String, dynamic>> rows, String activeSortKey) => Card(
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(22),
           child: Column(children: [
-            TableHeader(columns: widget.columns),
+            TableHeader(
+              columns: widget.columns,
+              sortKey: activeSortKey,
+              sortAscending: sortAscending,
+              onSort: (key) {
+                setState(() {
+                  if (sortKey == key) {
+                    sortAscending = !sortAscending;
+                  } else {
+                    sortKey = key;
+                    sortAscending = true;
+                  }
+                  page = 0;
+                });
+              },
+            ),
             const Divider(height: 1, color: _line),
             Expanded(
               child: ListView.separated(
@@ -564,6 +638,7 @@ class _CrudTableState extends State<CrudTable> {
                 itemBuilder: (_, i) => TableRowItem(
                   row: rows[i],
                   columns: widget.columns,
+                  index: i,
                   onEdit: () => widget.onEdit(context, rows[i], refresh),
                   onDelete: () => confirmDelete(context, rows[i]),
                 ),
@@ -627,45 +702,98 @@ class TableToolbar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          SizedBox(width: 380, child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)))),
-          SizedBox(
-            width: 190,
-            child: DropdownButtonFormField<String>(
-              value: sortKey,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Sort By', contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-              items: columns.map((c) => DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis))).toList(),
-              onChanged: onSortChanged,
-            ),
-          ),
-          OutlinedButton.icon(
-            onPressed: onToggleSortDirection,
-            icon: Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 18),
-            label: Text(sortAscending ? 'A-Z' : 'Z-A'),
-          ),
-          Chip(avatar: const Icon(Icons.table_rows_outlined, size: 18), label: Text('$showing Of $total'), backgroundColor: Colors.white, side: const BorderSide(color: _line)),
-          OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
-          FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add), label: Text(addLabel)),
-        ],
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final compact = constraints.maxWidth < 940;
+            final search = SizedBox(
+              width: compact ? constraints.maxWidth : 360,
+              child: TextField(
+                onChanged: onSearch,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  hintText: hint,
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                ),
+              ),
+            );
+            final sort = SizedBox(
+              width: 188,
+              child: DropdownButtonFormField<String>(
+                value: sortKey,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Sort By'),
+                items: columns.map((c) => DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis))).toList(),
+                onChanged: onSortChanged,
+              ),
+            );
+            final direction = OutlinedButton.icon(
+              onPressed: onToggleSortDirection,
+              icon: Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 18),
+              label: Text(sortAscending ? 'A-Z' : 'Z-A'),
+            );
+            final count = Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999), border: Border.all(color: _line)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.table_rows_rounded, size: 18, color: Color(0xFF4B5FA7)),
+                const SizedBox(width: 8),
+                Text('$showing Of $total', style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w800)),
+              ]),
+            );
+            final refresh = OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh'));
+            final add = FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add_rounded), label: Text(addLabel));
+
+            if (compact) {
+              return Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [search, sort, direction, count, refresh, add]);
+            }
+            return Row(children: [
+              Expanded(child: search),
+              const SizedBox(width: 10),
+              sort,
+              const SizedBox(width: 10),
+              direction,
+              const SizedBox(width: 10),
+              count,
+              const SizedBox(width: 10),
+              refresh,
+              const SizedBox(width: 10),
+              add,
+            ]);
+          }),
+        ),
       );
 }
 
 class TableHeader extends StatelessWidget {
   final List<GridCol> columns;
-  const TableHeader({super.key, required this.columns});
+  final String sortKey;
+  final bool sortAscending;
+  final ValueChanged<String> onSort;
+  const TableHeader({super.key, required this.columns, required this.sortKey, required this.sortAscending, required this.onSort});
 
   @override
   Widget build(BuildContext context) => Container(
         color: const Color(0xFFF8FAFC),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(children: [
           for (final col in columns)
-            Expanded(flex: col.flex, child: Text(col.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
+            Expanded(
+              flex: col.flex,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => onSort(col.key),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Row(children: [
+                    Expanded(child: Text(col.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
+                    if (sortKey == col.key) Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 15, color: _primary),
+                  ]),
+                ),
+              ),
+            ),
           const SizedBox(width: 96, child: Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
         ]),
       );
@@ -674,22 +802,24 @@ class TableHeader extends StatelessWidget {
 class TableRowItem extends StatelessWidget {
   final Map<String, dynamic> row;
   final List<GridCol> columns;
+  final int index;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const TableRowItem({super.key, required this.row, required this.columns, required this.onEdit, required this.onDelete});
+  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        constraints: const BoxConstraints(minHeight: 58),
+        color: index.isEven ? Colors.white : const Color(0xFFFBFDFF),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 62),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           for (final col in columns)
             Expanded(flex: col.flex, child: Padding(padding: const EdgeInsets.only(right: 10), child: tableCell(col, valueFor(row, col.key)))),
           SizedBox(
             width: 96,
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_outlined, color: _primary, size: 20)),
-              IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline, color: _danger, size: 20)),
+              IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_rounded, color: _primary, size: 20)),
+              IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),
             ]),
           ),
         ]),
@@ -702,7 +832,7 @@ Widget tableCell(GridCol col, Object? raw) {
   return Tooltip(
     message: text,
     waitDuration: const Duration(milliseconds: 600),
-    child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500, color: _ink, fontSize: 13)),
+    child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500, color: _ink, fontSize: 13, height: 1.25)),
   );
 }
 
@@ -723,10 +853,10 @@ class PaginationFooter extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(children: [
-          Expanded(child: Text(text, style: const TextStyle(color: _muted, fontWeight: FontWeight.w700))),
-          OutlinedButton.icon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left), label: const Text('Previous')),
+          Expanded(child: Text(text, style: const TextStyle(color: _muted, fontWeight: FontWeight.w800))),
+          OutlinedButton.icon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left_rounded), label: const Text('Previous')),
           const SizedBox(width: 8),
-          FilledButton.icon(onPressed: onNext, icon: const Icon(Icons.chevron_right), label: const Text('Next')),
+          FilledButton.icon(onPressed: onNext, icon: const Icon(Icons.chevron_right_rounded), label: const Text('Next')),
         ]),
       ),
     );
@@ -744,7 +874,11 @@ class StatusChip extends StatelessWidget {
     if (v.contains('active') || v.contains('ongoing') || v.contains('on-going')) { bg = const Color(0xFFDCFCE7); fg = const Color(0xFF166534); }
     if (v.contains('renewal') || v.contains('due')) { bg = const Color(0xFFFEF3C7); fg = const Color(0xFF92400E); }
     if (v.contains('expired') || v.contains('inactive') || v.contains('separated')) { bg = const Color(0xFFFEE2E2); fg = const Color(0xFF991B1B); }
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)), child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900)));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900)),
+    );
   }
 }
 
@@ -998,15 +1132,12 @@ int compareValues(Object? a, Object? b) {
   if (a == null && b == null) return 0;
   if (a == null) return 1;
   if (b == null) return -1;
-
   final na = num.tryParse(a.toString());
   final nb = num.tryParse(b.toString());
   if (na != null && nb != null) return na.compareTo(nb);
-
   final da = DateTime.tryParse(a.toString());
   final dbb = DateTime.tryParse(b.toString());
   if (da != null && dbb != null) return da.compareTo(dbb);
-
   return formatValue(a).toLowerCase().compareTo(formatValue(b).toLowerCase());
 }
 
@@ -1042,19 +1173,16 @@ String formatValue(Object? value) {
 }
 
 String toTitleCase(String input) {
-  final lowerWords = {'and', 'or', 'of', 'in', 'on', 'for', 'to', 'the', 'a', 'an'};
-  final acronyms = {'LPT', 'MAED', 'MAT', 'MA', 'MBA', 'MIT', 'PhD', 'NC', 'PRC', 'HR', 'MIS', 'OAA', 'OSA', 'TESDA', 'CBIT', 'CRIM', 'CSSH', 'GAD', 'SDS'};
-  final words = input.split(' ');
-  return words.asMap().entries.map((entry) {
-    final index = entry.key;
-    final word = entry.value;
+  final acronyms = <String, String>{
+    'LPT': 'LPT', 'MAED': 'MAED', 'MAT': 'MAT', 'MA': 'MA', 'MBA': 'MBA', 'MIT': 'MIT', 'PHD': 'PhD',
+    'NC': 'NC', 'PRC': 'PRC', 'HR': 'HR', 'MIS': 'MIS', 'OAA': 'OAA', 'OSA': 'OSA', 'TESDA': 'TESDA',
+    'CBIT': 'CBIT', 'CRIM': 'CRIM', 'CSSH': 'CSSH', 'GAD': 'GAD', 'SDS': 'SDS', 'BPE': 'BPE', 'MSCRIM': 'MSCRIM', 'RCRIM': 'RCRIM'
+  };
+  return input.split(' ').map((word) {
     if (word.isEmpty) return word;
-    final clean = word.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
-    final upperClean = clean.toUpperCase();
-    if (acronyms.contains(upperClean)) return word.toUpperCase();
-    if (RegExp(r'^[IVXLCM]+$').hasMatch(upperClean)) return word.toUpperCase();
-    final lower = word.toLowerCase();
-    if (index != 0 && lowerWords.contains(lower)) return lower;
+    final clean = word.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    if (acronyms.containsKey(clean)) return word.toUpperCase().replaceFirst(clean, acronyms[clean]!);
+    if (RegExp(r'^[IVXLCM]+$').hasMatch(clean)) return word.toUpperCase();
     return word.split('-').map(capitalizeWord).join('-');
   }).join(' ');
 }
