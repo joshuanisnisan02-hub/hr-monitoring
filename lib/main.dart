@@ -8,10 +8,10 @@ const projectUrl = String.fromEnvironment(
 const publicClientKey = String.fromEnvironment('SUPABASE_PUBLIC_CLIENT_KEY');
 
 const _primary = Color(0xFF2563EB);
+const _accent = Color(0xFF4B5FA7);
 const _ink = Color(0xFF0F172A);
 const _muted = Color(0xFF64748B);
 const _bg = Color(0xFFF8FAFC);
-const _surface = Color(0xFFFFFFFF);
 const _line = Color(0xFFE2E8F0);
 const _danger = Color(0xFFDC2626);
 const _pageSize = 10;
@@ -41,7 +41,7 @@ class HrApp extends StatelessWidget {
         fontFamily: 'Arial',
         cardTheme: CardThemeData(
           elevation: 0,
-          color: _surface,
+          color: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
             side: const BorderSide(color: _line),
@@ -49,7 +49,7 @@ class HrApp extends StatelessWidget {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF4B5FA7),
+            backgroundColor: _accent,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
@@ -57,7 +57,7 @@ class HrApp extends StatelessWidget {
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF4B5FA7),
+            foregroundColor: _accent,
             side: const BorderSide(color: Color(0xFFCBD5E1)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
@@ -67,23 +67,11 @@ class HrApp extends StatelessWidget {
           filled: true,
           fillColor: Colors.white,
           hintStyle: const TextStyle(color: _muted),
-          labelStyle: const TextStyle(
-            color: Color(0xFF1E40AF),
-            fontWeight: FontWeight.w600,
-          ),
+          labelStyle: const TextStyle(color: Color(0xFF1E40AF), fontWeight: FontWeight.w600),
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: _line),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: _line),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: _primary, width: 1.6),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _line)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _line)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: _primary, width: 1.6)),
         ),
       ),
       home: publicClientKey.isEmpty ? const SetupPage() : const ShellPage(),
@@ -103,9 +91,7 @@ class SetupPage extends StatelessWidget {
           child: Card(
             child: Padding(
               padding: EdgeInsets.all(28),
-              child: Text(
-                'Start the app with your Supabase public client key using --dart-define.',
-              ),
+              child: Text('Start the app with your Supabase public client key using --dart-define.'),
             ),
           ),
         ),
@@ -138,10 +124,7 @@ class _ShellPageState extends State<ShellPage> {
     return Scaffold(
       body: Row(
         children: [
-          AppSidebar(
-            selectedIndex: index,
-            onChanged: (i) => setState(() => index = i),
-          ),
+          AppSidebar(selectedIndex: index, onChanged: (i) => setState(() => index = i)),
           const VerticalDivider(width: 1, color: _line),
           Expanded(child: pages[index]),
         ],
@@ -150,31 +133,21 @@ class _ShellPageState extends State<ShellPage> {
   }
 }
 
-class NavItem {
-  final String label;
-  final IconData icon;
-  const NavItem(this.label, this.icon);
-}
-
 class AppSidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
-  const AppSidebar({
-    super.key,
-    required this.selectedIndex,
-    required this.onChanged,
-  });
+  const AppSidebar({super.key, required this.selectedIndex, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     const items = [
-      NavItem('Dashboard', Icons.dashboard_rounded),
-      NavItem('Employees', Icons.groups_rounded),
-      NavItem('Contracts', Icons.assignment_rounded),
-      NavItem('Credentials', Icons.badge_rounded),
-      NavItem('Evaluations', Icons.rate_review_rounded),
-      NavItem('Ranking', Icons.leaderboard_rounded),
+      ('Dashboard', Icons.dashboard_rounded),
+      ('Employees', Icons.groups_rounded),
+      ('Contracts', Icons.assignment_rounded),
+      ('Credentials', Icons.badge_rounded),
+      ('Evaluations', Icons.rate_review_rounded),
+      ('Ranking', Icons.leaderboard_rounded),
     ];
 
     return Container(
@@ -190,66 +163,30 @@ class AppSidebar extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [_primary, Color(0xFF4F46E5)],
-                  ),
+                  gradient: const LinearGradient(colors: [_primary, Color(0xFF4F46E5)]),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x332563EB),
-                      blurRadius: 18,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
+                  boxShadow: const [BoxShadow(color: Color(0x332563EB), blurRadius: 18, offset: Offset(0, 8))],
                 ),
                 child: const Icon(Icons.school_rounded, color: Colors.white),
               ),
               const SizedBox(width: 12),
               const Expanded(
-                child: Text(
-                  'HR Monitoring',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: _ink,
-                  ),
-                ),
+                child: Text('HR Monitoring', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _ink)),
               ),
             ],
           ),
           const SizedBox(height: 7),
-          const Text(
-            'Faculty and staff records',
-            style: TextStyle(
-              fontSize: 12,
-              color: _muted,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          const Text('Faculty and staff records', style: TextStyle(fontSize: 12, color: _muted, fontWeight: FontWeight.w500)),
           const SizedBox(height: 30),
           for (var i = 0; i < items.length; i++)
-            SidebarItem(
-              label: items[i].label,
-              icon: items[i].icon,
-              selected: selectedIndex == i,
-              onTap: () => onChanged(i),
-            ),
+            SidebarItem(label: items[i].$1, icon: items[i].$2, selected: selectedIndex == i, onTap: () => onChanged(i)),
           const Spacer(),
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFDBEAFE)),
-            ),
+            decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDBEAFE))),
             child: const Text(
-              'Ranking ranks use the salary grade table. Choosing a rank can auto-fill the salary.',
-              style: TextStyle(
-                color: Color(0xFF1E3A8A),
-                fontSize: 12,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
-              ),
+              'Ranking fields are fully editable. Rank picker can auto-fill salary, but salary can still be changed manually.',
+              style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 12, height: 1.35, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -264,13 +201,7 @@ class SidebarItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const SidebarItem({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
+  const SidebarItem({super.key, required this.label, required this.icon, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -285,25 +216,13 @@ class SidebarItem extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected ? const Color(0xFFEFF6FF) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? const Color(0xFFDBEAFE) : Colors.transparent,
-            ),
+            border: Border.all(color: selected ? const Color(0xFFDBEAFE) : Colors.transparent),
           ),
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: selected ? _primary : const Color(0xFF64748B),
-                size: 22,
-              ),
+              Icon(icon, color: selected ? _primary : const Color(0xFF64748B), size: 22),
               const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
-                  color: selected ? _primary : _ink,
-                ),
-              ),
+              Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w900 : FontWeight.w700, color: selected ? _primary : _ink)),
             ],
           ),
         ),
@@ -317,12 +236,7 @@ class PageFrame extends StatelessWidget {
   final String subtitle;
   final Widget child;
 
-  const PageFrame({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.child,
-  });
+  const PageFrame({super.key, required this.title, required this.subtitle, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -331,25 +245,9 @@ class PageFrame extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 30,
-              height: 1.08,
-              fontWeight: FontWeight.w900,
-              color: _ink,
-              letterSpacing: -0.7,
-            ),
-          ),
+          Text(title, style: const TextStyle(fontSize: 30, height: 1.08, fontWeight: FontWeight.w900, color: _ink, letterSpacing: -0.7)),
           const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              color: Color(0xFF52637A),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF52637A), fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 22),
           Expanded(child: child),
         ],
@@ -370,13 +268,9 @@ class DashboardPage extends StatelessWidget {
       child: FutureBuilder<List<dynamic>>(
         future: db.from('hr_dashboard_counts').select(),
         builder: (_, snap) {
-          if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
           if (snap.hasError) return ErrorBox('${snap.error}');
-          final row = snap.data?.isNotEmpty == true
-              ? snap.data!.first as Map<String, dynamic>
-              : <String, dynamic>{};
+          final row = snap.data?.isNotEmpty == true ? snap.data!.first as Map<String, dynamic> : <String, dynamic>{};
           final cards = [
             Metric('Active Employees', row['active_employees'], Icons.people_alt_rounded, const Color(0xFFEFF6FF), const Color(0xFF1D4ED8)),
             Metric('Active Faculty', row['active_faculty'], Icons.school_rounded, const Color(0xFFF0FDF4), const Color(0xFF15803D)),
@@ -390,11 +284,7 @@ class DashboardPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: cards.map((m) => MetricCard(m)).toList(),
-                ),
+                Wrap(spacing: 16, runSpacing: 16, children: cards.map((m) => MetricCard(m)).toList()),
                 const SizedBox(height: 24),
                 Wrap(
                   spacing: 14,
@@ -441,32 +331,13 @@ class MetricCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: metric.bg,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(metric.icon, color: metric.fg),
-                  ),
+                  Container(width: 42, height: 42, decoration: BoxDecoration(color: metric.bg, borderRadius: BorderRadius.circular(14)), child: Icon(metric.icon, color: metric.fg)),
                   const Spacer(),
-                  Text(
-                    '${metric.value ?? 0}',
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                      color: _ink,
-                      letterSpacing: -0.7,
-                    ),
-                  ),
+                  Text('${metric.value ?? 0}', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: _ink, letterSpacing: -0.7)),
                 ],
               ),
               const Spacer(),
-              Text(
-                metric.title,
-                style: const TextStyle(fontWeight: FontWeight.w900, color: _ink),
-              ),
+              Text(metric.title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink)),
             ],
           ),
         ),
@@ -496,12 +367,7 @@ class QuickCard extends StatelessWidget {
               children: [
                 Icon(icon, color: _primary),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w900, color: _ink),
-                  ),
-                ),
+                Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))),
                 const Icon(Icons.chevron_right_rounded, color: _muted),
               ],
             ),
@@ -515,13 +381,7 @@ class QuickCard extends StatelessWidget {
 class EmployeesPage extends StatelessWidget {
   const EmployeesPage({super.key});
 
-  Future<List<dynamic>> load() {
-    return db
-        .from('employees')
-        .select('id, full_name, appointment, designation, employee_type, employment_status, current_salary, license_summary')
-        .order('full_name')
-        .limit(1500);
-  }
+  Future<List<dynamic>> load() => db.from('employees').select('id, full_name, appointment, designation, employee_type, employment_status, current_salary, license_summary').order('full_name').limit(1500);
 
   @override
   Widget build(BuildContext context) {
@@ -551,13 +411,7 @@ class EmployeesPage extends StatelessWidget {
 class ContractsPage extends StatelessWidget {
   const ContractsPage({super.key});
 
-  Future<List<dynamic>> load() {
-    return db
-        .from('employee_contracts')
-        .select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, employees(full_name)')
-        .order('contract_end_date', ascending: true)
-        .limit(1500);
-  }
+  Future<List<dynamic>> load() => db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, employees(full_name)').order('contract_end_date', ascending: true).limit(1500);
 
   @override
   Widget build(BuildContext context) {
@@ -596,27 +450,9 @@ class CredentialsPage extends StatelessWidget {
         length: 2,
         child: Column(
           children: const [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: 430,
-                child: TabBar(
-                  tabs: [
-                    Tab(text: 'Licenses'),
-                    Tab(text: 'National Certificates'),
-                  ],
-                ),
-              ),
-            ),
+            Align(alignment: Alignment.centerLeft, child: SizedBox(width: 430, child: TabBar(tabs: [Tab(text: 'Licenses'), Tab(text: 'National Certificates')]))),
             SizedBox(height: 16),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  LicensesTab(),
-                  CertificatesTab(),
-                ],
-              ),
-            ),
+            Expanded(child: TabBarView(children: [LicensesTab(), CertificatesTab()])),
           ],
         ),
       ),
@@ -627,13 +463,7 @@ class CredentialsPage extends StatelessWidget {
 class LicensesTab extends StatelessWidget {
   const LicensesTab({super.key});
 
-  Future<List<dynamic>> load() {
-    return db
-        .from('employee_licenses')
-        .select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, employees(full_name)')
-        .order('expiry_date')
-        .limit(1500);
-  }
+  Future<List<dynamic>> load() => db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(1500);
 
   @override
   Widget build(BuildContext context) {
@@ -659,13 +489,7 @@ class LicensesTab extends StatelessWidget {
 class CertificatesTab extends StatelessWidget {
   const CertificatesTab({super.key});
 
-  Future<List<dynamic>> load() {
-    return db
-        .from('employee_certificates')
-        .select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, employees(full_name)')
-        .order('expiry_date')
-        .limit(1500);
-  }
+  Future<List<dynamic>> load() => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, employees(full_name)').order('expiry_date').limit(1500);
 
   @override
   Widget build(BuildContext context) {
@@ -691,13 +515,7 @@ class CertificatesTab extends StatelessWidget {
 class EvaluationsPage extends StatelessWidget {
   const EvaluationsPage({super.key});
 
-  Future<List<dynamic>> load() {
-    return db
-        .from('evaluation_records')
-        .select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)')
-        .order('academic_year')
-        .limit(1500);
-  }
+  Future<List<dynamic>> load() => db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(1500);
 
   @override
   Widget build(BuildContext context) {
@@ -729,19 +547,13 @@ class EvaluationsPage extends StatelessWidget {
 class RankingPage extends StatelessWidget {
   const RankingPage({super.key});
 
-  Future<List<dynamic>> load() {
-    return db
-        .from('ranking_applications')
-        .select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)')
-        .order('points_earned', ascending: false)
-        .limit(1500);
-  }
+  Future<List<dynamic>> load() => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(1500);
 
   @override
   Widget build(BuildContext context) {
     return PageFrame(
       title: 'Ranking',
-      subtitle: 'Manage faculty ranking applications. Rank dropdowns use the salary grade reference.',
+      subtitle: 'Manage faculty ranking applications. Rank fields are editable and can auto-fill salary.',
       child: CrudTable(
         load: load,
         searchHint: 'Search employee, cycle, rank, or appointment',
@@ -772,15 +584,7 @@ class GridCol {
   final bool isMoney;
   final bool isNumber;
 
-  const GridCol(
-    this.key,
-    this.label, {
-    this.flex = 1,
-    this.primary = false,
-    this.isStatus = false,
-    this.isMoney = false,
-    this.isNumber = false,
-  });
+  const GridCol(this.key, this.label, {this.flex = 1, this.primary = false, this.isStatus = false, this.isMoney = false, this.isNumber = false});
 }
 
 typedef AddHandler = Future<void> Function(BuildContext context, VoidCallback refresh);
@@ -795,16 +599,7 @@ class CrudTable extends StatefulWidget {
   final EditHandler onEdit;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
-  const CrudTable({
-    super.key,
-    required this.load,
-    required this.searchHint,
-    required this.addLabel,
-    required this.columns,
-    required this.onAdd,
-    required this.onEdit,
-    required this.onDelete,
-  });
+  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, required this.columns, required this.onAdd, required this.onEdit, required this.onDelete});
 
   @override
   State<CrudTable> createState() => _CrudTableState();
@@ -824,51 +619,38 @@ class _CrudTableState extends State<CrudTable> {
     sortKey = widget.columns.first.key;
   }
 
-  void refresh() {
-    setState(() {
-      future = widget.load();
-      page = 0;
-    });
-  }
+  void refresh() => setState(() {
+        future = widget.load();
+        page = 0;
+      });
 
-  void setSearch(String value) {
-    setState(() {
-      query = value;
-      page = 0;
-    });
-  }
+  void setSearch(String value) => setState(() {
+        query = value;
+        page = 0;
+      });
 
-  void setSort(String? value) {
-    setState(() {
-      sortKey = value ?? widget.columns.first.key;
-      page = 0;
-    });
-  }
+  void setSort(String? value) => setState(() {
+        sortKey = value ?? widget.columns.first.key;
+        page = 0;
+      });
 
-  void toggleSortDirection() {
-    setState(() {
-      sortAscending = !sortAscending;
-      page = 0;
-    });
-  }
+  void toggleSortDirection() => setState(() {
+        sortAscending = !sortAscending;
+        page = 0;
+      });
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<dynamic>>(
       future: future,
       builder: (context, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
         if (snap.hasError) return ErrorBox('${snap.error}');
 
-        final rows = snap.data?.cast<Map<String, dynamic>>() ?? [];
-        final filtered = query.trim().isEmpty
-            ? rows
-            : rows.where((r) => searchableText(r).contains(query.toLowerCase())).toList();
+        final rows = (snap.data ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        final filtered = query.trim().isEmpty ? rows : rows.where((r) => searchableText(r).contains(query.toLowerCase())).toList();
         final activeSortKey = sortKey ?? widget.columns.first.key;
-        final sorted = [...filtered]
-          ..sort((a, b) => compareRows(a, b, activeSortKey, sortAscending));
+        final sorted = [...filtered]..sort((a, b) => compareRows(a, b, activeSortKey, sortAscending));
         final pageCount = sorted.isEmpty ? 1 : ((sorted.length - 1) ~/ _pageSize) + 1;
         final safePage = page.clamp(0, pageCount - 1).toInt();
         final startIndex = sorted.isEmpty ? 0 : safePage * _pageSize;
@@ -892,9 +674,7 @@ class _CrudTableState extends State<CrudTable> {
               onToggleSortDirection: toggleSortDirection,
             ),
             const SizedBox(height: 14),
-            Expanded(
-              child: sorted.isEmpty ? const EmptyBox() : buildTable(pageRows, activeSortKey),
-            ),
+            Expanded(child: sorted.isEmpty ? const EmptyBox() : buildTable(pageRows, activeSortKey)),
             const SizedBox(height: 14),
             PaginationFooter(
               page: safePage,
@@ -958,22 +738,13 @@ class _CrudTableState extends State<CrudTable> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Record?'),
-        content: Text(
-          'This will remove ${formatValue(valueFor(row, widget.columns.first.key))} from this module.',
-        ),
+        content: Text('This will remove ${formatValue(valueFor(row, widget.columns.first.key))} from this module.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
         ],
       ),
     );
-
     if (ok != true) return;
     try {
       await widget.onDelete(row);
@@ -999,21 +770,7 @@ class TableToolbar extends StatelessWidget {
   final ValueChanged<String?> onSortChanged;
   final VoidCallback onToggleSortDirection;
 
-  const TableToolbar({
-    super.key,
-    required this.total,
-    required this.showing,
-    required this.hint,
-    required this.addLabel,
-    required this.columns,
-    required this.sortKey,
-    required this.sortAscending,
-    required this.onSearch,
-    required this.onRefresh,
-    required this.onAdd,
-    required this.onSortChanged,
-    required this.onToggleSortDirection,
-  });
+  const TableToolbar({super.key, required this.total, required this.showing, required this.hint, required this.addLabel, required this.columns, required this.sortKey, required this.sortAscending, required this.onSearch, required this.onRefresh, required this.onAdd, required this.onSortChanged, required this.onToggleSortDirection});
 
   @override
   Widget build(BuildContext context) {
@@ -1025,15 +782,7 @@ class TableToolbar extends StatelessWidget {
             final compact = constraints.maxWidth < 940;
             final search = SizedBox(
               width: compact ? constraints.maxWidth : 360,
-              child: TextField(
-                onChanged: onSearch,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  hintText: hint,
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                ),
-              ),
+              child: TextField(onChanged: onSearch, decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded), hintText: hint, filled: true, fillColor: const Color(0xFFF8FAFC))),
             );
             final sort = SizedBox(
               width: 188,
@@ -1041,80 +790,23 @@ class TableToolbar extends StatelessWidget {
                 value: sortKey,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Sort By'),
-                items: columns
-                    .map((c) => DropdownMenuItem(
-                          value: c.key,
-                          child: Text(c.label, overflow: TextOverflow.ellipsis),
-                        ))
-                    .toList(),
+                items: columns.map((c) => DropdownMenuItem(value: c.key, child: Text(c.label, overflow: TextOverflow.ellipsis))).toList(),
                 onChanged: onSortChanged,
               ),
             );
-            final direction = OutlinedButton.icon(
-              onPressed: onToggleSortDirection,
-              icon: Icon(
-                sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                size: 18,
-              ),
-              label: Text(sortAscending ? 'A-Z' : 'Z-A'),
-            );
+            final direction = OutlinedButton.icon(onPressed: onToggleSortDirection, icon: Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 18), label: Text(sortAscending ? 'A-Z' : 'Z-A'));
             final count = Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: _line),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.table_rows_rounded, size: 18, color: Color(0xFF4B5FA7)),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$showing Of $total',
-                    style: const TextStyle(
-                      color: Color(0xFF475569),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
+              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999), border: Border.all(color: _line)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.table_rows_rounded, size: 18, color: _accent), const SizedBox(width: 8), Text('$showing Of $total', style: const TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w800))]),
             );
-            final refresh = OutlinedButton.icon(
-              onPressed: onRefresh,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Refresh'),
-            );
-            final add = FilledButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add_rounded),
-              label: Text(addLabel),
-            );
+            final refresh = OutlinedButton.icon(onPressed: onRefresh, icon: const Icon(Icons.refresh_rounded), label: const Text('Refresh'));
+            final add = FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add_rounded), label: Text(addLabel));
 
             if (compact) {
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [search, sort, direction, count, refresh, add],
-              );
+              return Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [search, sort, direction, count, refresh, add]);
             }
-
-            return Row(
-              children: [
-                Expanded(child: search),
-                const SizedBox(width: 10),
-                sort,
-                const SizedBox(width: 10),
-                direction,
-                const SizedBox(width: 10),
-                count,
-                const SizedBox(width: 10),
-                refresh,
-                const SizedBox(width: 10),
-                add,
-              ],
-            );
+            return Row(children: [Expanded(child: search), const SizedBox(width: 10), sort, const SizedBox(width: 10), direction, const SizedBox(width: 10), count, const SizedBox(width: 10), refresh, const SizedBox(width: 10), add]);
           },
         ),
       ),
@@ -1128,13 +820,7 @@ class TableHeader extends StatelessWidget {
   final bool sortAscending;
   final ValueChanged<String> onSort;
 
-  const TableHeader({
-    super.key,
-    required this.columns,
-    required this.sortKey,
-    required this.sortAscending,
-    required this.onSort,
-  });
+  const TableHeader({super.key, required this.columns, required this.sortKey, required this.sortAscending, required this.onSort});
 
   @override
   Widget build(BuildContext context) {
@@ -1153,43 +839,14 @@ class TableHeader extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 10),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          col.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: _ink,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      if (sortKey == col.key)
-                        Icon(
-                          sortAscending
-                              ? Icons.arrow_upward_rounded
-                              : Icons.arrow_downward_rounded,
-                          size: 15,
-                          color: _primary,
-                        ),
+                      Expanded(child: Text(col.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
+                      if (sortKey == col.key) Icon(sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 15, color: _primary),
                     ],
                   ),
                 ),
               ),
             ),
-          const SizedBox(
-            width: 96,
-            child: Text(
-              'Actions',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                color: _ink,
-                fontSize: 13,
-              ),
-            ),
-          ),
+          const SizedBox(width: 96, child: Text('Actions', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900, color: _ink, fontSize: 13))),
         ],
       ),
     );
@@ -1203,14 +860,7 @@ class TableRowItem extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const TableRowItem({
-    super.key,
-    required this.row,
-    required this.columns,
-    required this.index,
-    required this.onEdit,
-    required this.onDelete,
-  });
+  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -1222,30 +872,13 @@ class TableRowItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           for (final col in columns)
-            Expanded(
-              flex: col.flex,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: tableCell(col, valueFor(row, col.key)),
-              ),
-            ),
+            Expanded(flex: col.flex, child: Padding(padding: const EdgeInsets.only(right: 10), child: tableCell(col, valueFor(row, col.key)))),
           SizedBox(
             width: 96,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  tooltip: 'Edit',
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_rounded, color: _primary, size: 20),
-                ),
-                IconButton(
-                  tooltip: 'Delete',
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20),
-                ),
-              ],
-            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_rounded, color: _primary, size: 20)),
+              IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),
+            ]),
           ),
         ],
       ),
@@ -1254,31 +887,12 @@ class TableRowItem extends StatelessWidget {
 }
 
 Widget tableCell(GridCol col, Object? raw) {
-  if (col.isStatus) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: StatusChip(formatValue(raw)),
-    );
-  }
-  final text = col.isMoney
-      ? formatMoney(raw)
-      : col.isNumber
-          ? formatNumber(raw)
-          : formatValue(raw);
+  if (col.isStatus) return Align(alignment: Alignment.centerLeft, child: StatusChip(formatValue(raw)));
+  final text = col.isMoney ? formatMoney(raw) : col.isNumber ? formatNumber(raw) : formatValue(raw);
   return Tooltip(
     message: text,
     waitDuration: const Duration(milliseconds: 600),
-    child: Text(
-      text,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500,
-        color: _ink,
-        fontSize: 13,
-        height: 1.25,
-      ),
-    ),
+    child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500, color: _ink, fontSize: 13, height: 1.25)),
   );
 }
 
@@ -1291,16 +905,7 @@ class PaginationFooter extends StatelessWidget {
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
 
-  const PaginationFooter({
-    super.key,
-    required this.page,
-    required this.pageCount,
-    required this.start,
-    required this.end,
-    required this.total,
-    this.onPrevious,
-    this.onNext,
-  });
+  const PaginationFooter({super.key, required this.page, required this.pageCount, required this.start, required this.end, required this.total, this.onPrevious, this.onNext});
 
   @override
   Widget build(BuildContext context) {
@@ -1309,25 +914,10 @@ class PaginationFooter extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(
           children: [
-            Expanded(
-              child: Text(
-                total == 0
-                    ? 'No Records'
-                    : 'Showing $start-$end Of $total - Page ${page + 1} Of $pageCount - 10 Per Page',
-                style: const TextStyle(color: _muted, fontWeight: FontWeight.w800),
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: onPrevious,
-              icon: const Icon(Icons.chevron_left_rounded),
-              label: const Text('Previous'),
-            ),
+            Expanded(child: Text(total == 0 ? 'No Records' : 'Showing $start-$end Of $total - Page ${page + 1} Of $pageCount - 10 Per Page', style: const TextStyle(color: _muted, fontWeight: FontWeight.w800))),
+            OutlinedButton.icon(onPressed: onPrevious, icon: const Icon(Icons.chevron_left_rounded), label: const Text('Previous')),
             const SizedBox(width: 8),
-            FilledButton.icon(
-              onPressed: onNext,
-              icon: const Icon(Icons.chevron_right_rounded),
-              label: const Text('Next'),
-            ),
+            FilledButton.icon(onPressed: onNext, icon: const Icon(Icons.chevron_right_rounded), label: const Text('Next')),
           ],
         ),
       ),
@@ -1359,12 +949,7 @@ class StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900),
-      ),
+      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w900)),
     );
   }
 }
@@ -1375,16 +960,7 @@ class ErrorBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFFFFF7ED),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Text(
-          'Unable To Load Records: $message',
-          style: const TextStyle(color: Color(0xFF9A3412)),
-        ),
-      ),
-    );
+    return Card(color: const Color(0xFFFFF7ED), child: Padding(padding: const EdgeInsets.all(18), child: Text('Unable To Load Records: $message', style: const TextStyle(color: Color(0xFF9A3412)))));
   }
 }
 
@@ -1393,17 +969,7 @@ class EmptyBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(34),
-          child: Text(
-            'No Matching Records Found.',
-            style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ),
-    );
+    return const Card(child: Center(child: Padding(padding: EdgeInsets.all(34), child: Text('No Matching Records Found.', style: TextStyle(color: _muted, fontWeight: FontWeight.w700)))));
   }
 }
 
@@ -1424,22 +990,10 @@ class EditField {
   final List<EditOption> options;
   final int lines;
 
-  const EditField(
-    this.key,
-    this.label, {
-    this.kind = FieldKind.text,
-    this.required = false,
-    this.options = const [],
-    this.lines = 1,
-  });
+  const EditField(this.key, this.label, {this.kind = FieldKind.text, this.required = false, this.options = const [], this.lines = 1});
 }
 
-Future<Map<String, dynamic>?> showRecordDialog(
-  BuildContext context,
-  String title,
-  List<EditField> fields,
-  Map<String, dynamic>? initial,
-) async {
+Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String title, List<EditField> fields, Map<String, dynamic>? initial) async {
   final formKey = GlobalKey<FormState>();
   final controllers = <String, TextEditingController>{};
   final selected = <String, String?>{};
@@ -1477,16 +1031,8 @@ Future<Map<String, dynamic>?> showRecordDialog(
                           value: selected[f.key],
                           isExpanded: true,
                           decoration: InputDecoration(labelText: f.label),
-                          items: f.options
-                              .map((o) => DropdownMenuItem<String>(
-                                    value: o.value,
-                                    child: Text(o.label, overflow: TextOverflow.ellipsis),
-                                  ))
-                              .toList(),
-                          validator: (_) => f.required &&
-                                  (selected[f.key] == null || selected[f.key]!.isEmpty)
-                              ? 'Required'
-                              : null,
+                          items: uniqueOptions(f.options).map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+                          validator: (_) => f.required && (selected[f.key] == null || selected[f.key]!.isEmpty) ? 'Required' : null,
                           onChanged: (v) => setDialogState(() => selected[f.key] = v),
                         ),
                       );
@@ -1496,16 +1042,9 @@ Future<Map<String, dynamic>?> showRecordDialog(
                       child: TextFormField(
                         controller: controllers[f.key],
                         maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
-                        keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer
-                            ? TextInputType.number
-                            : TextInputType.text,
-                        decoration: InputDecoration(
-                          labelText: f.label,
-                          hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null,
-                        ),
-                        validator: (v) => f.required && (v == null || v.trim().isEmpty)
-                            ? 'Required'
-                            : null,
+                        keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
+                        decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
+                        validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
                       ),
                     );
                   }).toList(),
@@ -1514,20 +1053,13 @@ Future<Map<String, dynamic>?> showRecordDialog(
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             FilledButton(
               onPressed: () {
                 if (!formKey.currentState!.validate()) return;
                 final out = <String, dynamic>{};
                 for (final f in fields) {
-                  if (f.kind == FieldKind.dropdown) {
-                    out[f.key] = emptyToNull(selected[f.key]);
-                  } else {
-                    out[f.key] = parseFieldValue(controllers[f.key]!.text, f.kind);
-                  }
+                  out[f.key] = f.kind == FieldKind.dropdown ? emptyToNull(selected[f.key]) : parseFieldValue(controllers[f.key]!.text, f.kind);
                 }
                 Navigator.pop(context, out);
               },
@@ -1547,40 +1079,36 @@ Future<Map<String, dynamic>?> showRecordDialog(
 
 Future<List<EditOption>> employeeOptions() async {
   final rows = await db.from('employees').select('id, full_name').order('full_name').limit(2000);
-  return rows
-      .map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['full_name'])))
-      .toList();
+  return rows.map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['full_name']))).toList();
 }
 
 Future<List<EditOption>> cycleOptions() async {
   final rows = await db.from('ranking_cycles').select('id, name').order('name');
-  return rows
-      .map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['name'])))
-      .toList();
+  return rows.map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['name']))).toList();
 }
 
 Future<List<EditOption>> rankOptions() async {
-  final rows = await db
-      .from('ranks')
-      .select('name, default_salary, salary_grade, point_bracket, rank_group')
-      .order('sort_order')
-      .order('name')
-      .limit(500);
-
-  return rows.map<EditOption>((r) {
-    final name = formatValue(r['name']);
-    final salary = num.tryParse('${r['default_salary'] ?? ''}');
-    final sg = r['salary_grade'] == null ? '' : ' - SG ${r['salary_grade']}';
-    final pay = salary == null ? '' : ' - ${formatMoney(salary)}';
-    return EditOption(name, '$name$sg$pay', salary: salary);
-  }).toList();
+  try {
+    final rows = await db.from('ranks').select('name, default_salary, salary_grade, point_bracket, rank_group').order('sort_order').order('name').limit(500);
+    final out = <EditOption>[];
+    final seen = <String>{};
+    for (final r in rows) {
+      final name = formatValue(r['name']);
+      final key = normalizeRankKey(name);
+      if (key.isEmpty || seen.contains(key)) continue;
+      seen.add(key);
+      final salary = num.tryParse('${r['default_salary'] ?? ''}');
+      final sg = r['salary_grade'] == null ? '' : ' - SG ${r['salary_grade']}';
+      final pay = salary == null ? '' : ' - ${formatMoney(salary)}';
+      out.add(EditOption(name, '$name$sg$pay', salary: salary));
+    }
+    return out;
+  } catch (_) {
+    return const [];
+  }
 }
 
-Future<void> editEmployee(
-  BuildContext context,
-  Map<String, dynamic>? row,
-  VoidCallback refresh,
-) async {
+Future<void> editEmployee(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final data = await showRecordDialog(
     context,
     row == null ? 'Add Employee' : 'Edit Employee',
@@ -1588,28 +1116,8 @@ Future<void> editEmployee(
       EditField('full_name', 'Full Name', required: true),
       EditField('appointment', 'Appointment'),
       EditField('designation', 'Designation'),
-      EditField(
-        'employee_type',
-        'Employee Type',
-        kind: FieldKind.dropdown,
-        options: [
-          EditOption('full_time', 'Full Time'),
-          EditOption('probationary', 'Probationary'),
-          EditOption('part_time', 'Part Time'),
-          EditOption('staff', 'Staff'),
-          EditOption('faculty_staff', 'Faculty / Staff'),
-        ],
-      ),
-      EditField(
-        'employment_status',
-        'Employment Status',
-        kind: FieldKind.dropdown,
-        options: [
-          EditOption('active', 'Active'),
-          EditOption('inactive', 'Inactive'),
-          EditOption('separated', 'Separated'),
-        ],
-      ),
+      EditField('employee_type', 'Employee Type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full Time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part Time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
+      EditField('employment_status', 'Employment Status', kind: FieldKind.dropdown, options: [EditOption('active', 'Active'), EditOption('inactive', 'Inactive'), EditOption('separated', 'Separated')]),
       EditField('current_salary', 'Current Salary', kind: FieldKind.number),
       EditField('license_summary', 'License Summary'),
     ],
@@ -1620,11 +1128,7 @@ Future<void> editEmployee(
   await saveRow(context, 'employees', row?['id'], data, refresh);
 }
 
-Future<void> editContract(
-  BuildContext context,
-  Map<String, dynamic>? row,
-  VoidCallback refresh,
-) async {
+Future<void> editContract(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
   final data = await showRecordDialog(
     context,
@@ -1635,17 +1139,7 @@ Future<void> editContract(
       const EditField('contract_start_date', 'Start Date', kind: FieldKind.date),
       const EditField('duration_months', 'Duration In Months', kind: FieldKind.integer),
       const EditField('contract_end_date', 'End Date', kind: FieldKind.date),
-      const EditField(
-        'status',
-        'Status',
-        kind: FieldKind.dropdown,
-        options: [
-          EditOption('On-going', 'On-going'),
-          EditOption('For Renewal', 'For Renewal'),
-          EditOption('Expired', 'Expired'),
-          EditOption('Archived', 'Archived'),
-        ],
-      ),
+      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('On-going', 'On-going'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
     row,
   );
@@ -1653,11 +1147,7 @@ Future<void> editContract(
   await saveRow(context, 'employee_contracts', row?['id'], data, refresh);
 }
 
-Future<void> editLicense(
-  BuildContext context,
-  Map<String, dynamic>? row,
-  VoidCallback refresh,
-) async {
+Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
   final data = await showRecordDialog(
     context,
@@ -1668,17 +1158,7 @@ Future<void> editLicense(
       const EditField('license_number', 'License Number'),
       const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
       const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
-      const EditField(
-        'status',
-        'Status',
-        kind: FieldKind.dropdown,
-        options: [
-          EditOption('Active', 'Active'),
-          EditOption('For Renewal', 'For Renewal'),
-          EditOption('Expired', 'Expired'),
-          EditOption('Archived', 'Archived'),
-        ],
-      ),
+      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
     row,
   );
@@ -1686,11 +1166,7 @@ Future<void> editLicense(
   await saveRow(context, 'employee_licenses', row?['id'], data, refresh);
 }
 
-Future<void> editCertificate(
-  BuildContext context,
-  Map<String, dynamic>? row,
-  VoidCallback refresh,
-) async {
+Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
   final data = await showRecordDialog(
     context,
@@ -1702,17 +1178,7 @@ Future<void> editCertificate(
       const EditField('certificate_number', 'Certificate Number'),
       const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
       const EditField('expiry_date', 'Expiry Date', kind: FieldKind.date),
-      const EditField(
-        'status',
-        'Status',
-        kind: FieldKind.dropdown,
-        options: [
-          EditOption('Active', 'Active'),
-          EditOption('For Renewal', 'For Renewal'),
-          EditOption('Expired', 'Expired'),
-          EditOption('Archived', 'Archived'),
-        ],
-      ),
+      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
     row,
   );
@@ -1721,11 +1187,7 @@ Future<void> editCertificate(
   await saveRow(context, 'employee_certificates', row?['id'], data, refresh);
 }
 
-Future<void> editEvaluation(
-  BuildContext context,
-  Map<String, dynamic>? row,
-  VoidCallback refresh,
-) async {
+Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
   final data = await showRecordDialog(
     context,
@@ -1747,22 +1209,11 @@ Future<void> editEvaluation(
   await saveRow(context, 'evaluation_records', row?['id'], data, refresh);
 }
 
-Future<void> editRanking(
-  BuildContext context,
-  Map<String, dynamic>? row,
-  VoidCallback refresh,
-) async {
+Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final employees = await employeeOptions();
   final cycles = await cycleOptions();
   final ranks = await rankOptions();
-  final data = await showRankingDialog(
-    context,
-    row == null ? 'Add Ranking Record' : 'Edit Ranking Record',
-    employees,
-    cycles,
-    ranks,
-    row,
-  );
+  final data = await showRankingDialog(context, row == null ? 'Add Ranking Record' : 'Edit Ranking Record', employees, cycles, ranks, row);
   if (data == null) return;
   await saveRow(context, 'ranking_applications', row?['id'], data, refresh);
 }
@@ -1778,35 +1229,26 @@ Future<Map<String, dynamic>?> showRankingDialog(
   final formKey = GlobalKey<FormState>();
   String? employeeId = optionValueOrFirst(initial?['employee_id']?.toString(), employees, true);
   String? cycleId = optionValueOrFirst(initial?['cycle_id']?.toString(), cycles, true);
-  String? previousRank = normalizedRankValue(initial?['previous_rank_text']);
-  String? appliedRank = normalizedRankValue(initial?['applied_rank_text']);
-  String? approvedRank = normalizedRankValue(initial?['approved_rank_text']);
 
   final appointment = TextEditingController(text: formatEditValue(initial?['appointment']));
+  final previousRank = TextEditingController(text: formatEditValue(initial?['previous_rank_text']));
   final previousSalary = TextEditingController(text: formatEditValue(initial?['previous_salary']));
+  final appliedRank = TextEditingController(text: formatEditValue(initial?['applied_rank_text']));
   final appliedSalary = TextEditingController(text: formatEditValue(initial?['applied_salary']));
-  final approvedSalary = TextEditingController(text: formatEditValue(initial?['approved_salary']));
   final points = TextEditingController(text: formatEditValue(initial?['points_earned']));
-  final rankChoices = withBlankAndExisting(ranks, [previousRank, appliedRank, approvedRank]);
+  final approvedRank = TextEditingController(text: formatEditValue(initial?['approved_rank_text']));
+  final approvedSalary = TextEditingController(text: formatEditValue(initial?['approved_salary']));
 
-  void applySalary(String? rank, TextEditingController target) {
-    final match = ranks.where((r) => r.value.toLowerCase() == (rank ?? '').toLowerCase());
-    if (match.isNotEmpty && match.first.salary != null) {
-      target.text = match.first.salary!.toStringAsFixed(2);
-    }
+  void applySalary(EditOption option, TextEditingController rankController, TextEditingController salaryController) {
+    rankController.text = option.value;
+    if (option.salary != null) salaryController.text = option.salary!.toStringAsFixed(2);
   }
 
   final result = await showDialog<Map<String, dynamic>>(
     context: context,
     builder: (_) => StatefulBuilder(
       builder: (context, setDialogState) {
-        Widget selectBox({
-          required String label,
-          required String? value,
-          required List<EditOption> options,
-          required bool requiredField,
-          required ValueChanged<String?> onChanged,
-        }) {
+        Widget selectBox({required String label, required String? value, required List<EditOption> options, required bool requiredField, required ValueChanged<String?> onChanged}) {
           final actualValue = optionValueOrFirst(value, options, requiredField);
           return SizedBox(
             width: 354,
@@ -1814,31 +1256,44 @@ Future<Map<String, dynamic>?> showRankingDialog(
               value: actualValue,
               isExpanded: true,
               decoration: InputDecoration(labelText: label),
-              items: options
-                  .map((o) => DropdownMenuItem<String>(
-                        value: o.value,
-                        child: Text(o.label, overflow: TextOverflow.ellipsis),
-                      ))
-                  .toList(),
-              validator: (_) => requiredField && (actualValue == null || actualValue.isEmpty)
-                  ? 'Required'
-                  : null,
+              items: uniqueOptions(options).map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+              validator: (_) => requiredField && (actualValue == null || actualValue.isEmpty) ? 'Required' : null,
               onChanged: onChanged,
             ),
           );
         }
 
-        Widget textBox(
-          String label,
-          TextEditingController controller, {
-          FieldKind kind = FieldKind.text,
-        }) {
+        Widget textBox(String label, TextEditingController controller, {FieldKind kind = FieldKind.text, bool requiredField = false}) {
           return SizedBox(
             width: 354,
             child: TextFormField(
               controller: controller,
               keyboardType: kind == FieldKind.number ? TextInputType.number : TextInputType.text,
               decoration: InputDecoration(labelText: label),
+              validator: (v) => requiredField && (v == null || v.trim().isEmpty) ? 'Required' : null,
+            ),
+          );
+        }
+
+        Widget rankTextBox(String label, TextEditingController rankController, TextEditingController salaryController) {
+          return SizedBox(
+            width: 354,
+            child: TextFormField(
+              controller: rankController,
+              decoration: InputDecoration(
+                labelText: label,
+                suffixIcon: PopupMenuButton<EditOption>(
+                  tooltip: 'Choose from salary grade reference',
+                  icon: const Icon(Icons.arrow_drop_down_rounded),
+                  onSelected: (option) => setDialogState(() => applySalary(option, rankController, salaryController)),
+                  itemBuilder: (_) => ranks
+                      .map((option) => PopupMenuItem<EditOption>(
+                            value: option,
+                            child: SizedBox(width: 320, child: Text(option.label, overflow: TextOverflow.ellipsis)),
+                          ))
+                      .toList(),
+                ),
+              ),
             ),
           );
         }
@@ -1854,71 +1309,24 @@ Future<Map<String, dynamic>?> showRankingDialog(
                   spacing: 14,
                   runSpacing: 14,
                   children: [
-                    selectBox(
-                      label: 'Employee',
-                      value: employeeId,
-                      options: employees,
-                      requiredField: true,
-                      onChanged: (v) => setDialogState(() => employeeId = v),
-                    ),
-                    selectBox(
-                      label: 'Ranking Cycle',
-                      value: cycleId,
-                      options: cycles,
-                      requiredField: true,
-                      onChanged: (v) => setDialogState(() => cycleId = v),
-                    ),
+                    selectBox(label: 'Employee Name', value: employeeId, options: employees, requiredField: true, onChanged: (v) => setDialogState(() => employeeId = v)),
+                    selectBox(label: 'Ranking Cycle', value: cycleId, options: cycles, requiredField: true, onChanged: (v) => setDialogState(() => cycleId = v)),
                     textBox('Appointment', appointment),
-                    const SizedBox(width: 354),
-                    selectBox(
-                      label: 'Previous Rank',
-                      value: previousRank,
-                      options: rankChoices,
-                      requiredField: false,
-                      onChanged: (v) => setDialogState(() {
-                        previousRank = emptyToNull(v);
-                        applySalary(previousRank, previousSalary);
-                      }),
-                    ),
-                    textBox('Previous Salary', previousSalary, kind: FieldKind.number),
-                    selectBox(
-                      label: 'Applied Rank',
-                      value: appliedRank,
-                      options: rankChoices,
-                      requiredField: false,
-                      onChanged: (v) => setDialogState(() {
-                        appliedRank = emptyToNull(v);
-                        applySalary(appliedRank, appliedSalary);
-                      }),
-                    ),
-                    textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
                     textBox('Points Earned', points, kind: FieldKind.number),
-                    const SizedBox(width: 354),
-                    selectBox(
-                      label: 'Approved Rank',
-                      value: approvedRank,
-                      options: rankChoices,
-                      requiredField: false,
-                      onChanged: (v) => setDialogState(() {
-                        approvedRank = emptyToNull(v);
-                        applySalary(approvedRank, approvedSalary);
-                      }),
-                    ),
-                    textBox('Approved Salary (Auto)', approvedSalary, kind: FieldKind.number),
+                    rankTextBox('Previous Rank', previousRank, previousSalary),
+                    textBox('Previous Salary', previousSalary, kind: FieldKind.number),
+                    rankTextBox('Applied Rank', appliedRank, appliedSalary),
+                    textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
+                    rankTextBox('Approved Rank', approvedRank, approvedSalary),
+                    textBox('Approved Salary', approvedSalary, kind: FieldKind.number),
                     SizedBox(
                       width: 728,
                       child: Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)),
                         child: const Text(
-                          'Tip: Selecting Previous, Applied, or Approved Rank automatically fills the matching salary using the Salary Grade For Faculty And Staff reference.',
-                          style: TextStyle(
-                            color: Color(0xFF1E3A8A),
-                            fontWeight: FontWeight.w600,
-                          ),
+                          'Tip: You can type ranks manually, or use the dropdown icon inside each rank field to auto-fill the matching salary from the salary grade reference.',
+                          style: TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -1928,23 +1336,20 @@ Future<Map<String, dynamic>?> showRankingDialog(
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             FilledButton(
               onPressed: () {
                 if (!formKey.currentState!.validate()) return;
                 Navigator.pop(context, {
                   'employee_id': emptyToNull(employeeId),
                   'cycle_id': emptyToNull(cycleId),
-                  'appointment': emptyToNull(appointment.text.trim()),
-                  'previous_rank_text': emptyToNull(previousRank),
+                  'appointment': emptyToNull(appointment.text),
+                  'previous_rank_text': emptyToNull(previousRank.text),
                   'previous_salary': num.tryParse(previousSalary.text.trim()),
-                  'applied_rank_text': emptyToNull(appliedRank),
+                  'applied_rank_text': emptyToNull(appliedRank.text),
                   'applied_salary': num.tryParse(appliedSalary.text.trim()),
                   'points_earned': num.tryParse(points.text.trim()),
-                  'approved_rank_text': emptyToNull(approvedRank),
+                  'approved_rank_text': emptyToNull(approvedRank.text),
                   'approved_salary': num.tryParse(approvedSalary.text.trim()),
                 });
               },
@@ -1956,44 +1361,13 @@ Future<Map<String, dynamic>?> showRankingDialog(
     ),
   );
 
-  for (final c in [appointment, previousSalary, appliedSalary, approvedSalary, points]) {
+  for (final c in [appointment, previousRank, previousSalary, appliedRank, appliedSalary, points, approvedRank, approvedSalary]) {
     c.dispose();
   }
   return result;
 }
 
-String? optionValueOrFirst(String? value, List<EditOption> options, bool requiredField) {
-  if (value != null && options.any((o) => o.value == value)) return value;
-  if (requiredField && options.isNotEmpty) return options.first.value;
-  if (options.any((o) => o.value == '')) return '';
-  return null;
-}
-
-List<EditOption> withBlankAndExisting(List<EditOption> base, List<String?> existing) {
-  final out = <EditOption>[const EditOption('', '-')];
-  out.addAll(base);
-  for (final value in existing) {
-    if (value != null &&
-        value.trim().isNotEmpty &&
-        !out.any((o) => o.value.toLowerCase() == value.toLowerCase())) {
-      out.add(EditOption(value, value));
-    }
-  }
-  return out;
-}
-
-String? normalizedRankValue(Object? value) {
-  final v = formatValue(value);
-  return v == '-' ? null : v;
-}
-
-Future<void> saveRow(
-  BuildContext context,
-  String table,
-  Object? id,
-  Map<String, dynamic> data,
-  VoidCallback refresh,
-) async {
+Future<void> saveRow(BuildContext context, String table, Object? id, Map<String, dynamic> data, VoidCallback refresh) async {
   try {
     data.removeWhere((key, value) => key == 'id');
     data['updated_at'] = DateTime.now().toIso8601String();
@@ -2010,6 +1384,23 @@ Future<void> saveRow(
   }
 }
 
+List<EditOption> uniqueOptions(List<EditOption> options) {
+  final seen = <String>{};
+  final out = <EditOption>[];
+  for (final option in options) {
+    if (seen.add(option.value)) out.add(option);
+  }
+  return out;
+}
+
+String? optionValueOrFirst(String? value, List<EditOption> options, bool requiredField) {
+  final unique = uniqueOptions(options);
+  if (value != null && unique.any((o) => o.value == value)) return value;
+  if (requiredField && unique.isNotEmpty) return unique.first.value;
+  if (unique.any((o) => o.value == '')) return '';
+  return null;
+}
+
 Object? parseFieldValue(String text, FieldKind kind) {
   final t = text.trim();
   if (t.isEmpty) return null;
@@ -2018,21 +1409,13 @@ Object? parseFieldValue(String text, FieldKind kind) {
   return t;
 }
 
-String? emptyToNull(String? value) {
-  return value == null || value.trim().isEmpty ? null : value.trim();
-}
+String? emptyToNull(String? value) => value == null || value.trim().isEmpty ? null : value.trim();
 
-void showSnack(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-}
+void showSnack(BuildContext context, String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 
 Object? valueFor(Map<String, dynamic> row, String key) {
-  if (key == 'employee_name') {
-    return row['employees'] is Map ? row['employees']['full_name'] : null;
-  }
-  if (key == 'cycle_name') {
-    return row['ranking_cycles'] is Map ? row['ranking_cycles']['name'] : null;
-  }
+  if (key == 'employee_name') return row['employees'] is Map ? row['employees']['full_name'] : null;
+  if (key == 'cycle_name') return row['ranking_cycles'] is Map ? row['ranking_cycles']['name'] : null;
   return row[key];
 }
 
@@ -2077,9 +1460,9 @@ String formatEditValue(Object? value) {
   return text == 'null' ? '' : text;
 }
 
-String normalizeName(String value) {
-  return value.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
-}
+String normalizeName(String value) => value.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
+
+String normalizeRankKey(String value) => value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
 String formatValue(Object? value) {
   if (value == null) return '-';
@@ -2121,9 +1504,7 @@ String toTitleCase(String input) {
   return input.split(' ').map((word) {
     if (word.isEmpty) return word;
     final clean = word.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
-    if (acronyms.containsKey(clean)) {
-      return word.toUpperCase().replaceFirst(clean, acronyms[clean]!);
-    }
+    if (acronyms.containsKey(clean)) return word.toUpperCase().replaceFirst(clean, acronyms[clean]!);
     if (RegExp(r'^[IVXLCM]+$').hasMatch(clean)) return word.toUpperCase();
     return word.split('-').map(capitalizeWord).join('-');
   }).join(' ');
