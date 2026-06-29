@@ -1,0 +1,123 @@
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -865,7 +865,7 @@
+   Widget build(BuildContext context) => const Card(child: Center(child: Padding(padding: EdgeInsets.all(34), child: Text('No Matching Records Found.', style: TextStyle(color: _muted, fontWeight: FontWeight.w700)))));
+ }
+ 
+-enum FieldKind { text, number, integer, date, dropdown, multiline }
++enum FieldKind { text, number, integer, date, dropdown, multiline, section }
+ 
+ class EditOption {
+   final String value;
+@@ -911,11 +911,18 @@
+   Widget build(BuildContext context) => SizedBox(
+         width: 728,
+         child: Padding(
+-          padding: const EdgeInsets.only(top: 8, bottom: 2),
++          padding: const EdgeInsets.only(top: 14, bottom: 4),
+           child: Row(children: [
+-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _ink)),
+-            const SizedBox(width: 12),
+-            const Expanded(child: Divider(color: _line)),
++            const Expanded(child: Divider(color: Color(0xFF94A3B8), thickness: 1)),
++            Padding(
++              padding: const EdgeInsets.symmetric(horizontal: 14),
++              child: Text(
++                title,
++                textAlign: TextAlign.center,
++                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _ink, letterSpacing: 0.2),
++              ),
++            ),
++            const Expanded(child: Divider(color: Color(0xFF94A3B8), thickness: 1)),
+           ]),
+         ),
+       );
+@@ -926,6 +933,7 @@
+   final controllers = <String, TextEditingController>{};
+   final selected = <String, String?>{};
+   for (final f in fields) {
++    if (f.kind == FieldKind.section) continue;
+     final raw = initial?[f.key]?.toString();
+     if (f.kind == FieldKind.dropdown) {
+       selected[f.key] = optionValueOrFirst(raw, f.options, f.required);
+@@ -947,6 +955,7 @@
+                 if (readOnlyEmployeeName != null) ReadOnlyEmployeeBox(readOnlyEmployeeName),
+                 ...prefix,
+                 ...fields.map((f) {
++                  if (f.kind == FieldKind.section) return DialogSectionTitle(f.label);
+                   final width = f.kind == FieldKind.multiline ? 728.0 : 354.0;
+                   if (f.kind == FieldKind.dropdown) {
+                     final opts = uniqueOptions(f.options);
+@@ -984,6 +993,7 @@
+               if (!formKey.currentState!.validate()) return;
+               final out = <String, dynamic>{};
+               for (final f in fields) {
++                if (f.kind == FieldKind.section) continue;
+                 out[f.key] = f.kind == FieldKind.dropdown ? emptyToNull(selected[f.key]) : parseFieldValue(controllers[f.key]!.text, f.kind);
+               }
+               Navigator.pop(context, out);
+@@ -1624,6 +1634,7 @@
+ }
+ 
+ List<EditField> employeeEditFields() => const [
++      EditField('_section_personal', 'Personal Information', kind: FieldKind.section),
+       EditField('full_name', 'Full Name', required: true),
+       EditField('bio_number', 'Bio Number'),
+       EditField('gender', 'Gender', kind: FieldKind.dropdown, options: [EditOption('Male', 'Male'), EditOption('Female', 'Female')]),
+@@ -1632,13 +1643,16 @@
+       EditField('address', 'Address', kind: FieldKind.multiline, lines: 2),
+       EditField('contact_number', 'Contact Number'),
+       EditField('email', 'Email'),
++      EditField('_section_education', 'Educational Information', kind: FieldKind.section),
+       EditField('education_level', 'Educational Attainment'),
+       EditField('school_graduated', 'School Graduated'),
+       EditField('degree_course', 'Degree / Course'),
++      EditField('_section_guardian', 'Guardian Information', kind: FieldKind.section),
+       EditField('guardian_name', 'Guardian Name'),
+       EditField('guardian_relationship', 'Guardian Relationship'),
+       EditField('guardian_contact', 'Guardian Contact'),
+       EditField('guardian_address', 'Guardian Address', kind: FieldKind.multiline, lines: 2),
++      EditField('_section_employment', 'Employment Information', kind: FieldKind.section),
+       EditField('designation', 'Designation'),
+       EditField('employee_type', 'Employee Type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full Time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part Time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
+       EditField('teaching_status', 'Teaching Status'),
+@@ -1650,6 +1664,7 @@
+     ];
+ 
+ List<EditField> addEmployeeFields() => const [
++      EditField('_section_personal', 'Personal Information', kind: FieldKind.section),
+       EditField('full_name', 'Full Name', required: true),
+       EditField('bio_number', 'Bio Number'),
+       EditField('gender', 'Gender', kind: FieldKind.dropdown, options: [EditOption('Male', 'Male'), EditOption('Female', 'Female')]),
+@@ -1658,13 +1673,16 @@
+       EditField('address', 'Address', kind: FieldKind.multiline, lines: 2),
+       EditField('contact_number', 'Contact Number'),
+       EditField('email', 'Email'),
++      EditField('_section_education', 'Educational Information', kind: FieldKind.section),
+       EditField('education_level', 'Educational Attainment'),
+       EditField('school_graduated', 'School Graduated'),
+       EditField('degree_course', 'Degree / Course'),
++      EditField('_section_guardian', 'Guardian Information', kind: FieldKind.section),
+       EditField('guardian_name', 'Guardian Name'),
+       EditField('guardian_relationship', 'Guardian Relationship'),
+       EditField('guardian_contact', 'Guardian Contact'),
+       EditField('guardian_address', 'Guardian Address', kind: FieldKind.multiline, lines: 2),
++      EditField('_section_employment', 'Employment Information', kind: FieldKind.section),
+       EditField('designation', 'Designation'),
+       EditField('employee_type', 'Employee Type', kind: FieldKind.dropdown, options: [EditOption('full_time', 'Full Time'), EditOption('probationary', 'Probationary'), EditOption('part_time', 'Part Time'), EditOption('staff', 'Staff'), EditOption('faculty_staff', 'Faculty / Staff')]),
+       EditField('teaching_status', 'Teaching Status'),
+@@ -1673,12 +1691,14 @@
+       EditField('current_salary', 'Current Salary', kind: FieldKind.number),
+       EditField('license_summary', 'License Summary'),
+       EditField('notes', 'Notes', kind: FieldKind.multiline, lines: 3),
++      EditField('_section_contract', 'Contract Information', kind: FieldKind.section),
+       EditField('contract_type', 'Contract Type'),
+       EditField('contract_start_date', 'Contract Start Date', kind: FieldKind.date),
+       EditField('duration_months', 'Contract Duration In Months', kind: FieldKind.integer),
+       EditField('contract_end_date', 'Contract End Date', kind: FieldKind.date),
+       EditField('contract_attachment_url', 'Contract Attachment URL'),
+       EditField('contract_status', 'Contract Status', kind: FieldKind.dropdown, options: [EditOption('On-going', 'On-going'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived'), EditOption('Resigned', 'Resigned')]),
++      EditField('_section_credential', 'Credential Information', kind: FieldKind.section),
+       EditField('credential_kind', 'Credential Type To Add', kind: FieldKind.dropdown, options: [EditOption('license', 'License'), EditOption('certificate', 'National Certificate')]),
+       EditField('license_name', 'License Name'),
+       EditField('license_number', 'License Number'),
