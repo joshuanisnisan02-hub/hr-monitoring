@@ -1,0 +1,26 @@
+name: Run ranking select employee patch
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_ranking_select_employee_patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply ranking select employee patch
+        run: python3 .github/scripts/apply_ranking_select_employee_patch.py
+      - name: Commit ranking select employee patch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Update add ranking employee selection"
+          git push
