@@ -1,0 +1,26 @@
+name: Run move ranking appointment column patch
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_move_ranking_appointment_column_patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply move ranking appointment column patch
+        run: python3 .github/scripts/apply_move_ranking_appointment_column_patch.py
+      - name: Commit move ranking appointment column patch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Move ranking appointment column"
+          git push
