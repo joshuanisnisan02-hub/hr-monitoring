@@ -23,6 +23,10 @@ const _pageSize = 10;
 
 SupabaseClient get db => Supabase.instance.client;
 
+void safeRefresh(VoidCallback refresh) {
+  WidgetsBinding.instance.addPostFrameCallback((_) => refresh());
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (publicClientKey.isNotEmpty) {
@@ -2264,7 +2268,20 @@ Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCa
   final data = await showRankingDialog(context, isAdd ? await employeeOptions() : const <EditOption>[], await cycleOptions(), await rankOptions(), row, isAdd ? await rankingAppointmentByEmployee() : const <String, String>{});
   if (data == null) return;
   if (isAdd && !await ensureNoEmployeeDuplicate(context, 'ranking_applications', data['employee_id'], 'ranking')) return;
-  await saveRow(context, 'ranking_applications', row?['id'], data, refresh);
+  try {
+    data.removeWhere((key, value) => key == 'id');
+    data['updated_at'] = DateTime.now().toIso8601String();
+    if (row == null) {
+      await db.from('ranking_applications').insert(data);
+      if (context.mounted) showSnack(context, 'Record Added.');
+    } else {
+      await db.from('ranking_applications').update(data).eq('id', row['id']);
+      if (context.mounted) showSnack(context, 'Record Updated.');
+    }
+    safeRefresh(refresh);
+  } catch (e) {
+    if (context.mounted) showSnack(context, 'Save Failed: $e');
+  }
 }
 
 Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditOption> employees, List<EditOption> cycles, List<EditOption> ranks, Map<String, dynamic>? initial, Map<String, String> appointmentByEmployee) async {
@@ -2344,7 +2361,8 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
           FilledButton(
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context, {
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.of(context, rootNavigator: true).pop({
                 'employee_id': isAdd ? emptyToNull(employeeId) : initial?['employee_id'],
                 'cycle_id': emptyToNull(cycleId),
                 'appointment': emptyToNull(appointment.text),
@@ -2361,6 +2379,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
       ),
     ),
   );
+  await Future<void>.delayed(Duration.zero);
   for (final c in [appointment, previousRank, previousSalary, appliedRank, appliedSalary, points]) {
     c.dispose();
   }
