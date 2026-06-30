@@ -277,6 +277,7 @@ Future<List<dynamic>> loadLicensesGrouped({int limit = 5000}) async {
 Future<List<dynamic>> loadCertificates({int limit = 1500}) => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, attachment_url, employees(full_name)').order('expiry_date').limit(limit);
 Future<List<dynamic>> loadEvaluations({int limit = 1500}) => db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(limit);
 Future<List<dynamic>> loadRankings({int limit = 1500}) => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, approved_date, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
+Future<List<dynamic>> loadAppointments({int limit = 5000}) => db.from('employee_appointments').select('id, employee_id, category, appointment_title, employees(full_name)').order('category').limit(limit);
 
 class DashboardPage extends StatelessWidget {
   final ValueChanged<int> onNavigate;
@@ -531,21 +532,54 @@ class AppointmentPage extends StatelessWidget {
         title: 'Appointment',
         subtitle: 'View employee appointment classifications and assigned appointment/designation from the ranking Excel list.',
         child: CrudTable(
-          load: () => loadRankings(limit: 5000),
-          searchHint: 'Search employee or appointment',
+          load: () => loadAppointments(),
+          searchHint: 'Search employee, type, or appointment',
           addLabel: 'Add Appointment',
           allowAdd: false,
-          reportTitle: 'Appointment Report',
+          reportTitle: 'Appointment Reference Report',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-            GridCol('appointment_category', 'Type', flex: 2),
+            GridCol('category', 'Type', flex: 2),
             GridCol('appointment_title', 'Appointment', flex: 4),
           ],
-          onView: viewRanking,
-          onEdit: editRanking,
-          onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
+          onView: viewAppointment,
+          onEdit: editAppointment,
+          onDelete: (row) => db.from('employee_appointments').delete().eq('id', row['id']),
         ),
       );
+}
+
+
+Future<void> viewAppointment(BuildContext context, Map<String, dynamic> row) async {
+  await showDialog<void>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text(formatValue(row['employee_name'])),
+      content: SizedBox(
+        width: 620,
+        child: Wrap(spacing: 10, runSpacing: 10, children: [
+          DetailTile('Type', formatValue(row['category'])),
+          DetailTile('Appointment', formatValue(row['appointment_title'])),
+        ]),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+    ),
+  );
+}
+
+Future<void> editAppointment(BuildContext context, Map<String, dynamic> row, VoidCallback refresh) async {
+  final data = await showRecordDialog(
+    context,
+    'Edit Appointment',
+    const [
+      EditField('category', 'Type', kind: FieldKind.dropdown, required: true, options: [EditOption('Full-time', 'Full-time'), EditOption('Probationary', 'Probationary')]),
+      EditField('appointment_title', 'Appointment', required: true),
+    ],
+    row,
+    readOnlyEmployeeName: linkedEmployeeName(row),
+  );
+  if (data == null) return;
+  await saveRow(context, 'employee_appointments', row['id'], data, refresh);
 }
 
 class RankingPage extends StatefulWidget {
@@ -1482,12 +1516,15 @@ Future<List<String>> certificateNameOptions() async {
 }
 
 Future<Map<String, String>> rankingAppointmentByEmployee() async {
-  final rows = await db.from('ranking_applications').select('employee_id, appointment').limit(5000);
+  final rows = await db.from('employee_appointments').select('employee_id, category, appointment_title').limit(5000);
   final out = <String, String>{};
   for (final r in rows) {
     final id = r['employee_id']?.toString();
-    final appointment = formatEditValue(r['appointment']);
-    if (id != null && id.isNotEmpty && appointment.isNotEmpty) out[id] = appointment;
+    final category = formatEditValue(r['category']);
+    final appointment = formatEditValue(r['appointment_title']);
+    if (id != null && id.isNotEmpty && appointment.isNotEmpty) {
+      out[id] = category.isEmpty ? appointment : '$category - $appointment';
+    }
   }
   return out;
 }
