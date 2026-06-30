@@ -1,0 +1,26 @@
+name: Run independent appointment reference patch
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_independent_appointment_reference_patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply independent appointment reference patch
+        run: python3 .github/scripts/apply_independent_appointment_reference_patch.py
+      - name: Commit independent appointment reference patch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Use independent appointment reference table"
+          git push
