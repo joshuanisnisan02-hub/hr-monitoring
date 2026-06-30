@@ -911,16 +911,130 @@ class DialogSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
         width: 728,
         child: Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 2),
+          padding: const EdgeInsets.only(top: 10, bottom: 2),
           child: Row(children: [
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _ink)),
-            const SizedBox(width: 12),
-            const Expanded(child: Divider(color: _line)),
+            const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _ink, letterSpacing: 0.3),
+              ),
+            ),
+            const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
           ]),
         ),
       );
 }
 
+
+
+String dialogSectionForField(String key) {
+  const sections = <String, String>{
+    'full_name': 'Personal Information',
+    'bio_number': 'Personal Information',
+    'gender': 'Personal Information',
+    'civil_status': 'Personal Information',
+    'birth_date': 'Personal Information',
+    'address': 'Personal Information',
+    'contact_number': 'Personal Information',
+    'email': 'Personal Information',
+
+    'education_level': 'Educational Background',
+    'school_graduated': 'Educational Background',
+    'degree_course': 'Educational Background',
+
+    'guardian_name': 'Guardian Information',
+    'guardian_relationship': 'Guardian Information',
+    'guardian_contact': 'Guardian Information',
+    'guardian_address': 'Guardian Information',
+
+    'designation': 'Employment Information',
+    'employee_type': 'Employment Information',
+    'teaching_status': 'Employment Information',
+    'employment_status': 'Employment Information',
+    'date_hired': 'Employment Information',
+    'starting_date': 'Employment Information',
+    'current_salary': 'Employment Information',
+    'license_summary': 'Employment Information',
+    'notes': 'Employment Information',
+
+    'contract_type': 'Contract Information',
+    'contract_start_date': 'Contract Information',
+    'duration_months': 'Contract Information',
+    'contract_end_date': 'Contract Information',
+    'contract_attachment_url': 'Contract Information',
+    'contract_status': 'Contract Information',
+
+    'credential_kind': 'Credential Information',
+
+    'license_name': 'License Information',
+    'license_number': 'License Information',
+    'license_issued_date': 'License Information',
+    'license_expiry_date': 'License Information',
+    'license_attachment_url': 'License Information',
+    'license_status': 'License Information',
+
+    'certificate_type': 'Certificate Information',
+    'certificate_name': 'Certificate Information',
+    'certificate_number': 'Certificate Information',
+    'certificate_issued_date': 'Certificate Information',
+    'certificate_expiry_date': 'Certificate Information',
+    'certificate_attachment_url': 'Certificate Information',
+    'certificate_status': 'Certificate Information',
+  };
+  return sections[key] ?? 'Other Information';
+}
+
+List<Widget> buildDialogFieldWidgets(
+  List<EditField> fields,
+  Map<String, TextEditingController> controllers,
+  Map<String, String?> selected,
+  StateSetter setDialogState,
+) {
+  final widgets = <Widget>[];
+  String? currentSection;
+
+  for (final f in fields) {
+    final section = dialogSectionForField(f.key);
+    if (section != currentSection) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(width: 728, height: 4));
+      widgets.add(DialogSectionTitle(section));
+      currentSection = section;
+    }
+
+    final width = f.kind == FieldKind.multiline ? 728.0 : 354.0;
+    if (f.kind == FieldKind.dropdown) {
+      final opts = uniqueOptions(f.options);
+      widgets.add(SizedBox(
+        width: width,
+        child: DropdownButtonFormField<String>(
+          value: optionValueOrFirst(selected[f.key], opts, f.required),
+          isExpanded: true,
+          decoration: InputDecoration(labelText: f.label),
+          items: opts.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+          validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
+          onChanged: (v) => setDialogState(() => selected[f.key] = v),
+        ),
+      ));
+      continue;
+    }
+
+    widgets.add(SizedBox(
+      width: width,
+      child: TextFormField(
+        controller: controllers[f.key],
+        maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
+        keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
+        decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
+        validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
+      ),
+    ));
+  }
+
+  return widgets;
+}
 Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String title, List<EditField> fields, Map<String, dynamic>? initial, {String? readOnlyEmployeeName, List<Widget> prefix = const []}) async {
   final formKey = GlobalKey<FormState>();
   final controllers = <String, TextEditingController>{};
@@ -946,33 +1060,7 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context, String titl
               child: Wrap(spacing: 14, runSpacing: 14, children: [
                 if (readOnlyEmployeeName != null) ReadOnlyEmployeeBox(readOnlyEmployeeName),
                 ...prefix,
-                ...fields.map((f) {
-                  final width = f.kind == FieldKind.multiline ? 728.0 : 354.0;
-                  if (f.kind == FieldKind.dropdown) {
-                    final opts = uniqueOptions(f.options);
-                    return SizedBox(
-                      width: width,
-                      child: DropdownButtonFormField<String>(
-                        value: optionValueOrFirst(selected[f.key], opts, f.required),
-                        isExpanded: true,
-                        decoration: InputDecoration(labelText: f.label),
-                        items: opts.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
-                        validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
-                        onChanged: (v) => setDialogState(() => selected[f.key] = v),
-                      ),
-                    );
-                  }
-                  return SizedBox(
-                    width: width,
-                    child: TextFormField(
-                      controller: controllers[f.key],
-                      maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
-                      keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
-                      decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
-                      validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    ),
-                  );
-                }),
+                ...buildDialogFieldWidgets(fields, controllers, selected, setDialogState),
               ]),
             ),
           ),
