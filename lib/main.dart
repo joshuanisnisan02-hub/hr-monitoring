@@ -1371,6 +1371,17 @@ Future<List<EditOption>> employeeOptions() async {
   return rows.map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['full_name']))).toList();
 }
 
+Future<Map<String, String>> rankingAppointmentByEmployee() async {
+  final rows = await db.from('ranking_applications').select('employee_id, appointment').limit(5000);
+  final out = <String, String>{};
+  for (final r in rows) {
+    final id = r['employee_id']?.toString();
+    final appointment = formatEditValue(r['appointment']);
+    if (id != null && id.isNotEmpty && appointment.isNotEmpty) out[id] = appointment;
+  }
+  return out;
+}
+
 Future<List<EditOption>> cycleOptions() async {
   final rows = await db.from('ranking_cycles').select('id, name').order('name');
   return rows.map<EditOption>((r) => EditOption(r['id'].toString(), formatValue(r['name']))).toList();
@@ -1528,16 +1539,16 @@ Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, Voi
 
 Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final isAdd = row == null;
-  final data = await showRankingDialog(context, isAdd ? await employeeOptions() : const <EditOption>[], await cycleOptions(), await rankOptions(), row);
+  final data = await showRankingDialog(context, isAdd ? await employeeOptions() : const <EditOption>[], await cycleOptions(), await rankOptions(), row, isAdd ? await rankingAppointmentByEmployee() : const <String, String>{});
   if (data == null) return;
   if (isAdd && !await ensureNoEmployeeDuplicate(context, 'ranking_applications', data['employee_id'], 'ranking')) return;
   await saveRow(context, 'ranking_applications', row?['id'], data, refresh);
 }
 
-Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditOption> employees, List<EditOption> cycles, List<EditOption> ranks, Map<String, dynamic>? initial) async {
+Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditOption> employees, List<EditOption> cycles, List<EditOption> ranks, Map<String, dynamic>? initial, Map<String, String> appointmentByEmployee) async {
   final isAdd = initial == null;
   final formKey = GlobalKey<FormState>();
-  String? employeeId = isAdd ? optionValueOrFirst(null, employees, true) : initial?['employee_id']?.toString();
+  String? employeeId = isAdd ? null : initial?['employee_id']?.toString();
   String? cycleId = optionValueOrFirst(initial?['cycle_id']?.toString(), cycles, true);
   final appointment = TextEditingController(text: formatEditValue(initial?['appointment']));
   final previousRank = TextEditingController(text: formatEditValue(initial?['previous_rank_text']));
@@ -1583,12 +1594,16 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                   SizedBox(
                     width: 354,
                     child: DropdownButtonFormField<String>(
-                      value: optionValueOrFirst(employeeId, employees, true),
+                      value: employeeId,
                       isExpanded: true,
+                      hint: const Text('Select Employee'),
                       decoration: const InputDecoration(labelText: 'Employee Name'),
                       items: uniqueOptions(employees).map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
-                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                      onChanged: (v) => setDialogState(() => employeeId = v),
+                      validator: (v) => v == null || v.isEmpty ? 'Please select employee' : null,
+                      onChanged: (v) => setDialogState(() {
+                        employeeId = v;
+                        appointment.text = v == null ? '' : (appointmentByEmployee[v] ?? '');
+                      }),
                     ),
                   )
                 else
@@ -1601,7 +1616,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                 textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
                 rankTextBox('Approved Rank', approvedRank, () => pickRank(approvedRank, approvedSalary)),
                 textBox('Approved Salary', approvedSalary, kind: FieldKind.number),
-                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select an employee for the new ranking record. Duplicate employees are not allowed.' : 'Employee name is locked here. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
+                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee first. The Appointment field will be filled automatically when an existing appointment is found for the selected employee.' : 'Employee name is locked here. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
               ]),
             ),
           ),
