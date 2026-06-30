@@ -1,0 +1,193 @@
+name: Patch main employee sections
+
+on:
+  push:
+    paths:
+      - .github/workflows/patch_main_employee_sections.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch main employee modal sections
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          import textwrap
+
+          p = Path('lib/main.dart')
+          s = p.read_text()
+
+          section_title_start = s.find('class DialogSectionTitle extends StatelessWidget')
+          section_title_end = s.find('\n\nFuture<Map<String, dynamic>?> showRecordDialog', section_title_start)
+          if section_title_start == -1 or section_title_end == -1:
+              raise SystemExit('DialogSectionTitle block not found')
+
+          new_section_title = textwrap.dedent(r'''
+          class DialogSectionTitle extends StatelessWidget {
+            final String title;
+            const DialogSectionTitle(this.title, {super.key});
+
+            @override
+            Widget build(BuildContext context) => SizedBox(
+                  width: 728,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 2),
+                    child: Row(children: [
+                      const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _ink, letterSpacing: 0.3),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+                    ]),
+                  ),
+                );
+          }
+          ''').strip()
+
+          s = s[:section_title_start] + new_section_title + s[section_title_end:]
+
+          helper_marker = 'String dialogSectionForField(String key)'
+          if helper_marker not in s:
+              helper = textwrap.dedent(r'''
+
+              String dialogSectionForField(String key) {
+                const sections = <String, String>{
+                  'full_name': 'Personal Information',
+                  'bio_number': 'Personal Information',
+                  'gender': 'Personal Information',
+                  'civil_status': 'Personal Information',
+                  'birth_date': 'Personal Information',
+                  'address': 'Personal Information',
+                  'contact_number': 'Personal Information',
+                  'email': 'Personal Information',
+
+                  'education_level': 'Educational Background',
+                  'school_graduated': 'Educational Background',
+                  'degree_course': 'Educational Background',
+
+                  'guardian_name': 'Guardian Information',
+                  'guardian_relationship': 'Guardian Information',
+                  'guardian_contact': 'Guardian Information',
+                  'guardian_address': 'Guardian Information',
+
+                  'designation': 'Employment Information',
+                  'employee_type': 'Employment Information',
+                  'teaching_status': 'Employment Information',
+                  'employment_status': 'Employment Information',
+                  'date_hired': 'Employment Information',
+                  'starting_date': 'Employment Information',
+                  'current_salary': 'Employment Information',
+                  'license_summary': 'Employment Information',
+                  'notes': 'Employment Information',
+
+                  'contract_type': 'Contract Information',
+                  'contract_start_date': 'Contract Information',
+                  'duration_months': 'Contract Information',
+                  'contract_end_date': 'Contract Information',
+                  'contract_attachment_url': 'Contract Information',
+                  'contract_status': 'Contract Information',
+
+                  'credential_kind': 'Credential Information',
+
+                  'license_name': 'License Information',
+                  'license_number': 'License Information',
+                  'license_issued_date': 'License Information',
+                  'license_expiry_date': 'License Information',
+                  'license_attachment_url': 'License Information',
+                  'license_status': 'License Information',
+
+                  'certificate_type': 'Certificate Information',
+                  'certificate_name': 'Certificate Information',
+                  'certificate_number': 'Certificate Information',
+                  'certificate_issued_date': 'Certificate Information',
+                  'certificate_expiry_date': 'Certificate Information',
+                  'certificate_attachment_url': 'Certificate Information',
+                  'certificate_status': 'Certificate Information',
+                };
+                return sections[key] ?? 'Other Information';
+              }
+
+              List<Widget> buildDialogFieldWidgets(
+                List<EditField> fields,
+                Map<String, TextEditingController> controllers,
+                Map<String, String?> selected,
+                StateSetter setDialogState,
+              ) {
+                final widgets = <Widget>[];
+                String? currentSection;
+
+                for (final f in fields) {
+                  final section = dialogSectionForField(f.key);
+                  if (section != currentSection) {
+                    if (widgets.isNotEmpty) widgets.add(const SizedBox(width: 728, height: 4));
+                    widgets.add(DialogSectionTitle(section));
+                    currentSection = section;
+                  }
+
+                  final width = f.kind == FieldKind.multiline ? 728.0 : 354.0;
+                  if (f.kind == FieldKind.dropdown) {
+                    final opts = uniqueOptions(f.options);
+                    widgets.add(SizedBox(
+                      width: width,
+                      child: DropdownButtonFormField<String>(
+                        value: optionValueOrFirst(selected[f.key], opts, f.required),
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: f.label),
+                        items: opts.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+                        validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
+                        onChanged: (v) => setDialogState(() => selected[f.key] = v),
+                      ),
+                    ));
+                    continue;
+                  }
+
+                  widgets.add(SizedBox(
+                    width: width,
+                    child: TextFormField(
+                      controller: controllers[f.key],
+                      maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
+                      keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
+                      decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
+                      validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                  ));
+                }
+
+                return widgets;
+              }
+              ''')
+              dialog_start = s.find('Future<Map<String, dynamic>?> showRecordDialog')
+              if dialog_start == -1:
+                  raise SystemExit('showRecordDialog not found')
+              s = s[:dialog_start] + helper + s[dialog_start:]
+
+          if '...buildDialogFieldWidgets(fields, controllers, selected, setDialogState),' not in s:
+              pattern = r"\.\.\.fields\.map\(\(f\) \{\n.*?\n\s*\}\),"
+              replacement = '...buildDialogFieldWidgets(fields, controllers, selected, setDialogState),'
+              s, count = re.subn(pattern, replacement, s, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit('field rendering block not replaced')
+
+          p.write_text(s)
+          PY
+      - name: Commit patch and remove workflow
+        run: |
+          rm -f .github/workflows/patch_main_employee_sections.yml
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart .github/workflows/patch_main_employee_sections.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "Divide add employee modal into sections"
+          git push
