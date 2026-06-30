@@ -1,5 +1,6 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -1511,7 +1512,9 @@ class SelectedLicenseInput {
   final String name;
   final TextEditingController number = TextEditingController();
   final TextEditingController expiry = TextEditingController();
-  final TextEditingController attachment = TextEditingController();
+  String attachmentUrl = '';
+  String attachmentFileName = '';
+  bool uploadingAttachment = false;
   String status = '';
 
   SelectedLicenseInput(this.name);
@@ -1519,7 +1522,6 @@ class SelectedLicenseInput {
   void dispose() {
     number.dispose();
     expiry.dispose();
-    attachment.dispose();
   }
 }
 
@@ -1534,6 +1536,48 @@ String licenseStatusFromExpiry(String text) {
   if (expiry.isBefore(today)) return 'Expired';
   if (expiry.difference(today).inDays <= 90) return 'For Renewal';
   return 'Active';
+}
+
+Future<void> pickAndUploadLicensePdf(BuildContext context, SelectedLicenseInput entry, StateSetter setDialogState) async {
+  final input = html.FileUploadInputElement()
+    ..accept = 'application/pdf,.pdf'
+    ..multiple = false;
+  input.click();
+  await input.onChange.first;
+  final file = input.files?.isNotEmpty == true ? input.files!.first : null;
+  if (file == null) return;
+  final lowerName = file.name.toLowerCase();
+  if (!lowerName.endsWith('.pdf') && file.type != 'application/pdf') {
+    showSnack(context, 'Only PDF files are allowed.');
+    return;
+  }
+  setDialogState(() => entry.uploadingAttachment = true);
+  try {
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(file);
+    await reader.onLoad.first;
+    final result = reader.result;
+    late final Uint8List bytes;
+    if (result is ByteBuffer) {
+      bytes = Uint8List.view(result);
+    } else if (result is Uint8List) {
+      bytes = result;
+    } else {
+      throw Exception('Unable to read selected PDF file.');
+    }
+    final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+    final path = 'licenses/${DateTime.now().millisecondsSinceEpoch}_$safeName';
+    await db.storage.from('hr-attachments').uploadBinary(path, bytes, fileOptions: const FileOptions(contentType: 'application/pdf', upsert: true));
+    final url = db.storage.from('hr-attachments').getPublicUrl(path);
+    setDialogState(() {
+      entry.attachmentUrl = url;
+      entry.attachmentFileName = file.name;
+      entry.uploadingAttachment = false;
+    });
+  } catch (e) {
+    setDialogState(() => entry.uploadingAttachment = false);
+    showSnack(context, 'PDF upload failed: $e');
+  }
 }
 
 Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, List<EditOption> employees, List<String> licenses) async {
@@ -1651,10 +1695,22 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                             const SizedBox(width: 10),
                             Expanded(
                               flex: 2,
-                              child: TextFormField(
-                                controller: entry.attachment,
-                                decoration: const InputDecoration(labelText: 'Attachment (PDF)', hintText: 'PDF URL'),
-                              ),
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                OutlinedButton.icon(
+                                  onPressed: entry.uploadingAttachment ? null : () => pickAndUploadLicensePdf(context, entry, setDialogState),
+                                  icon: entry.uploadingAttachment
+                                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                      : const Icon(Icons.picture_as_pdf_rounded),
+                                  label: Text(entry.uploadingAttachment ? 'Uploading...' : (entry.attachmentFileName.isEmpty ? 'Attach PDF' : 'Change PDF')),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  entry.attachmentFileName.isEmpty ? 'No PDF attached' : entry.attachmentFileName,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: 12, color: entry.attachmentFileName.isEmpty ? _muted : _ink, fontWeight: FontWeight.w700),
+                                ),
+                              ]),
                             ),
                             const SizedBox(width: 10),
                             SizedBox(width: 130, child: Padding(padding: const EdgeInsets.only(top: 10), child: StatusChip(entry.status.isEmpty ? '-' : entry.status))),
@@ -1675,6 +1731,11 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                 showSnack(context, 'Please select at least one license.');
                 return;
               }
+              final missingPdf = selected.values.where((entry) => entry.attachmentUrl.trim().isEmpty).toList();
+              if (missingPdf.isNotEmpty) {
+                showSnack(context, 'Please attach a PDF file for every selected license.');
+                return;
+              }
               final now = DateTime.now().toIso8601String();
               Navigator.pop(context, selected.values.map((entry) {
                 final status = licenseStatusFromExpiry(entry.expiry.text);
@@ -1683,7 +1744,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                   'license_name': entry.name,
                   'license_number': entry.number.text.trim(),
                   'expiry_date': entry.expiry.text.trim(),
-                  'attachment_url': entry.attachment.text.trim().isEmpty ? null : entry.attachment.text.trim(),
+                  'attachment_url': entry.attachmentUrl.trim().isEmpty ? null : entry.attachmentUrl.trim(),
                   'status': status.isEmpty ? null : status,
                   'updated_at': now,
                 };
