@@ -10,7 +10,10 @@ const projectUrl = String.fromEnvironment(
   'SUPABASE_URL',
   defaultValue: 'https://iysbzkdczngvafvtwpjn.supabase.co',
 );
-const publicClientKey = String.fromEnvironment('SUPABASE_PUBLIC_CLIENT_KEY');
+const publicClientKey = String.fromEnvironment(
+  'SUPABASE_PUBLIC_CLIENT_KEY',
+  defaultValue: 'sb_publishable_QJuRm0RkkQfbgAnBPPxbYw_AtG0BK3o',
+);
 
 const _primary = Color(0xFF2563EB);
 const _accent = Color(0xFF4B5FA7);
