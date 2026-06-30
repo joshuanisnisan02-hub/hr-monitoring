@@ -538,7 +538,7 @@ class _RankingPageState extends State<RankingPage> {
 
   @override
   Widget build(BuildContext context) => PageFrame(
-        title: 'Ranking',
+        title: '2026 Faculty Ranking',
         subtitle: 'Manage faculty ranking applications following the Excel ranking summary layout.',
         child: Column(children: [
           Card(
