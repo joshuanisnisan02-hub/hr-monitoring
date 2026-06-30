@@ -1,0 +1,26 @@
+name: Run certificate and license group patch
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_certificate_and_license_group_patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply certificate and license group patch
+        run: python3 .github/scripts/apply_certificate_and_license_group_patch.py
+      - name: Commit certificate and license group patch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Update certificate dialog and grouped license view"
+          git push
