@@ -578,6 +578,7 @@ class _RankingPageState extends State<RankingPage> {
               onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
               onView: viewRanking,
               onEdit: editRanking,
+              onApprove: approveRanking,
               showDelete: false,
               onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
             ),
@@ -610,11 +611,12 @@ class CrudTable extends StatefulWidget {
   final AddHandler? onAdd;
   final EditHandler onEdit;
   final ViewHandler? onView;
+  final EditHandler? onApprove;
   final bool showDelete;
   final String? reportTitle;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
-  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, this.showDelete = true, this.reportTitle, required this.onDelete});
+  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, this.onApprove, this.showDelete = true, this.reportTitle, required this.onDelete});
 
   @override
   State<CrudTable> createState() => _CrudTableState();
@@ -638,6 +640,14 @@ class _CrudTableState extends State<CrudTable> {
         future = widget.load();
         page = 0;
       });
+
+  double get actionWidth {
+    var count = 1; // Edit button
+    if (widget.onView != null) count++;
+    if (widget.onApprove != null) count++;
+    if (widget.showDelete) count++;
+    return (count * 46).toDouble();
+  }
 
   void printRows(List<Map<String, dynamic>> rows) {
     final baseTitle = widget.reportTitle ?? (widget.addLabel.toLowerCase().startsWith('add ') ? '${widget.addLabel.substring(4)} Report' : '${widget.addLabel} Report');
@@ -717,7 +727,7 @@ class _CrudTableState extends State<CrudTable> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(22),
           child: Column(children: [
-            TableHeader(columns: widget.columns, sortKey: activeSortKey, sortAscending: sortAscending, showActions: true, actionWidth: widget.onView == null ? (widget.showDelete ? 96 : 52) : (widget.showDelete ? 142 : 100), onSort: (key) {
+            TableHeader(columns: widget.columns, sortKey: activeSortKey, sortAscending: sortAscending, showActions: true, actionWidth: actionWidth, onSort: (key) {
               setState(() {
                 if (sortKey == key) {
                   sortAscending = !sortAscending;
@@ -737,9 +747,10 @@ class _CrudTableState extends State<CrudTable> {
                   row: rows[i],
                   columns: widget.columns,
                   index: i,
-                  actionWidth: widget.onView == null ? (widget.showDelete ? 96 : 52) : (widget.showDelete ? 142 : 100),
+                  actionWidth: actionWidth,
                   onView: widget.onView == null ? null : () => widget.onView!(context, rows[i]),
                   onEdit: () => widget.onEdit(context, rows[i], refresh),
+                  onApprove: widget.onApprove == null ? null : () => widget.onApprove!(context, rows[i], refresh),
                   onDelete: widget.showDelete ? () => confirmDelete(context, rows[i]) : null,
                 ),
               ),
@@ -865,9 +876,10 @@ class TableRowItem extends StatelessWidget {
   final double actionWidth;
   final VoidCallback? onView;
   final VoidCallback onEdit;
+  final VoidCallback? onApprove;
   final VoidCallback? onDelete;
 
-  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, this.onDelete});
+  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, this.onApprove, this.onDelete});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -881,6 +893,7 @@ class TableRowItem extends StatelessWidget {
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               if (onView != null) IconButton(tooltip: 'View', onPressed: onView, icon: const Icon(Icons.visibility_rounded, color: Color(0xFF0E7490), size: 20)),
               IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_rounded, color: _primary, size: 20)),
+              if (onApprove != null) IconButton(tooltip: 'Approve Applied Rank', onPressed: onApprove, icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20)),
               if (onDelete != null) IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),
             ]),
           ),
@@ -1537,6 +1550,39 @@ Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row, Voi
   await saveRow(context, 'evaluation_records', row?['id'], data, refresh);
 }
 
+
+Future<void> approveRanking(BuildContext context, Map<String, dynamic> row, VoidCallback refresh) async {
+  final appliedRank = emptyToNull(row['applied_rank_text']);
+  final appliedSalary = row['applied_salary'];
+  if (appliedRank == null && appliedSalary == null) {
+    showSnack(context, 'No applied rank to approve.');
+    return;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Approve Applied Rank?'),
+      content: Text('This will approve ${formatValue(row['applied_rank_text'])} for ${formatValue(valueFor(row, 'employee_name'))}.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Approve')),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    await db.from('ranking_applications').update({
+      'approved_rank_text': row['applied_rank_text'],
+      'approved_salary': row['applied_salary'],
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', row['id']);
+    showSnack(context, 'Applied rank approved.');
+    refresh();
+  } catch (e) {
+    showSnack(context, 'Approval failed: $e');
+  }
+}
+
 Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final isAdd = row == null;
   final data = await showRankingDialog(context, isAdd ? await employeeOptions() : const <EditOption>[], await cycleOptions(), await rankOptions(), row, isAdd ? await rankingAppointmentByEmployee() : const <String, String>{});
@@ -1556,8 +1602,6 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
   final appliedRank = TextEditingController(text: formatEditValue(initial?['applied_rank_text']));
   final appliedSalary = TextEditingController(text: formatMoneyEdit(initial?['applied_salary']));
   final points = TextEditingController(text: formatEditValue(initial?['points_earned']));
-  final approvedRank = TextEditingController(text: formatEditValue(initial?['approved_rank_text']));
-  final approvedSalary = TextEditingController(text: formatMoneyEdit(initial?['approved_salary']));
 
   Future<void> pickRank(TextEditingController rank, TextEditingController salary) async {
     final selected = await showDialog<EditOption>(
@@ -1614,9 +1658,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                 textBox('Previous Salary', previousSalary, kind: FieldKind.number, readOnly: true),
                 rankTextBox('Applied Rank', appliedRank, () => pickRank(appliedRank, appliedSalary)),
                 textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
-                rankTextBox('Approved Rank', approvedRank, () => pickRank(approvedRank, approvedSalary)),
-                textBox('Approved Salary', approvedSalary, kind: FieldKind.number),
-                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee first. The Appointment field will be filled automatically when an existing appointment is found for the selected employee.' : 'Employee name is locked here. Type ranks manually or use Pick to auto-fill salary.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
+                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee first. The Appointment field will be filled automatically when an existing appointment is found for the selected employee.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
               ]),
             ),
           ),
@@ -1635,8 +1677,6 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                 'applied_rank_text': emptyToNull(appliedRank.text),
                 'applied_salary': parseMoneyInput(appliedSalary.text),
                 'points_earned': num.tryParse(points.text.trim()),
-                'approved_rank_text': emptyToNull(approvedRank.text),
-                'approved_salary': parseMoneyInput(approvedSalary.text),
               });
             },
             child: const Text('Save'),
@@ -1645,7 +1685,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
       ),
     ),
   );
-  for (final c in [appointment, previousRank, previousSalary, appliedRank, appliedSalary, points, approvedRank, approvedSalary]) {
+  for (final c in [appointment, previousRank, previousSalary, appliedRank, appliedSalary, points]) {
     c.dispose();
   }
   return result;
