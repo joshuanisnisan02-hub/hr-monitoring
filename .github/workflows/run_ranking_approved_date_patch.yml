@@ -1,0 +1,26 @@
+name: Run ranking approved date patch
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_ranking_approved_date_patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply ranking approved date patch
+        run: python3 .github/scripts/apply_ranking_approved_date_patch.py
+      - name: Commit ranking approved date patch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Add approved date to ranking"
+          git push
