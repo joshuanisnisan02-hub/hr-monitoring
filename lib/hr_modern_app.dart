@@ -485,6 +485,126 @@ class ModalFieldWidth extends InheritedWidget {
   bool updateShouldNotify(ModalFieldWidth oldWidget) => full != oldWidget.full || item != oldWidget.item;
 }
 
+
+String _employeeDialogSectionFor(String key) {
+  const sections = <String, String>{
+    'full_name': 'Personal Information',
+    'appointment': 'Personal Information',
+    'bio_number': 'Personal Information',
+    'gender': 'Personal Information',
+    'civil_status': 'Personal Information',
+    'birth_date': 'Personal Information',
+    'address': 'Personal Information',
+    'contact_number': 'Personal Information',
+    'email': 'Personal Information',
+    'education_level': 'Educational Information',
+    'school_graduated': 'Educational Information',
+    'degree_course': 'Educational Information',
+    'guardian_name': 'Guardian Information',
+    'guardian_relationship': 'Guardian Information',
+    'guardian_contact': 'Guardian Information',
+    'guardian_address': 'Guardian Information',
+    'designation': 'Employment Information',
+    'employee_type': 'Employment Information',
+    'teaching_status': 'Employment Information',
+    'employment_status': 'Employment Information',
+    'date_hired': 'Employment Information',
+    'starting_date': 'Employment Information',
+    'current_salary': 'Employment Information',
+    'license_summary': 'Employment Information',
+    'notes': 'Employment Information',
+    'contract_type': 'Contract Information',
+    'contract_start_date': 'Contract Information',
+    'duration_months': 'Contract Information',
+    'contract_end_date': 'Contract Information',
+    'contract_attachment_url': 'Contract Information',
+    'contract_status': 'Contract Information',
+    'credential_kind': 'Credential Information',
+    'license_name': 'License Information',
+    'license_number': 'License Information',
+    'license_issued_date': 'License Information',
+    'license_expiry_date': 'License Information',
+    'license_attachment_url': 'License Information',
+    'license_status': 'License Information',
+    'certificate_type': 'Certificate Information',
+    'certificate_name': 'Certificate Information',
+    'certificate_number': 'Certificate Information',
+    'certificate_issued_date': 'Certificate Information',
+    'certificate_expiry_date': 'Certificate Information',
+    'certificate_attachment_url': 'Certificate Information',
+    'certificate_status': 'Certificate Information',
+  };
+  return sections[key] ?? 'Other Information';
+}
+
+class _EmployeeDialogSectionLabel extends StatelessWidget {
+  final String title;
+  const _EmployeeDialogSectionLabel(this.title);
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 2),
+          child: Row(children: [
+            const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _ink, letterSpacing: 0.3)),
+            ),
+            const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+          ]),
+        ),
+      );
+}
+
+List<Widget> _buildModernDialogFields(
+  List<EditField> fields,
+  Map<String, TextEditingController> controllers,
+  Map<String, String?> selected,
+  StateSetter setDialogState,
+) {
+  final widgets = <Widget>[];
+  String? currentSection;
+
+  for (final f in fields) {
+    final section = _employeeDialogSectionFor(f.key);
+    if (section != currentSection) {
+      if (widgets.isNotEmpty) widgets.add(const _FieldShell(wide: true, child: SizedBox(height: 4)));
+      widgets.add(_EmployeeDialogSectionLabel(section));
+      currentSection = section;
+    }
+
+    final wide = f.kind == FieldKind.multiline;
+    if (f.kind == FieldKind.dropdown || f.kind == FieldKind.bool) {
+      final opts = f.kind == FieldKind.bool ? const [EditOption('true', 'Active'), EditOption('false', 'Inactive')] : uniqueOptions(f.options);
+      widgets.add(_FieldShell(
+        wide: wide,
+        child: DropdownButtonFormField<String>(
+          value: optionValueOrFirst(selected[f.key], opts, f.required),
+          isExpanded: true,
+          decoration: InputDecoration(labelText: f.label),
+          items: opts.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
+          validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
+          onChanged: (v) => setDialogState(() => selected[f.key] = v),
+        ),
+      ));
+    } else {
+      widgets.add(_FieldShell(
+        wide: wide,
+        child: TextFormField(
+          controller: controllers[f.key],
+          maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
+          keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
+          decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
+          validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
+        ),
+      ));
+    }
+  }
+  return widgets;
+}
+
 Future<Map<String, dynamic>?> showModernRecordDialog(BuildContext context, String title, List<EditField> fields, Map<String, dynamic>? initial, {String? readOnlyEmployeeName}) async {
   final formKey = GlobalKey<FormState>();
   final controllers = <String, TextEditingController>{};
@@ -541,33 +661,7 @@ Future<Map<String, dynamic>?> showModernRecordDialog(BuildContext context, Strin
                                 runSpacing: 14,
                                 children: [
                                   if (readOnlyEmployeeName != null) _ReadOnlyBox(label: 'Employee Name', value: readOnlyEmployeeName, wide: true),
-                                  ...fields.map((f) {
-                                    final wide = f.kind == FieldKind.multiline;
-                                    if (f.kind == FieldKind.dropdown || f.kind == FieldKind.bool) {
-                                      final opts = f.kind == FieldKind.bool ? const [EditOption('true', 'Active'), EditOption('false', 'Inactive')] : uniqueOptions(f.options);
-                                      return _FieldShell(
-                                        wide: wide,
-                                        child: DropdownButtonFormField<String>(
-                                          value: optionValueOrFirst(selected[f.key], opts, f.required),
-                                          isExpanded: true,
-                                          decoration: InputDecoration(labelText: f.label),
-                                          items: opts.map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
-                                          validator: (v) => f.required && (v == null || v.isEmpty) ? 'Required' : null,
-                                          onChanged: (v) => setDialogState(() => selected[f.key] = v),
-                                        ),
-                                      );
-                                    }
-                                    return _FieldShell(
-                                      wide: wide,
-                                      child: TextFormField(
-                                        controller: controllers[f.key],
-                                        maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
-                                        keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
-                                        decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
-                                        validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
-                                      ),
-                                    );
-                                  }),
+                                  ..._buildModernDialogFields(fields, controllers, selected, setDialogState),
                                 ],
                               ),
                             );
