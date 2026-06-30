@@ -276,7 +276,7 @@ Future<List<dynamic>> loadLicensesGrouped({int limit = 5000}) async {
 
 Future<List<dynamic>> loadCertificates({int limit = 1500}) => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, attachment_url, employees(full_name)').order('expiry_date').limit(limit);
 Future<List<dynamic>> loadEvaluations({int limit = 1500}) => db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(limit);
-Future<List<dynamic>> loadRankings({int limit = 1500}) => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
+Future<List<dynamic>> loadRankings({int limit = 1500}) => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, approved_date, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
 
 class DashboardPage extends StatelessWidget {
   final ValueChanged<int> onNavigate;
@@ -611,6 +611,7 @@ class _RankingPageState extends State<RankingPage> {
                 GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
                 GridCol('points_earned', 'Points Earned', isNumber: true),
                 GridCol('approved_rank_text', 'Approved Rank', flex: 2),
+                GridCol('approved_date', 'Approved Date'),
               ],
               onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
               onView: viewRanking,
@@ -2255,6 +2256,7 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row, Void
     await db.from('ranking_applications').update({
       'approved_rank_text': row['applied_rank_text'],
       'approved_salary': row['applied_salary'],
+      'approved_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', row['id']);
     showSnack(context, 'Applied rank approved.');
@@ -2347,12 +2349,17 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                 else
                   ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
                 textBox('Appointment', appointment, readOnly: true),
-                textBox('Points Earned', points, kind: FieldKind.number),
-                textBox('Previous Rank', previousRank, readOnly: true),
+                if (isAdd)
+                  rankTextBox('Previous Rank', previousRank, () => pickRank(previousRank, previousSalary))
+                else
+                  textBox('Previous Rank', previousRank, readOnly: true),
                 textBox('Previous Salary', previousSalary, kind: FieldKind.number, readOnly: true),
-                rankTextBox('Applied Rank', appliedRank, () => pickRank(appliedRank, appliedSalary)),
-                textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
-                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee first. The Appointment field will be filled automatically when an existing appointment is found for the selected employee.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
+                if (!isAdd) ...[
+                  textBox('Points Earned', points, kind: FieldKind.number),
+                  rankTextBox('Applied Rank', appliedRank, () => pickRank(appliedRank, appliedSalary)),
+                  textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
+                ],
+                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee, then pick the Previous Rank to auto-fill Previous Salary. Applied rank and points can be updated later using Edit.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
               ]),
             ),
           ),
@@ -2363,16 +2370,21 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
               FocusManager.instance.primaryFocus?.unfocus();
-              Navigator.of(context, rootNavigator: true).pop({
+              final out = <String, dynamic>{
                 'employee_id': isAdd ? emptyToNull(employeeId) : initial?['employee_id'],
                 'cycle_id': emptyToNull(cycleId),
                 'appointment': emptyToNull(appointment.text),
                 'previous_rank_text': emptyToNull(previousRank.text),
                 'previous_salary': parseMoneyInput(previousSalary.text),
-                'applied_rank_text': emptyToNull(appliedRank.text),
-                'applied_salary': parseMoneyInput(appliedSalary.text),
-                'points_earned': num.tryParse(points.text.trim()),
-              });
+              };
+              if (!isAdd) {
+                out.addAll({
+                  'applied_rank_text': emptyToNull(appliedRank.text),
+                  'applied_salary': parseMoneyInput(appliedSalary.text),
+                  'points_earned': num.tryParse(points.text.trim()),
+                });
+              }
+              Navigator.of(context, rootNavigator: true).pop(out);
             },
             child: const Text('Save'),
           ),
@@ -2489,6 +2501,7 @@ class _ReportsPageState extends State<ReportsPage> {
           GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
           GridCol('points_earned', 'Points Earned', isNumber: true),
           GridCol('approved_rank_text', 'Approved Rank', flex: 2),
+          GridCol('approved_date', 'Approved Date'),
           GridCol('appointment_title', 'Appointment', flex: 3),
         ]),
       ];
