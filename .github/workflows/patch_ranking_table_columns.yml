@@ -18,7 +18,6 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
-          import re
           import textwrap
 
           p = Path('lib/main.dart')
@@ -55,9 +54,11 @@ jobs:
           }
           ''').strip()
 
-          s, count = re.subn(r'class RankingPage extends StatelessWidget \{.*?\n\}', ranking_block, s, count=1, flags=re.S)
-          if count != 1:
-              raise SystemExit('RankingPage block not replaced')
+          start = s.find('class RankingPage extends StatelessWidget')
+          end = s.find('\n\nclass GridCol', start)
+          if start == -1 or end == -1:
+              raise SystemExit('RankingPage block markers not found')
+          s = s[:start] + ranking_block + s[end:]
 
           s = s.replace(
               '  final ViewHandler? onView;\n  final Future<dynamic> Function(Map<String, dynamic> row) onDelete;\n\n  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, required this.onDelete});',
@@ -67,8 +68,14 @@ jobs:
           s = s.replace('widget.onView == null ? 96 : 142', "widget.onView == null ? (widget.showDelete ? 96 : 52) : (widget.showDelete ? 142 : 100)")
           s = s.replace('onDelete: () => confirmDelete(context, rows[i]),', "onDelete: widget.showDelete ? () => confirmDelete(context, rows[i]) : null,")
           s = s.replace('  final VoidCallback onDelete;', '  final VoidCallback? onDelete;')
-          s = s.replace('required this.onDelete});', 'this.onDelete});')
-          s = s.replace("IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),", "if (onDelete != null) IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),")
+          s = s.replace(
+              'const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, required this.onDelete});',
+              'const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, this.onDelete});'
+          )
+          s = s.replace(
+              "IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),",
+              "if (onDelete != null) IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),"
+          )
 
           if 'Future<void> viewRanking(BuildContext context, Map<String, dynamic> row)' not in s:
               view_ranking = textwrap.dedent(r'''
