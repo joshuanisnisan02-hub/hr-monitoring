@@ -493,22 +493,24 @@ class RankingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Ranking',
-        subtitle: 'Manage faculty ranking applications. Employee name is read-only when editing existing records.',
+        subtitle: 'Manage faculty ranking applications following the Excel ranking summary layout.',
         child: CrudTable(
           load: () => loadRankings(),
-          searchHint: 'Search employee, cycle, rank, or appointment',
+          searchHint: 'Search employee, appointment, rank, salary, or points',
           addLabel: 'Add Ranking',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-            GridCol('cycle_name', 'Cycle', flex: 2),
-            GridCol('previous_rank_text', 'Previous', flex: 2),
-            GridCol('applied_rank_text', 'Applied', flex: 2),
-            GridCol('points_earned', 'Points', isNumber: true),
-            GridCol('approved_rank_text', 'Approved', flex: 2),
-            GridCol('approved_salary', 'Salary', isMoney: true),
+            GridCol('appointment', 'Appointment', flex: 2),
+            GridCol('previous_rank_text', 'Previous Rank', flex: 2),
+            GridCol('previous_salary', 'Basic Salary', isMoney: true),
+            GridCol('applied_rank_text', 'Rank Applied', flex: 2),
+            GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
+            GridCol('points_earned', 'Points Earned', isNumber: true),
           ],
           onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
+          onView: viewRanking,
           onEdit: editRanking,
+          showDelete: false,
           onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
         ),
       );
@@ -538,9 +540,10 @@ class CrudTable extends StatefulWidget {
   final AddHandler? onAdd;
   final EditHandler onEdit;
   final ViewHandler? onView;
+  final bool showDelete;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
-  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, required this.onDelete});
+  const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, this.showDelete = true, required this.onDelete});
 
   @override
   State<CrudTable> createState() => _CrudTableState();
@@ -625,7 +628,7 @@ class _CrudTableState extends State<CrudTable> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(22),
           child: Column(children: [
-            TableHeader(columns: widget.columns, sortKey: activeSortKey, sortAscending: sortAscending, showActions: true, actionWidth: widget.onView == null ? 96 : 142, onSort: (key) {
+            TableHeader(columns: widget.columns, sortKey: activeSortKey, sortAscending: sortAscending, showActions: true, actionWidth: widget.onView == null ? (widget.showDelete ? 96 : 52) : (widget.showDelete ? 142 : 100), onSort: (key) {
               setState(() {
                 if (sortKey == key) {
                   sortAscending = !sortAscending;
@@ -645,10 +648,10 @@ class _CrudTableState extends State<CrudTable> {
                   row: rows[i],
                   columns: widget.columns,
                   index: i,
-                  actionWidth: widget.onView == null ? 96 : 142,
+                  actionWidth: widget.onView == null ? (widget.showDelete ? 96 : 52) : (widget.showDelete ? 142 : 100),
                   onView: widget.onView == null ? null : () => widget.onView!(context, rows[i]),
                   onEdit: () => widget.onEdit(context, rows[i], refresh),
-                  onDelete: () => confirmDelete(context, rows[i]),
+                  onDelete: widget.showDelete ? () => confirmDelete(context, rows[i]) : null,
                 ),
               ),
             ),
@@ -771,9 +774,9 @@ class TableRowItem extends StatelessWidget {
   final double actionWidth;
   final VoidCallback? onView;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
 
-  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, required this.onDelete});
+  const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, this.onDelete});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -787,7 +790,7 @@ class TableRowItem extends StatelessWidget {
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               if (onView != null) IconButton(tooltip: 'View', onPressed: onView, icon: const Icon(Icons.visibility_rounded, color: Color(0xFF0E7490), size: 20)),
               IconButton(tooltip: 'Edit', onPressed: onEdit, icon: const Icon(Icons.edit_rounded, color: _primary, size: 20)),
-              IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),
+              if (onDelete != null) IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),
             ]),
           ),
         ]),
@@ -1192,6 +1195,36 @@ Future<void> viewEmployee(BuildContext context, Map<String, dynamic> row) async 
   } catch (e) {
     showSnack(context, 'View Failed: $e');
   }
+}
+
+
+Future<void> viewRanking(BuildContext context, Map<String, dynamic> row) async {
+  final normalized = normalizeRow(row);
+  await showDialog<void>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text(formatValue(normalized['employee_name'])),
+      content: SizedBox(
+        width: 820,
+        child: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            detailSection('Ranking Information', normalized, const {
+              'Employee Name': 'employee_name',
+              'Appointment': 'appointment',
+              'Previous Rank': 'previous_rank_text',
+              'Basic Salary': 'previous_salary',
+              'Rank Applied': 'applied_rank_text',
+              'Basic Salary Adjustment': 'applied_salary',
+              'Points Earned': 'points_earned',
+              'Approved Rank': 'approved_rank_text',
+              'Salary Rate': 'approved_salary',
+            }),
+          ]),
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+    ),
+  );
 }
 
 Widget detailSection(String title, Map<String, dynamic> row, Map<String, String> fields) => Padding(
@@ -1609,12 +1642,12 @@ class _ReportsPageState extends State<ReportsPage> {
         ]),
         ReportConfig('Ranking Report', () => loadRankings(limit: 5000), const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('cycle_name', 'Cycle', flex: 2),
-          GridCol('previous_rank_text', 'Previous', flex: 2),
-          GridCol('applied_rank_text', 'Applied', flex: 2),
-          GridCol('points_earned', 'Points', isNumber: true),
-          GridCol('approved_rank_text', 'Approved', flex: 2),
-          GridCol('approved_salary', 'Salary', isMoney: true),
+          GridCol('appointment', 'Appointment', flex: 2),
+          GridCol('previous_rank_text', 'Previous Rank', flex: 2),
+          GridCol('previous_salary', 'Basic Salary', isMoney: true),
+          GridCol('applied_rank_text', 'Rank Applied', flex: 2),
+          GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
+          GridCol('points_earned', 'Points Earned', isNumber: true),
         ]),
       ];
 
