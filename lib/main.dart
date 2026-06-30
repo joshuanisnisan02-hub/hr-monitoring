@@ -426,7 +426,6 @@ class LicensesTab extends StatelessWidget {
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('license_name', 'License', flex: 2),
           GridCol('license_number', 'License No.', flex: 2),
-          GridCol('issued_date', 'Issued'),
           GridCol('expiry_date', 'Expiry'),
           GridCol('status', 'Status', isStatus: true),
         ],
@@ -1512,6 +1511,7 @@ class SelectedLicenseInput {
   final String name;
   final TextEditingController number = TextEditingController();
   final TextEditingController expiry = TextEditingController();
+  final TextEditingController attachment = TextEditingController();
   String status = '';
 
   SelectedLicenseInput(this.name);
@@ -1519,6 +1519,7 @@ class SelectedLicenseInput {
   void dispose() {
     number.dispose();
     expiry.dispose();
+    attachment.dispose();
   }
 }
 
@@ -1546,7 +1547,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
       builder: (context, setDialogState) => AlertDialog(
         title: const Text('Add License'),
         content: SizedBox(
-          width: 900,
+          width: 1040,
           child: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -1614,6 +1615,8 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                           SizedBox(width: 10),
                           Expanded(flex: 2, child: Text('Expiry Date', style: TextStyle(fontWeight: FontWeight.w900, color: _ink))),
                           SizedBox(width: 10),
+                          Expanded(flex: 2, child: Text('Attachment (PDF)', style: TextStyle(fontWeight: FontWeight.w900, color: _ink))),
+                          SizedBox(width: 10),
                           SizedBox(width: 130, child: Text('Status', style: TextStyle(fontWeight: FontWeight.w900, color: _ink))),
                         ]),
                       ),
@@ -1646,6 +1649,14 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                               ),
                             ),
                             const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: entry.attachment,
+                                decoration: const InputDecoration(labelText: 'Attachment (PDF)', hintText: 'PDF URL'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
                             SizedBox(width: 130, child: Padding(padding: const EdgeInsets.only(top: 10), child: StatusChip(entry.status.isEmpty ? '-' : entry.status))),
                           ]),
                         ),
@@ -1672,6 +1683,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                   'license_name': entry.name,
                   'license_number': entry.number.text.trim(),
                   'expiry_date': entry.expiry.text.trim(),
+                  'attachment_url': entry.attachment.text.trim().isEmpty ? null : entry.attachment.text.trim(),
                   'status': status.isEmpty ? null : status,
                   'updated_at': now,
                 };
