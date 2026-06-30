@@ -910,24 +910,34 @@ class DialogSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
         width: 728,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 2),
+        child: Container(
+          margin: const EdgeInsets.only(top: 14, bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFBFDBFE)),
+          ),
           child: Row(children: [
-            const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+            const Expanded(child: Divider(color: Color(0xFF93C5FD), thickness: 1)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Text(
-                title,
+                title.toUpperCase(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _ink, letterSpacing: 0.3),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1E3A8A),
+                  letterSpacing: 0.6,
+                ),
               ),
             ),
-            const Expanded(child: Divider(color: Color(0xFFCBD5E1))),
+            const Expanded(child: Divider(color: Color(0xFF93C5FD), thickness: 1)),
           ]),
         ),
       );
 }
-
 
 
 String dialogSectionForField(String key) {
