@@ -1,0 +1,143 @@
+name: Patch visible employee section headers
+
+on:
+  push:
+    paths:
+      - .github/workflows/patch_visible_employee_section_headers.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make employee modal section headers visible
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          def replace_between(text, start_marker, end_markers, replacement):
+              start = text.find(start_marker)
+              if start == -1:
+                  return text, False
+              end = -1
+              for marker in end_markers:
+                  candidate = text.find(marker, start)
+                  if candidate != -1 and (end == -1 or candidate < end):
+                      end = candidate
+              if end == -1:
+                  raise SystemExit(f'end marker not found after {start_marker}')
+              return text[:start] + replacement.strip() + text[end:], True
+
+          main_path = Path('lib/main.dart')
+          if main_path.exists():
+              s = main_path.read_text()
+              main_header = textwrap.dedent(r'''
+              class DialogSectionTitle extends StatelessWidget {
+                final String title;
+                const DialogSectionTitle(this.title, {super.key});
+
+                @override
+                Widget build(BuildContext context) => SizedBox(
+                      width: 728,
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 14, bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: Row(children: [
+                          const Expanded(child: Divider(color: Color(0xFF93C5FD), thickness: 1)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Text(
+                              title.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF1E3A8A),
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider(color: Color(0xFF93C5FD), thickness: 1)),
+                        ]),
+                      ),
+                    );
+              }
+              ''')
+              s, changed = replace_between(
+                  s,
+                  'class DialogSectionTitle extends StatelessWidget',
+                  ['\n\nString dialogSectionForField', '\n\n\nString dialogSectionForField', '\n\nFuture<Map<String, dynamic>?> showRecordDialog'],
+                  main_header,
+              )
+              if changed:
+                  main_path.write_text(s)
+
+          modern_path = Path('lib/hr_modern_app.dart')
+          if modern_path.exists():
+              s = modern_path.read_text()
+              modern_header = textwrap.dedent(r'''
+              class _EmployeeDialogSectionLabel extends StatelessWidget {
+                final String title;
+                const _EmployeeDialogSectionLabel(this.title);
+
+                @override
+                Widget build(BuildContext context) => SizedBox(
+                      width: double.infinity,
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 14, bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: Row(children: [
+                          const Expanded(child: Divider(color: Color(0xFF93C5FD), thickness: 1)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Text(
+                              title.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF1E3A8A),
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider(color: Color(0xFF93C5FD), thickness: 1)),
+                        ]),
+                      ),
+                    );
+              }
+              ''')
+              if 'class _EmployeeDialogSectionLabel extends StatelessWidget' in s:
+                  s, changed = replace_between(
+                      s,
+                      'class _EmployeeDialogSectionLabel extends StatelessWidget',
+                      ['\n\nList<Widget> _buildModernDialogFields'],
+                      modern_header,
+                  )
+                  if changed:
+                      modern_path.write_text(s)
+          PY
+      - name: Commit patch and remove workflow
+        run: |
+          rm -f .github/workflows/patch_visible_employee_section_headers.yml
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart lib/hr_modern_app.dart .github/workflows/patch_visible_employee_section_headers.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "Make employee modal section headers visible"
+          git push
