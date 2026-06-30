@@ -599,11 +599,12 @@ class _RankingPageState extends State<RankingPage> {
             child: CrudTable(
               key: ValueKey(filter),
               load: () => _loadRankings(),
-              searchHint: 'Search employee, rank, salary, or points',
+              searchHint: 'Search employee, rank, salary, points, or appointment',
               addLabel: 'Add Ranking',
               reportTitle: 'Ranking Report - ${filter == 'All' ? 'Full-time and Probationary' : filter}',
               columns: const [
                 GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+                GridCol('appointment_title', 'Appointment', flex: 3),
                 GridCol('previous_rank_text', 'Previous Rank', flex: 2),
                 GridCol('previous_salary', 'Basic Salary', isMoney: true),
                 GridCol('applied_rank_text', 'Rank Applied', flex: 2),
@@ -2488,6 +2489,7 @@ class _ReportsPageState extends State<ReportsPage> {
           GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
           GridCol('points_earned', 'Points Earned', isNumber: true),
           GridCol('approved_rank_text', 'Approved Rank', flex: 2),
+          GridCol('appointment_title', 'Appointment', flex: 3),
         ]),
       ];
 
