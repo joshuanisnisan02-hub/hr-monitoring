@@ -1503,7 +1503,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                   )
                 else
                   ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
-                textBox('Appointment', appointment),
+                textBox('Appointment', appointment, readOnly: true),
                 textBox('Points Earned', points, kind: FieldKind.number),
                 textBox('Previous Rank', previousRank, readOnly: true),
                 textBox('Previous Salary', previousSalary, kind: FieldKind.number, readOnly: true),
