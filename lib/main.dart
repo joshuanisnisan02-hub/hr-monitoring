@@ -1216,7 +1216,7 @@ List<Widget> buildDialogFieldWidgets(
         controller: controllers[f.key],
         maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
         keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
-        decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'YYYY-MM-DD' : null),
+        decoration: InputDecoration(labelText: f.label, hintText: f.kind == FieldKind.date ? 'January 02, 2026' : null),
         validator: (v) => f.required && (v == null || v.trim().isEmpty) ? 'Required' : null,
       ),
     ));
@@ -1634,7 +1634,7 @@ class SelectedLicenseInput {
 String licenseStatusFromExpiry(String text) {
   final value = text.trim();
   if (value.isEmpty) return '';
-  final parsed = DateTime.tryParse(value);
+  final parsed = parseFlexibleDate(value);
   if (parsed == null) return '';
   final todayNow = DateTime.now();
   final today = DateTime(todayNow.year, todayNow.month, todayNow.day);
@@ -1789,10 +1789,10 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                               flex: 2,
                               child: TextFormField(
                                 controller: entry.expiry,
-                                decoration: const InputDecoration(labelText: 'Expiry Date', hintText: 'YYYY-MM-DD'),
+                                decoration: const InputDecoration(labelText: 'Expiry Date', hintText: 'January 02, 2026'),
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) return 'Required';
-                                  if (DateTime.tryParse(v.trim()) == null) return 'Use YYYY-MM-DD';
+                                  if (parseFlexibleDate(v.trim()) == null) return 'Use January 02, 2026';
                                   return null;
                                 },
                                 onChanged: (v) => setDialogState(() => entry.status = licenseStatusFromExpiry(v)),
@@ -1849,7 +1849,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                   'employee_id': employeeId,
                   'license_name': entry.name,
                   'license_number': entry.number.text.trim(),
-                  'expiry_date': entry.expiry.text.trim(),
+                  'expiry_date': toIsoDateInput(entry.expiry.text),
                   'attachment_url': entry.attachmentUrl.trim().isEmpty ? null : entry.attachmentUrl.trim(),
                   'status': status.isEmpty ? null : status,
                   'updated_at': now,
@@ -2130,10 +2130,10 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(BuildContext contex
                               flex: 2,
                               child: TextFormField(
                                 controller: entry.expiry,
-                                decoration: const InputDecoration(labelText: 'Expiry Date', hintText: 'YYYY-MM-DD'),
+                                decoration: const InputDecoration(labelText: 'Expiry Date', hintText: 'January 02, 2026'),
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) return 'Required';
-                                  if (DateTime.tryParse(v.trim()) == null) return 'Use YYYY-MM-DD';
+                                  if (parseFlexibleDate(v.trim()) == null) return 'Use January 02, 2026';
                                   return null;
                                 },
                                 onChanged: (v) => setDialogState(() => entry.status = certificateStatusFromExpiry(v)),
@@ -2191,7 +2191,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(BuildContext contex
                   'certificate_type': 'National Certificate',
                   'certificate_name': entry.name,
                   'certificate_number': entry.number.text.trim(),
-                  'expiry_date': entry.expiry.text.trim(),
+                  'expiry_date': toIsoDateInput(entry.expiry.text),
                   'attachment_url': entry.attachmentUrl.trim().isEmpty ? null : entry.attachmentUrl.trim(),
                   'status': status.isEmpty ? null : status,
                   'updated_at': now,
@@ -2803,8 +2803,9 @@ bool hasUsefulValue(Map<String, dynamic> data, List<String> keys) => keys.any((k
 Object? parseFieldValue(String text, FieldKind kind) {
   final value = text.trim();
   if (value.isEmpty) return null;
-  if (kind == FieldKind.number) return num.tryParse(value);
-  if (kind == FieldKind.integer) return int.tryParse(value);
+  if (kind == FieldKind.number) return num.tryParse(value.replaceAll(RegExp(r'[^0-9.\-]'), ''));
+  if (kind == FieldKind.integer) return int.tryParse(value.replaceAll(RegExp(r'[^0-9\-]'), ''));
+  if (kind == FieldKind.date) return toIsoDateInput(value);
   return value;
 }
 
@@ -2873,15 +2874,55 @@ int compareRows(Map<String, dynamic> a, Map<String, dynamic> b, String key, bool
   return asc ? result : -result;
 }
 
+bool looksLikeDateText(String text) => RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(text.trim()) || RegExp(r'^[A-Za-z]+\s+\d{1,2},\s*\d{4}$').hasMatch(text.trim()) || RegExp(r'^\d{1,2}[-/]\d{1,2}[-/]\d{4}$').hasMatch(text.trim());
+
+DateTime? parseFlexibleDate(Object? value) {
+  if (value == null) return null;
+  final text = value.toString().trim();
+  if (text.isEmpty || text == '-') return null;
+  final iso = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(text);
+  if (iso != null) return DateTime.tryParse('${iso.group(1)}-${iso.group(2)}-${iso.group(3)}');
+  for (final pattern in const ['MMMM dd, yyyy', 'MMMM d, yyyy', 'MMM dd, yyyy', 'MMM d, yyyy', 'MM-dd-yyyy', 'M-d-yyyy', 'MM/dd/yyyy', 'M/d/yyyy']) {
+    try {
+      return DateFormat(pattern).parseStrict(text);
+    } catch (_) {}
+  }
+  return null;
+}
+
+String formatDateLong(Object? value) {
+  final parsed = parseFlexibleDate(value);
+  if (parsed == null) return formatValueRaw(value);
+  return DateFormat('MMMM dd, yyyy').format(parsed);
+}
+
+String? toIsoDateInput(Object? value) {
+  final parsed = parseFlexibleDate(value);
+  if (parsed == null) return value == null || value.toString().trim().isEmpty ? null : value.toString().trim();
+  return DateFormat('yyyy-MM-dd').format(parsed);
+}
+
+String formatValueRaw(Object? value) {
+  if (value == null) return '-';
+  final text = value.toString();
+  if (text.trim().isEmpty) return '-';
+  return text;
+}
+
 String formatValue(Object? value) {
   if (value == null) return '-';
   final text = value.toString();
   if (text.trim().isEmpty) return '-';
-  if (RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(text)) return text.substring(0, 10);
+  if (looksLikeDateText(text)) return formatDateLong(text);
   return text;
 }
 
-String formatEditValue(Object? value) => value == null ? '' : formatValue(value) == '-' ? '' : formatValue(value);
+String formatEditValue(Object? value) {
+  if (value == null) return '';
+  final raw = formatValueRaw(value);
+  if (raw == '-') return '';
+  return looksLikeDateText(raw) ? formatDateLong(raw) : raw;
+}
 
 String formatMoneyEdit(Object? value) {
   final text = formatMoney(value);
@@ -2896,6 +2937,7 @@ num? parseMoneyInput(String text) {
 
 String formatDetailValue(Object? value, String key) {
   if (key.contains('salary')) return formatMoney(value);
+  if (key.contains('date')) return formatDateLong(value);
   return formatValue(value);
 }
 
@@ -2913,7 +2955,7 @@ String formatNumber(Object? value) {
 
 int? daysLeft(Object? date) {
   if (date == null) return null;
-  final parsed = DateTime.tryParse(date.toString());
+  final parsed = parseFlexibleDate(date);
   if (parsed == null) return null;
   final today = DateTime.now();
   final base = DateTime(today.year, today.month, today.day);
