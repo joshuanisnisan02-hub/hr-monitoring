@@ -1,135 +1,161 @@
 from pathlib import Path
+import re
 import textwrap
 
 p = Path('lib/main.dart')
 s = p.read_text()
 
-ranking_block = textwrap.dedent(r'''
-class RankingPage extends StatelessWidget {
-  const RankingPage({super.key});
+reference_block = """const Set<String> rankingFullTimeReferenceNames = <String>{
+  "advincula, jezel c., lpt",
+  "avenido jr., restituto., mbm, lpt",
+  "villegas, beverly joy b., lpt",
+  "bañes-ofiaza, maria sheena p., lpt",
+  "beatingo, dave bryan j.",
+  "behiga-semilla, charissa mae g., maed, lpt",
+  "bernardo, julius m., lpt",
+  "besonia, kwin y., mba",
+  "bioco, aijelon g.",
+  "borro, enarcisa p., maed, lpt",
+  "cabidog, mary monica r., lpt",
+  "cabrera, kristine j., mbm, lpt",
+  "cabrera, princess kaye",
+  "calle, reycart",
+  "campilan, gremae",
+  "cañales, janine hope",
+  "caparoso, marie claire, lpt",
+  "casi, irene w., rcrim",
+  "castardo, mary dorothy yrenee, lpt",
+  "cauntao karen grace, lpt",
+  "celo, lisa l., rl",
+  "cocjin, charry j., rn",
+  "colipano, tessie r., phd, lpt",
+  "cuyos, marites mbm",
+  "cuyos, rosso, mbm, mit, lpt",
+  "dapsan, eldie john, lpt",
+  "david, elenito g.",
+  "de vera, freden s. mbm, chra",
+  "doña, cris d., lpt",
+  "doyac, adrian lpt",
+  "duran, leomil jay b., dbm-is, lpt",
+  "duro, rogelio p. jr. dbm-hsm, lpt",
+  "estrada, mark louie v.",
+  "gabitan, raul a., lpt",
+  "guarte, alnor g., mscrim",
+  "gumalos, vladimir dave, rcrim",
+  "honey maya maira d. bayucot, lpt",
+  "jabonero, charles b., mm-hm",
+  "lagura, jolly mae g., lpt",
+  "lerog, chad angelo, mbm",
+  "lerog, jeffrey, mbm, lpt",
+  "lim, patricia abby m., lpt",
+  "lupogan, andrea acerin, lpt",
+  "macawile, flora mae, rcrim",
+  "malla, jumbelyn",
+  "malone, felcris maed lpt",
+  "mamalinta, jehanie",
+  "marey, melchor a., mscrim",
+  "mijares, sheila mae",
+  "miranda, kenneth r., maed, lpt",
+  "molina, jonar m., mbm",
+  "moreno, christopher ryan lpt",
+  "nabua, john paul, lpt",
+  "navarro, joevy j., maed, lpt",
+  "navarro, jonarie",
+  "nocete, richelle m., rcrim",
+  "oliasa, razel y., lpt",
+  "omega, egay",
+  "pacatang, jennifer, lpt",
+  "pacatang, joan, lpt",
+  "pacheco, rodel, maed, lpt",
+  "padayhag, nheco, dbm-hsm, lpt",
+  "palasigue, sweetzel ann lpt",
+  "palo, raevelyn magandam, lpt",
+  "panelo, john paul, lpt",
+  "pavillar, aiza b., lpt",
+  "perez, joseph r",
+  "petate, edward b., lpt",
+  "quizon, katrina",
+  "rodriguez, cerie joy m, lpt",
+  "romarez, cindy",
+  "rubinos, genesis joyce m., lpt",
+  "sarona, arielle",
+  "secretaria, stephen",
+  "soriano, april joy lpt",
+  "soriano, joanna lpt",
+  "sumaylo, eddie, lpt",
+  "tabanera, dodie m., lpt",
+  "tabiliran, john michael lpt",
+  "taguines, gene",
+  "tagupa, marychell n., lpt",
+  "tampos, carvin paul g.",
+  "tobato, may maeh v., phd, lpt",
+  "tomampos, ellah jessa g. dbm, lpt",
+  "torcuator, dennis oliver g.",
+  "tubiano, queen heart v.",
+  "umadhay, juluis czar, lpt",
+  "utay, honey babe erica b.",
+  "venancio, daniuel p., lpt",
+  "villanuea, rey, lpt",
+};
 
-  @override
-  Widget build(BuildContext context) => PageFrame(
-        title: 'Ranking',
-        subtitle: 'Manage faculty ranking applications following the Excel ranking summary layout.',
-        child: CrudTable(
-          load: () => loadRankings(),
-          searchHint: 'Search employee, appointment, rank, salary, or points',
-          addLabel: 'Add Ranking',
-          columns: const [
-            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-            GridCol('appointment', 'Appointment', flex: 2),
-            GridCol('previous_rank_text', 'Previous Rank', flex: 2),
-            GridCol('previous_salary', 'Basic Salary', isMoney: true),
-            GridCol('applied_rank_text', 'Rank Applied', flex: 2),
-            GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
-            GridCol('points_earned', 'Points Earned', isNumber: true),
-          ],
-          onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
-          onView: viewRanking,
-          onEdit: editRanking,
-          showDelete: false,
-          onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
-        ),
-      );
-}
-''').strip()
+const Set<String> rankingProbationaryReferenceNames = <String>{
+  "abatayo, geoffrey ian p., lpt",
+  "alonzo, beayonce miles m., lpt",
+  "araza, alejandro roygbiv a., lpt",
+  "del corro, ronalyn a., lpt",
+  "delos santos, lawrence james p.",
+  "emolaga, dianne t., lpt",
+  "laurente iii, anastacio, lpt",
+  "mediodia, kyan m.",
+  "nanali, joanne b.",
+  "palces, gemma b., lpt",
+  "quiachon, jennifer m., lpt",
+  "rivera, jeremie r.",
+  "sese, amapil",
+  "toribio, mary joy l., rsw",
+  "yusof, saidah l., lpt",
+};"""
 
-start = s.find('class RankingPage extends StatelessWidget')
-end = s.find('\n\nclass GridCol', start)
-if start == -1 or end == -1:
-    raise SystemExit('RankingPage markers not found')
-s = s[:start] + ranking_block + s[end:]
+start_existing = s.find('const Set<String> rankingFullTimeReferenceNames')
+if start_existing != -1:
+    end_existing = s.find('\n\nclass RankingPage extends StatefulWidget', start_existing)
+    if end_existing == -1:
+        raise SystemExit('Could not find end of existing ranking reference block')
+    s = s[:start_existing] + reference_block + s[end_existing:]
+else:
+    marker = 'class RankingPage extends StatefulWidget'
+    idx = s.find(marker)
+    if idx == -1:
+        raise SystemExit('RankingPage marker not found')
+    s = s[:idx] + reference_block + "\n\n" + s[idx:]
 
-if 'final bool showDelete;' not in s:
-    s = s.replace(
-        '  final ViewHandler? onView;\n  final Future<dynamic> Function(Map<String, dynamic> row) onDelete;',
-        '  final ViewHandler? onView;\n  final bool showDelete;\n  final Future<dynamic> Function(Map<String, dynamic> row) onDelete;',
-        1,
-    )
+old_filter = """  bool _matchesRankingFilter(Map<String, dynamic> row, String selected) {
+    final text = '${row['appointment'] ?? ''}'.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ');
+    final isFullTime = text.contains('full') && text.contains('time');
+    final isProbationary = text.contains('probationary');
+    if (selected == 'Full-time') return isFullTime;
+    if (selected == 'Probationary') return isProbationary;
+    return isFullTime || isProbationary;
+  }"""
 
-s = s.replace(
-    'const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, required this.onDelete});',
-    'const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, this.showDelete = true, required this.onDelete});',
-    1,
-)
-s = s.replace(
-    'actionWidth: widget.onView == null ? 96 : 142',
-    "actionWidth: widget.onView == null ? (widget.showDelete ? 96 : 52) : (widget.showDelete ? 142 : 100)",
-    2,
-)
-s = s.replace(
-    'onDelete: () => confirmDelete(context, rows[i]),',
-    "onDelete: widget.showDelete ? () => confirmDelete(context, rows[i]) : null,",
-    1,
-)
-s = s.replace('  final VoidCallback onDelete;', '  final VoidCallback? onDelete;', 1)
-s = s.replace(
-    'const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, required this.onDelete});',
-    'const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, this.onDelete});',
-    1,
-)
-s = s.replace(
-    "IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),",
-    "if (onDelete != null) IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),",
-    1,
-)
+new_filter = """  bool _matchesRankingFilter(Map<String, dynamic> row, String selected) {
+    final nameKey = normalizeName('${row['employee_name'] ?? ''}');
+    final isFullTime = rankingFullTimeReferenceNames.contains(nameKey);
+    final isProbationary = rankingProbationaryReferenceNames.contains(nameKey);
+    if (selected == 'Full-time') return isFullTime;
+    if (selected == 'Probationary') return isProbationary;
+    return isFullTime || isProbationary;
+  }"""
 
-if 'Future<void> viewRanking(BuildContext context, Map<String, dynamic> row)' not in s:
-    view_ranking = textwrap.dedent(r'''
-
-    Future<void> viewRanking(BuildContext context, Map<String, dynamic> row) async {
-      final normalized = normalizeRow(row);
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: Text(formatValue(normalized['employee_name'])),
-          content: SizedBox(
-            width: 820,
-            child: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                detailSection('Ranking Information', normalized, const {
-                  'Employee Name': 'employee_name',
-                  'Appointment': 'appointment',
-                  'Previous Rank': 'previous_rank_text',
-                  'Basic Salary': 'previous_salary',
-                  'Rank Applied': 'applied_rank_text',
-                  'Basic Salary Adjustment': 'applied_salary',
-                  'Points Earned': 'points_earned',
-                  'Approved Rank': 'approved_rank_text',
-                  'Salary Rate': 'approved_salary',
-                }),
-              ]),
-            ),
-          ),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-        ),
-      );
-    }
-    ''')
-    marker = '\nWidget detailSection('
-    if marker not in s:
-        raise SystemExit('detailSection marker not found')
-    s = s.replace(marker, view_ranking + marker, 1)
-
-report_old = """ReportConfig('Ranking Report', () => loadRankings(limit: 5000), const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('cycle_name', 'Cycle', flex: 2),
-          GridCol('previous_rank_text', 'Previous', flex: 2),
-          GridCol('applied_rank_text', 'Applied', flex: 2),
-          GridCol('points_earned', 'Points', isNumber: true),
-          GridCol('approved_rank_text', 'Approved', flex: 2),
-          GridCol('approved_salary', 'Salary', isMoney: true),
-        ]),"""
-report_new = """ReportConfig('Ranking Report', () => loadRankings(limit: 5000), const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('appointment', 'Appointment', flex: 2),
-          GridCol('previous_rank_text', 'Previous Rank', flex: 2),
-          GridCol('previous_salary', 'Basic Salary', isMoney: true),
-          GridCol('applied_rank_text', 'Rank Applied', flex: 2),
-          GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
-          GridCol('points_earned', 'Points Earned', isNumber: true),
-        ]),"""
-s = s.replace(report_old, report_new, 1)
+if old_filter in s:
+    s = s.replace(old_filter, new_filter, 1)
+else:
+    start = s.find('  bool _matchesRankingFilter(Map<String, dynamic> row, String selected) {')
+    if start == -1:
+        raise SystemExit('Ranking filter start not found')
+    end = s.find('\n\n  Future<List<dynamic>> _loadRankings()', start)
+    if end == -1:
+        raise SystemExit('Ranking filter end not found')
+    s = s[:start] + new_filter + s[end:]
 
 p.write_text(s)
