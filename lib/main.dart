@@ -2349,12 +2349,17 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                 else
                   ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
                 textBox('Appointment', appointment, readOnly: true),
-                textBox('Points Earned', points, kind: FieldKind.number),
-                textBox('Previous Rank', previousRank, readOnly: true),
+                if (isAdd)
+                  rankTextBox('Previous Rank', previousRank, () => pickRank(previousRank, previousSalary))
+                else
+                  textBox('Previous Rank', previousRank, readOnly: true),
                 textBox('Previous Salary', previousSalary, kind: FieldKind.number, readOnly: true),
-                rankTextBox('Applied Rank', appliedRank, () => pickRank(appliedRank, appliedSalary)),
-                textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
-                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee first. The Appointment field will be filled automatically when an existing appointment is found for the selected employee.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
+                if (!isAdd) ...[
+                  textBox('Points Earned', points, kind: FieldKind.number),
+                  rankTextBox('Applied Rank', appliedRank, () => pickRank(appliedRank, appliedSalary)),
+                  textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
+                ],
+                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee, then pick the Previous Rank to auto-fill Previous Salary. Applied rank and points can be updated later using Edit.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
               ]),
             ),
           ),
@@ -2365,16 +2370,21 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
             onPressed: () {
               if (!formKey.currentState!.validate()) return;
               FocusManager.instance.primaryFocus?.unfocus();
-              Navigator.of(context, rootNavigator: true).pop({
+              final out = <String, dynamic>{
                 'employee_id': isAdd ? emptyToNull(employeeId) : initial?['employee_id'],
                 'cycle_id': emptyToNull(cycleId),
                 'appointment': emptyToNull(appointment.text),
                 'previous_rank_text': emptyToNull(previousRank.text),
                 'previous_salary': parseMoneyInput(previousSalary.text),
-                'applied_rank_text': emptyToNull(appliedRank.text),
-                'applied_salary': parseMoneyInput(appliedSalary.text),
-                'points_earned': num.tryParse(points.text.trim()),
-              });
+              };
+              if (!isAdd) {
+                out.addAll({
+                  'applied_rank_text': emptyToNull(appliedRank.text),
+                  'applied_salary': parseMoneyInput(appliedSalary.text),
+                  'points_earned': num.tryParse(points.text.trim()),
+                });
+              }
+              Navigator.of(context, rootNavigator: true).pop(out);
             },
             child: const Text('Save'),
           ),
