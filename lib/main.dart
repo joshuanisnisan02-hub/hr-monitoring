@@ -1857,6 +1857,33 @@ Future<void> viewLicenseGroup(BuildContext context, Map<String, dynamic> row) as
   );
 }
 
+
+Future<Map<String, dynamic>?> pickLicenseRecordToEdit(BuildContext context, Map<String, dynamic> row) async {
+  final records = (row['license_records'] is List) ? List<Map<String, dynamic>>.from(row['license_records'] as List) : <Map<String, dynamic>>[row];
+  if (records.isEmpty) return null;
+  if (records.length == 1) return records.first;
+  return showDialog<Map<String, dynamic>>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Choose License to Edit'),
+      content: SizedBox(
+        width: 520,
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemCount: records.length,
+          separatorBuilder: (_, __) => const Divider(height: 1),
+          itemBuilder: (_, i) => ListTile(
+            title: Text(formatValue(records[i]['license_name'])),
+            subtitle: Text('License No.: ${formatValue(records[i]['license_number'])} • Expiry: ${formatValue(records[i]['expiry_date'])}'),
+            onTap: () => Navigator.pop(context, records[i]),
+          ),
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel'))],
+    ),
+  );
+}
+
 Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final isAdd = row == null;
   if (isAdd) {
@@ -1872,6 +1899,9 @@ Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCa
     return;
   }
 
+  final editRow = await pickLicenseRecordToEdit(context, row);
+  if (editRow == null) return;
+  final employeeName = formatValue(row['employee_name'] ?? editRow['employee_name']);
   final data = await showRecordDialog(
     context,
     'Edit License',
@@ -1883,11 +1913,11 @@ Future<void> editLicense(BuildContext context, Map<String, dynamic>? row, VoidCa
       EditField('attachment_url', 'Attachment URL'),
       EditField('status', 'Status', kind: FieldKind.dropdown, options: [EditOption('Active', 'Active'), EditOption('For Renewal', 'For Renewal'), EditOption('Expired', 'Expired'), EditOption('Archived', 'Archived')]),
     ],
-    row,
-    readOnlyEmployeeName: linkedEmployeeName(row),
+    editRow,
+    readOnlyEmployeeName: employeeName == '-' ? linkedEmployeeName(editRow) : employeeName,
   );
   if (data == null) return;
-  await saveRow(context, 'employee_licenses', row['id'], data, refresh);
+  await saveRow(context, 'employee_licenses', editRow['id'], data, refresh);
 }
 
 
