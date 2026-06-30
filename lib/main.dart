@@ -109,6 +109,7 @@ class _ShellPageState extends State<ShellPage> {
       const ContractsPage(),
       const CredentialsPage(),
       const EvaluationsPage(),
+      const AppointmentPage(),
       const RankingPage(),
     ];
     return Scaffold(
@@ -141,6 +142,7 @@ class AppSidebar extends StatelessWidget {
       NavItem('Contracts', Icons.assignment_rounded),
       NavItem('Credentials', Icons.badge_rounded),
       NavItem('Evaluations', Icons.rate_review_rounded),
+      NavItem('Appointment', Icons.work_outline_rounded),
       NavItem('Ranking', Icons.leaderboard_rounded),
     ];
     return Container(
@@ -484,6 +486,32 @@ class EvaluationsPage extends StatelessWidget {
       );
 }
 
+
+class AppointmentPage extends StatelessWidget {
+  const AppointmentPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Appointment',
+        subtitle: 'View employee appointment classifications and assigned appointment/designation from the ranking Excel list.',
+        child: CrudTable(
+          load: () => loadRankings(limit: 5000),
+          searchHint: 'Search employee or appointment',
+          addLabel: 'Add Appointment',
+          allowAdd: false,
+          reportTitle: 'Appointment Report',
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('appointment_category', 'Type', flex: 2),
+            GridCol('appointment_title', 'Appointment', flex: 4),
+          ],
+          onView: viewRanking,
+          onEdit: editRanking,
+          onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
+        ),
+      );
+}
+
 class RankingPage extends StatefulWidget {
   const RankingPage({super.key});
 
@@ -535,12 +563,11 @@ class _RankingPageState extends State<RankingPage> {
             child: CrudTable(
               key: ValueKey(filter),
               load: () => _loadRankings(),
-              searchHint: 'Search employee, appointment, rank, salary, or points',
+              searchHint: 'Search employee, rank, salary, or points',
               addLabel: 'Add Ranking',
               reportTitle: 'Ranking Report - ${filter == 'All' ? 'Full-time and Probationary' : filter}',
               columns: const [
                 GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-                GridCol('appointment', 'Appointment', flex: 2),
                 GridCol('previous_rank_text', 'Previous Rank', flex: 2),
                 GridCol('previous_salary', 'Basic Salary', isMoney: true),
                 GridCol('applied_rank_text', 'Rank Applied', flex: 2),
@@ -1952,6 +1979,17 @@ Map<String, dynamic> normalizeRow(Map<String, dynamic> row) {
   final out = Map<String, dynamic>.from(row);
   if (out['employees'] is Map) out['employee_name'] = out['employees']['full_name'];
   if (out['ranking_cycles'] is Map) out['cycle_name'] = out['ranking_cycles']['name'];
+  if (out.containsKey('appointment')) {
+    final appointmentText = '${out['appointment'] ?? ''}'.trim();
+    final parts = appointmentText.split(RegExp(r'\s+-\s+'));
+    if (parts.length >= 2 && (parts.first.toLowerCase().contains('full') || parts.first.toLowerCase().contains('probationary'))) {
+      out['appointment_category'] = parts.first;
+      out['appointment_title'] = parts.skip(1).join(' - ');
+    } else {
+      out['appointment_category'] = '-';
+      out['appointment_title'] = appointmentText.isEmpty ? '-' : appointmentText;
+    }
+  }
   if (out['date_hired'] == null || out['date_hired'].toString().isEmpty) out['date_hired'] = out['starting_date'];
   out['date_hired_display'] = out['date_hired'] ?? out['starting_date'];
   if (out.containsKey('contract_end_date')) out['days_left'] = daysLeft(out['contract_end_date']);
