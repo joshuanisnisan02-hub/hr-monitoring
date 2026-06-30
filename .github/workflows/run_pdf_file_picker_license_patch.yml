@@ -1,0 +1,26 @@
+name: Run PDF file picker license patch
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_pdf_file_picker_license_patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply PDF file picker license patch
+        run: python3 .github/scripts/apply_pdf_file_picker_license_patch.py
+      - name: Commit PDF file picker license patch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Use PDF file upload for license attachments"
+          git push
