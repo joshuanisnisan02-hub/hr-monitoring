@@ -1,0 +1,26 @@
+name: Run license group edit fix
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_license_group_edit_fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply license group edit fix
+        run: python3 .github/scripts/apply_license_group_edit_fix.py
+      - name: Commit license group edit fix
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix grouped license edit values"
+          git push
