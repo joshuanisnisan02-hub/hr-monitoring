@@ -276,7 +276,7 @@ Future<List<dynamic>> loadLicensesGrouped({int limit = 5000}) async {
 
 Future<List<dynamic>> loadCertificates({int limit = 1500}) => db.from('employee_certificates').select('id, employee_id, certificate_type, certificate_name, certificate_number, issued_date, expiry_date, status, attachment_url, employees(full_name)').order('expiry_date').limit(limit);
 Future<List<dynamic>> loadEvaluations({int limit = 1500}) => db.from('evaluation_records').select('id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)').order('academic_year').limit(limit);
-Future<List<dynamic>> loadRankings({int limit = 1500}) => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
+Future<List<dynamic>> loadRankings({int limit = 1500}) => db.from('ranking_applications').select('id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, approved_date, employees(full_name), ranking_cycles(name)').order('points_earned', ascending: false).limit(limit);
 
 class DashboardPage extends StatelessWidget {
   final ValueChanged<int> onNavigate;
@@ -611,6 +611,7 @@ class _RankingPageState extends State<RankingPage> {
                 GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
                 GridCol('points_earned', 'Points Earned', isNumber: true),
                 GridCol('approved_rank_text', 'Approved Rank', flex: 2),
+                GridCol('approved_date', 'Approved Date'),
               ],
               onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
               onView: viewRanking,
@@ -2255,6 +2256,7 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row, Void
     await db.from('ranking_applications').update({
       'approved_rank_text': row['applied_rank_text'],
       'approved_salary': row['applied_salary'],
+      'approved_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', row['id']);
     showSnack(context, 'Applied rank approved.');
@@ -2489,6 +2491,7 @@ class _ReportsPageState extends State<ReportsPage> {
           GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
           GridCol('points_earned', 'Points Earned', isNumber: true),
           GridCol('approved_rank_text', 'Approved Rank', flex: 2),
+          GridCol('approved_date', 'Approved Date'),
           GridCol('appointment_title', 'Appointment', flex: 3),
         ]),
       ];
