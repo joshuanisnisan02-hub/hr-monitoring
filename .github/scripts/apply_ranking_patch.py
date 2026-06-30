@@ -1,0 +1,135 @@
+from pathlib import Path
+import textwrap
+
+p = Path('lib/main.dart')
+s = p.read_text()
+
+ranking_block = textwrap.dedent(r'''
+class RankingPage extends StatelessWidget {
+  const RankingPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Ranking',
+        subtitle: 'Manage faculty ranking applications following the Excel ranking summary layout.',
+        child: CrudTable(
+          load: () => loadRankings(),
+          searchHint: 'Search employee, appointment, rank, salary, or points',
+          addLabel: 'Add Ranking',
+          columns: const [
+            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('appointment', 'Appointment', flex: 2),
+            GridCol('previous_rank_text', 'Previous Rank', flex: 2),
+            GridCol('previous_salary', 'Basic Salary', isMoney: true),
+            GridCol('applied_rank_text', 'Rank Applied', flex: 2),
+            GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
+            GridCol('points_earned', 'Points Earned', isNumber: true),
+          ],
+          onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
+          onView: viewRanking,
+          onEdit: editRanking,
+          showDelete: false,
+          onDelete: (row) => db.from('ranking_applications').delete().eq('id', row['id']),
+        ),
+      );
+}
+''').strip()
+
+start = s.find('class RankingPage extends StatelessWidget')
+end = s.find('\n\nclass GridCol', start)
+if start == -1 or end == -1:
+    raise SystemExit('RankingPage markers not found')
+s = s[:start] + ranking_block + s[end:]
+
+if 'final bool showDelete;' not in s:
+    s = s.replace(
+        '  final ViewHandler? onView;\n  final Future<dynamic> Function(Map<String, dynamic> row) onDelete;',
+        '  final ViewHandler? onView;\n  final bool showDelete;\n  final Future<dynamic> Function(Map<String, dynamic> row) onDelete;',
+        1,
+    )
+
+s = s.replace(
+    'const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, required this.onDelete});',
+    'const CrudTable({super.key, required this.load, required this.searchHint, required this.addLabel, this.allowAdd = true, required this.columns, this.onAdd, required this.onEdit, this.onView, this.showDelete = true, required this.onDelete});',
+    1,
+)
+s = s.replace(
+    'actionWidth: widget.onView == null ? 96 : 142',
+    "actionWidth: widget.onView == null ? (widget.showDelete ? 96 : 52) : (widget.showDelete ? 142 : 100)",
+    2,
+)
+s = s.replace(
+    'onDelete: () => confirmDelete(context, rows[i]),',
+    "onDelete: widget.showDelete ? () => confirmDelete(context, rows[i]) : null,",
+    1,
+)
+s = s.replace('  final VoidCallback onDelete;', '  final VoidCallback? onDelete;', 1)
+s = s.replace(
+    'const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, required this.onDelete});',
+    'const TableRowItem({super.key, required this.row, required this.columns, required this.index, required this.actionWidth, this.onView, required this.onEdit, this.onDelete});',
+    1,
+)
+s = s.replace(
+    "IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),",
+    "if (onDelete != null) IconButton(tooltip: 'Delete', onPressed: onDelete, icon: const Icon(Icons.delete_outline_rounded, color: _danger, size: 20)),",
+    1,
+)
+
+if 'Future<void> viewRanking(BuildContext context, Map<String, dynamic> row)' not in s:
+    view_ranking = textwrap.dedent(r'''
+
+    Future<void> viewRanking(BuildContext context, Map<String, dynamic> row) async {
+      final normalized = normalizeRow(row);
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(formatValue(normalized['employee_name'])),
+          content: SizedBox(
+            width: 820,
+            child: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                detailSection('Ranking Information', normalized, const {
+                  'Employee Name': 'employee_name',
+                  'Appointment': 'appointment',
+                  'Previous Rank': 'previous_rank_text',
+                  'Basic Salary': 'previous_salary',
+                  'Rank Applied': 'applied_rank_text',
+                  'Basic Salary Adjustment': 'applied_salary',
+                  'Points Earned': 'points_earned',
+                  'Approved Rank': 'approved_rank_text',
+                  'Salary Rate': 'approved_salary',
+                }),
+              ]),
+            ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+        ),
+      );
+    }
+    ''')
+    marker = '\nWidget detailSection('
+    if marker not in s:
+        raise SystemExit('detailSection marker not found')
+    s = s.replace(marker, view_ranking + marker, 1)
+
+report_old = """ReportConfig('Ranking Report', () => loadRankings(limit: 5000), const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('cycle_name', 'Cycle', flex: 2),
+          GridCol('previous_rank_text', 'Previous', flex: 2),
+          GridCol('applied_rank_text', 'Applied', flex: 2),
+          GridCol('points_earned', 'Points', isNumber: true),
+          GridCol('approved_rank_text', 'Approved', flex: 2),
+          GridCol('approved_salary', 'Salary', isMoney: true),
+        ]),"""
+report_new = """ReportConfig('Ranking Report', () => loadRankings(limit: 5000), const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('appointment', 'Appointment', flex: 2),
+          GridCol('previous_rank_text', 'Previous Rank', flex: 2),
+          GridCol('previous_salary', 'Basic Salary', isMoney: true),
+          GridCol('applied_rank_text', 'Rank Applied', flex: 2),
+          GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
+          GridCol('points_earned', 'Points Earned', isNumber: true),
+        ]),"""
+s = s.replace(report_old, report_new, 1)
+
+p.write_text(s)
