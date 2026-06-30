@@ -1,6 +1,9 @@
 name: Patch employee modal sections
 
 on:
+  push:
+    paths:
+      - .github/workflows/patch_employee_modal_sections.yml
   workflow_dispatch:
 
 permissions:
