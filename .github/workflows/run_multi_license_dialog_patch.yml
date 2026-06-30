@@ -1,0 +1,26 @@
+name: Run multi license dialog patch
+
+'on':
+  push:
+    paths:
+      - '.github/workflows/run_multi_license_dialog_patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply multi license dialog patch
+        run: python3 .github/scripts/apply_multi_license_dialog_patch.py
+      - name: Commit multi license dialog patch
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Add multi-license checkbox dialog"
+          git push
