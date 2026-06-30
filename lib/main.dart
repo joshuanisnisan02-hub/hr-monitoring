@@ -506,6 +506,7 @@ class RankingPage extends StatelessWidget {
             GridCol('applied_rank_text', 'Rank Applied', flex: 2),
             GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
             GridCol('points_earned', 'Points Earned', isNumber: true),
+            GridCol('approved_rank_text', 'Approved Rank', flex: 2),
           ],
           onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
           onView: viewRanking,
@@ -1287,7 +1288,7 @@ Future<List<EditOption>> cycleOptions() async {
 
 Future<List<EditOption>> rankOptions() async {
   try {
-    final rows = await db.from('ranks').select('name, default_salary, salary_grade').order('sort_order').order('name').limit(500);
+    final rows = await db.from('ranks').select('name, default_salary').order('sort_order').order('name').limit(500);
     final out = <EditOption>[];
     final seen = <String>{};
     for (final r in rows) {
@@ -1296,9 +1297,8 @@ Future<List<EditOption>> rankOptions() async {
       if (key.isEmpty || seen.contains(key)) continue;
       seen.add(key);
       final salary = num.tryParse('${r['default_salary'] ?? ''}');
-      final sg = r['salary_grade'] == null ? '' : ' - SG ${r['salary_grade']}';
       final pay = salary == null ? '' : ' - ${formatMoney(salary)}';
-      out.add(EditOption(name, '$name$sg$pay', salary: salary));
+      out.add(EditOption(name, '$name$pay', salary: salary));
     }
     return out;
   } catch (_) {
@@ -1451,12 +1451,12 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
   String? cycleId = optionValueOrFirst(initial?['cycle_id']?.toString(), cycles, true);
   final appointment = TextEditingController(text: formatEditValue(initial?['appointment']));
   final previousRank = TextEditingController(text: formatEditValue(initial?['previous_rank_text']));
-  final previousSalary = TextEditingController(text: formatEditValue(initial?['previous_salary']));
+  final previousSalary = TextEditingController(text: formatMoneyEdit(initial?['previous_salary']));
   final appliedRank = TextEditingController(text: formatEditValue(initial?['applied_rank_text']));
-  final appliedSalary = TextEditingController(text: formatEditValue(initial?['applied_salary']));
+  final appliedSalary = TextEditingController(text: formatMoneyEdit(initial?['applied_salary']));
   final points = TextEditingController(text: formatEditValue(initial?['points_earned']));
   final approvedRank = TextEditingController(text: formatEditValue(initial?['approved_rank_text']));
-  final approvedSalary = TextEditingController(text: formatEditValue(initial?['approved_salary']));
+  final approvedSalary = TextEditingController(text: formatMoneyEdit(initial?['approved_salary']));
 
   Future<void> pickRank(TextEditingController rank, TextEditingController salary) async {
     final selected = await showDialog<EditOption>(
@@ -1475,7 +1475,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
     );
     if (selected == null) return;
     rank.text = selected.value;
-    if (selected.salary != null) salary.text = selected.salary!.toStringAsFixed(2);
+    if (selected.salary != null) salary.text = formatMoney(selected.salary);
   }
 
   final result = await showDialog<Map<String, dynamic>>(
@@ -1503,21 +1503,10 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                   )
                 else
                   ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
-                SizedBox(
-                  width: 354,
-                  child: DropdownButtonFormField<String>(
-                    value: optionValueOrFirst(cycleId, cycles, true),
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Ranking Cycle'),
-                    items: uniqueOptions(cycles).map((o) => DropdownMenuItem<String>(value: o.value, child: Text(o.label, overflow: TextOverflow.ellipsis))).toList(),
-                    validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                    onChanged: (v) => setDialogState(() => cycleId = v),
-                  ),
-                ),
                 textBox('Appointment', appointment),
                 textBox('Points Earned', points, kind: FieldKind.number),
-                rankTextBox('Previous Rank', previousRank, () => pickRank(previousRank, previousSalary)),
-                textBox('Previous Salary', previousSalary, kind: FieldKind.number),
+                textBox('Previous Rank', previousRank, readOnly: true),
+                textBox('Previous Salary', previousSalary, kind: FieldKind.number, readOnly: true),
                 rankTextBox('Applied Rank', appliedRank, () => pickRank(appliedRank, appliedSalary)),
                 textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
                 rankTextBox('Approved Rank', approvedRank, () => pickRank(approvedRank, approvedSalary)),
@@ -1537,12 +1526,12 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                 'cycle_id': emptyToNull(cycleId),
                 'appointment': emptyToNull(appointment.text),
                 'previous_rank_text': emptyToNull(previousRank.text),
-                'previous_salary': num.tryParse(previousSalary.text.trim()),
+                'previous_salary': parseMoneyInput(previousSalary.text),
                 'applied_rank_text': emptyToNull(appliedRank.text),
-                'applied_salary': num.tryParse(appliedSalary.text.trim()),
+                'applied_salary': parseMoneyInput(appliedSalary.text),
                 'points_earned': num.tryParse(points.text.trim()),
                 'approved_rank_text': emptyToNull(approvedRank.text),
-                'approved_salary': num.tryParse(approvedSalary.text.trim()),
+                'approved_salary': parseMoneyInput(approvedSalary.text),
               });
             },
             child: const Text('Save'),
@@ -1557,7 +1546,17 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
   return result;
 }
 
-Widget textBox(String label, TextEditingController controller, {FieldKind kind = FieldKind.text}) => SizedBox(width: 354, child: TextFormField(controller: controller, keyboardType: kind == FieldKind.number || kind == FieldKind.integer ? TextInputType.number : TextInputType.text, maxLines: kind == FieldKind.multiline ? 3 : 1, decoration: InputDecoration(labelText: label)));
+Widget textBox(String label, TextEditingController controller, {FieldKind kind = FieldKind.text, bool readOnly = false}) => SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        readOnly: readOnly,
+        keyboardType: kind == FieldKind.number || kind == FieldKind.integer ? TextInputType.number : TextInputType.text,
+        maxLines: kind == FieldKind.multiline ? 3 : 1,
+        style: TextStyle(color: readOnly ? _muted : _ink, fontWeight: readOnly ? FontWeight.w800 : FontWeight.w500),
+        decoration: InputDecoration(labelText: label, fillColor: readOnly ? const Color(0xFFF8FAFC) : Colors.white),
+      ),
+    );
 
 Widget rankTextBox(String label, TextEditingController controller, VoidCallback onPick) => SizedBox(
       width: 354,
@@ -1648,6 +1647,7 @@ class _ReportsPageState extends State<ReportsPage> {
           GridCol('applied_rank_text', 'Rank Applied', flex: 2),
           GridCol('applied_salary', 'Basic Salary Adjustment', flex: 2, isMoney: true),
           GridCol('points_earned', 'Points Earned', isNumber: true),
+          GridCol('approved_rank_text', 'Approved Rank', flex: 2),
         ]),
       ];
 
@@ -1925,6 +1925,17 @@ String formatValue(Object? value) {
 }
 
 String formatEditValue(Object? value) => value == null ? '' : formatValue(value) == '-' ? '' : formatValue(value);
+
+String formatMoneyEdit(Object? value) {
+  final text = formatMoney(value);
+  return text == '-' ? '' : text;
+}
+
+num? parseMoneyInput(String text) {
+  final cleaned = text.replaceAll(RegExp(r'[^0-9.\-]'), '');
+  if (cleaned.trim().isEmpty) return null;
+  return num.tryParse(cleaned);
+}
 
 String formatDetailValue(Object? value, String key) {
   if (key.contains('salary')) return formatMoney(value);
