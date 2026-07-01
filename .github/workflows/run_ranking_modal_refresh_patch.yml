@@ -1,4 +1,4 @@
-name: Run ranking modal refresh patch
+name: Run ranking modal cleanup
 
 'on':
   push:
@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply ranking modal refresh patch
-        run: python3 .github/scripts/apply_ranking_modal_refresh_patch.py
-      - name: Commit ranking modal refresh patch
+      - name: Clean duplicate ranking modal patch lines
+        run: python3 .github/scripts/cleanup_rank_modal.py
+      - name: Commit ranking modal cleanup
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add lib/main.dart
           git diff --cached --quiet && exit 0
-          git commit -m "Fix ranking modal save refresh"
+          git commit -m "Clean ranking modal duplicate patch lines"
           git push
-# trigger: ranking-modal-refresh
+# trigger: ranking-modal-cleanup
