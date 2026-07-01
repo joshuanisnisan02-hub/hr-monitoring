@@ -1,0 +1,32 @@
+name: Fix License Controller
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch missing attachment controller
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('lib/main.dart')
+          text = path.read_text()
+          if 'final TextEditingController attachment = TextEditingController();' not in text:
+              text = text.replace('  final TextEditingController expiry = TextEditingController();\n', '  final TextEditingController expiry = TextEditingController();\n  final TextEditingController attachment = TextEditingController();\n', 1)
+          if '    attachment.dispose();' not in text:
+              text = text.replace('    expiry.dispose();\n  }\n}', '    expiry.dispose();\n    attachment.dispose();\n  }\n}', 1)
+          path.write_text(text)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add lib/main.dart
+          git commit -m "Fix license attachment controller" || exit 0
+          git push
