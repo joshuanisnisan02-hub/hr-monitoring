@@ -1678,6 +1678,7 @@ class SelectedLicenseInput {
   final String name;
   final TextEditingController number = TextEditingController();
   final TextEditingController expiry = TextEditingController();
+  final TextEditingController attachment = TextEditingController();
   String attachmentUrl = '';
   String attachmentFileName = '';
   bool uploadingAttachment = false;
@@ -1688,6 +1689,7 @@ class SelectedLicenseInput {
   void dispose() {
     number.dispose();
     expiry.dispose();
+    attachment.dispose();
   }
 }
 
@@ -2038,6 +2040,7 @@ class SelectedCertificateInput {
   final String name;
   final TextEditingController number = TextEditingController();
   final TextEditingController expiry = TextEditingController();
+  final TextEditingController attachment = TextEditingController();
   String attachmentUrl = '';
   String attachmentFileName = '';
   bool uploadingAttachment = false;
@@ -2398,6 +2401,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
   final isAdd = initial == null;
   final formKey = GlobalKey<FormState>();
   String? employeeId = isAdd ? null : initial?['employee_id']?.toString();
+  String selectedEmployeeName = isAdd ? '' : linkedEmployeeName(initial);
   String? cycleId = optionValueOrFirst(initial?['cycle_id']?.toString(), cycles, true);
   final appointment = TextEditingController(text: formatEditValue(initial?['appointment']));
   final previousRank = TextEditingController(text: formatEditValue(initial?['previous_rank_text']));
@@ -2456,7 +2460,10 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                       },
                       onSelected: (option) => setDialogState(() {
                         employeeId = option.value;
+                        selectedEmployeeName = option.label;
                         appointment.text = appointmentByEmployee[option.value] ?? '';
+                        applyRankSalaryForEmployee(previousRank, previousSalary, ranks, selectedEmployeeName);
+                        applyRankSalaryForEmployee(appliedRank, appliedSalary, ranks, selectedEmployeeName);
                       }),
                       fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) => TextFormField(
                         controller: textController,
@@ -2472,9 +2479,13 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                           final exact = uniqueOptions(employees).where((option) => option.label.toLowerCase() == typed).toList();
                           if (exact.isNotEmpty) {
                             employeeId = exact.first.value;
+                            selectedEmployeeName = exact.first.label;
                             appointment.text = appointmentByEmployee[exact.first.value] ?? '';
+                            applyRankSalaryForEmployee(previousRank, previousSalary, ranks, selectedEmployeeName);
+                            applyRankSalaryForEmployee(appliedRank, appliedSalary, ranks, selectedEmployeeName);
                           } else {
                             employeeId = null;
+                            selectedEmployeeName = '';
                             appointment.text = '';
                           }
                         }),
@@ -2509,13 +2520,13 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                   ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
                 textBox('Appointment', appointment, readOnly: true),
                 if (isAdd)
-                  rankAutocompleteBox('Previous Rank', previousRank, previousSalary, ranks)
+                  rankAutocompleteBox('Previous Rank', previousRank, previousSalary, ranks, selectedEmployeeName)
                 else
                   textBox('Previous Rank', previousRank, readOnly: true),
                 textBox('Previous Salary', previousSalary, kind: FieldKind.number, readOnly: true),
                 if (!isAdd) ...[
                   textBox('Points Earned', points, kind: FieldKind.number),
-                  rankAutocompleteBox('Applied Rank', appliedRank, appliedSalary, ranks),
+                  rankAutocompleteBox('Applied Rank', appliedRank, appliedSalary, ranks, selectedEmployeeName),
                   textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
                 ],
                 SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee, then pick the Previous Rank to auto-fill Previous Salary. Applied rank and points can be updated later using Edit.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
@@ -2579,7 +2590,7 @@ Widget rankTextBox(String label, TextEditingController controller, VoidCallback 
       ]),
     );
 
-Widget rankAutocompleteBox(String label, TextEditingController controller, TextEditingController salaryController, List<EditOption> ranks) => SizedBox(
+Widget rankAutocompleteBox(String label, TextEditingController controller, TextEditingController salaryController, List<EditOption> ranks, String employeeName) => SizedBox(
       width: 354,
       child: Autocomplete<EditOption>(
         initialValue: TextEditingValue(text: controller.text),
@@ -2598,7 +2609,7 @@ Widget rankAutocompleteBox(String label, TextEditingController controller, TextE
         },
         onSelected: (option) {
           controller.text = option.value;
-          if (option.salary != null) salaryController.text = formatMoney(option.salary);
+          if (option.salary != null) salaryController.text = formatMoney(adjustedRankSalary(option.salary!, employeeName));
         },
         fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) => TextFormField(
           controller: textController,
@@ -2608,7 +2619,7 @@ Widget rankAutocompleteBox(String label, TextEditingController controller, TextE
             controller.text = value;
             final selectedKey = normalizeRankKey(value);
             final exact = uniqueOptions(ranks).where((option) => normalizeRankKey(option.value) == selectedKey).toList();
-            if (exact.isNotEmpty && exact.first.salary != null) salaryController.text = formatMoney(exact.first.salary);
+            if (exact.isNotEmpty && exact.first.salary != null) salaryController.text = formatMoney(adjustedRankSalary(exact.first.salary!, employeeName));
           },
         ),
         optionsViewBuilder: (context, onSelected, options) => Align(
@@ -2638,6 +2649,32 @@ Widget rankAutocompleteBox(String label, TextEditingController controller, TextE
         ),
       ),
     );
+
+const _salaryAlignmentBonusSurnames = <String>{'saulong', 'epil', 'roderos', 'flores', 'saligumba'};
+
+bool hasSalaryAlignmentBonus(Object? employeeName) {
+  final normalized = normalizeName('${employeeName ?? ''}'.replaceAll(RegExp(r'[^A-Za-z0-9 ]+'), ' '));
+  if (normalized.isEmpty) return false;
+  final parts = normalized.split(RegExp(r'\s+'));
+  return parts.any(_salaryAlignmentBonusSurnames.contains);
+}
+
+num adjustedRankSalary(num salary, Object? employeeName) => salary + (hasSalaryAlignmentBonus(employeeName) ? 1000 : 0);
+
+EditOption? matchedRankOption(List<EditOption> ranks, String rankText) {
+  final key = normalizeRankKey(rankText);
+  if (key.isEmpty) return null;
+  for (final option in uniqueOptions(ranks)) {
+    if (normalizeRankKey(option.value) == key) return option;
+  }
+  return null;
+}
+
+void applyRankSalaryForEmployee(TextEditingController rankController, TextEditingController salaryController, List<EditOption> ranks, Object? employeeName) {
+  final option = matchedRankOption(ranks, rankController.text);
+  if (option?.salary == null) return;
+  salaryController.text = formatMoney(adjustedRankSalary(option!.salary!, employeeName));
+}
 
 Future<void> saveRow(BuildContext context, String table, Object? id, Map<String, dynamic> data, VoidCallback refresh) async {
   try {
@@ -3098,3 +3135,4 @@ String escapeHtml(String input) => input.replaceAll('&', '&amp;').replaceAll('<'
 void showSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
+
