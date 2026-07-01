@@ -760,6 +760,7 @@ class _CrudTableState extends State<CrudTable> {
   int page = 0;
   String? sortKey;
   bool sortAscending = true;
+  bool actionInProgress = false;
 
   @override
   void initState() {
@@ -772,6 +773,16 @@ class _CrudTableState extends State<CrudTable> {
         future = widget.load();
         page = 0;
       });
+
+  Future<void> runAction(Future<void> Function() action) async {
+    if (actionInProgress) return;
+    setState(() => actionInProgress = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => actionInProgress = false);
+    }
+  }
 
   double get actionWidth {
     var count = 1; // Edit button
@@ -829,7 +840,7 @@ class _CrudTableState extends State<CrudTable> {
               }),
               onRefresh: refresh,
               onPrint: () => printRows(sorted),
-              onAdd: widget.onAdd == null ? null : () => widget.onAdd!(context, refresh),
+              onAdd: widget.onAdd == null || actionInProgress ? null : () => runAction(() => widget.onAdd!(context, refresh)),
               onSortChanged: (value) => setState(() {
                 sortKey = value ?? widget.columns.first.key;
                 page = 0;
@@ -880,10 +891,10 @@ class _CrudTableState extends State<CrudTable> {
                   columns: widget.columns,
                   index: i,
                   actionWidth: actionWidth,
-                  onView: widget.onView == null ? null : () => widget.onView!(context, rows[i]),
-                  onEdit: () => widget.onEdit(context, rows[i], refresh),
-                  onApprove: widget.onApprove == null ? null : () => widget.onApprove!(context, rows[i], refresh),
-                  onDelete: widget.showDelete ? () => confirmDelete(context, rows[i]) : null,
+                  onView: widget.onView == null || actionInProgress ? null : () => runAction(() => widget.onView!(context, rows[i])),
+                  onEdit: actionInProgress ? () {} : () => runAction(() => widget.onEdit(context, rows[i], refresh)),
+                  onApprove: widget.onApprove == null || actionInProgress ? null : () => runAction(() => widget.onApprove!(context, rows[i], refresh)),
+                  onDelete: widget.showDelete && !actionInProgress ? () => runAction(() => confirmDelete(context, rows[i])) : null,
                 ),
               ),
             ),
@@ -2382,13 +2393,13 @@ Future<void> editRanking(BuildContext context, Map<String, dynamic>? row, VoidCa
     data.removeWhere((key, value) => key == 'id');
     data['updated_at'] = DateTime.now().toIso8601String();
     if (row == null) {
-      await db.from('ranking_applications').insert(data);
+      await db.from('ranking_applications').insert(data).select('id').single();
       if (context.mounted) showSnack(context, 'Record Added.');
     } else {
-      await db.from('ranking_applications').update(data).eq('id', row['id']);
+      await db.from('ranking_applications').update(data).eq('id', row['id']).select('id').single();
       if (context.mounted) showSnack(context, 'Record Updated.');
     }
-    safeRefresh(refresh);
+    refresh();
   } catch (e) {
     if (context.mounted) showSnack(context, 'Save Failed: $e');
   }
@@ -2405,6 +2416,7 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
   final appliedRank = TextEditingController(text: formatEditValue(initial?['applied_rank_text']));
   final appliedSalary = TextEditingController(text: formatMoneyEdit(initial?['applied_salary']));
   final points = TextEditingController(text: formatEditValue(initial?['points_earned']));
+  bool submitting = false;
 
   Future<void> pickRank(TextEditingController rank, TextEditingController salary) async {
     final selected = await showDialog<EditOption>(
@@ -2524,28 +2536,33 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: submitting ? null : () => Navigator.pop(context), child: const Text('Cancel')),
           FilledButton(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              FocusManager.instance.primaryFocus?.unfocus();
-              final out = <String, dynamic>{
-                'employee_id': isAdd ? emptyToNull(employeeId) : initial?['employee_id'],
-                'cycle_id': emptyToNull(cycleId),
-                'appointment': emptyToNull(appointment.text),
-                'previous_rank_text': emptyToNull(previousRank.text),
-                'previous_salary': parseMoneyInput(previousSalary.text),
-              };
-              if (!isAdd) {
-                out.addAll({
-                  'applied_rank_text': emptyToNull(appliedRank.text),
-                  'applied_salary': parseMoneyInput(appliedSalary.text),
-                  'points_earned': num.tryParse(points.text.trim()),
-                });
-              }
-              Navigator.of(context, rootNavigator: true).pop(out);
-            },
-            child: const Text('Save'),
+            onPressed: submitting
+                ? null
+                : () {
+                    if (!formKey.currentState!.validate()) return;
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    final out = <String, dynamic>{
+                      'employee_id': isAdd ? emptyToNull(employeeId) : initial?['employee_id'],
+                      'cycle_id': emptyToNull(cycleId),
+                      'appointment': emptyToNull(appointment.text),
+                      'previous_rank_text': emptyToNull(previousRank.text),
+                      'previous_salary': parseMoneyInput(previousSalary.text),
+                    };
+                    if (!isAdd) {
+                      out.addAll({
+                        'applied_rank_text': emptyToNull(appliedRank.text),
+                        'applied_salary': parseMoneyInput(appliedSalary.text),
+                        'points_earned': num.tryParse(points.text.trim()),
+                      });
+                    }
+                    setDialogState(() => submitting = true);
+                    Navigator.pop(context, out);
+                  },
+            child: submitting
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Save'),
           ),
         ],
       ),
