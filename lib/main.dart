@@ -761,7 +761,6 @@ class _CrudTableState extends State<CrudTable> {
   String? sortKey;
   bool sortAscending = true;
   bool actionInProgress = false;
-  bool actionInProgress = false;
 
   @override
   void initState() {
@@ -774,16 +773,6 @@ class _CrudTableState extends State<CrudTable> {
         future = widget.load();
         page = 0;
       });
-
-  Future<void> runAction(Future<void> Function() action) async {
-    if (actionInProgress) return;
-    setState(() => actionInProgress = true);
-    try {
-      await action();
-    } finally {
-      if (mounted) setState(() => actionInProgress = false);
-    }
-  }
 
   Future<void> runAction(Future<void> Function() action) async {
     if (actionInProgress) return;
@@ -2427,7 +2416,6 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
   final appliedRank = TextEditingController(text: formatEditValue(initial?['applied_rank_text']));
   final appliedSalary = TextEditingController(text: formatMoneyEdit(initial?['applied_salary']));
   final points = TextEditingController(text: formatEditValue(initial?['points_earned']));
-  bool submitting = false;
   bool submitting = false;
 
   Future<void> pickRank(TextEditingController rank, TextEditingController salary) async {
