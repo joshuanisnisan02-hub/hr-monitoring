@@ -1879,6 +1879,14 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context, L
                               ]),
                             ),
                             const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                controller: entry.attachment,
+                                decoration: const InputDecoration(labelText: 'Attachment (PDF)', hintText: 'PDF URL'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
                             SizedBox(width: 130, child: Padding(padding: const EdgeInsets.only(top: 10), child: StatusChip(entry.status.isEmpty ? '-' : entry.status))),
                           ]),
                         ),
