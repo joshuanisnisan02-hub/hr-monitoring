@@ -24,3 +24,4 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Fix ranking modal save refresh"
           git push
+# trigger: ranking-modal-refresh
