@@ -391,8 +391,26 @@ class EmployeesPage extends StatefulWidget {
 
 class _EmployeesPageState extends State<EmployeesPage> {
   int refreshToken = 0;
+  String genderFilter = 'All';
 
   void refreshEmployees() => setState(() => refreshToken++);
+
+  String _genderKey(Object? value) {
+    final gender = '${value ?? ''}'.trim().toLowerCase();
+    if (gender == 'male' || gender == 'm') return 'Male';
+    if (gender == 'female' || gender == 'f') return 'Female';
+    return 'Unspecified';
+  }
+
+  bool _matchesGenderFilter(Map<String, dynamic> row) => genderFilter == 'All' || _genderKey(row['gender']) == genderFilter;
+
+  Future<List<dynamic>> _loadEmployees() async {
+    final rows = await loadEmployees();
+    if (genderFilter == 'All') return rows;
+    return rows.where((item) => _matchesGenderFilter(normalizeRow(Map<String, dynamic>.from(item as Map)))).toList();
+  }
+
+  String _employeeReportTitle() => genderFilter == 'All' ? 'Employee Report' : 'Employee Report - $genderFilter';
 
   @override
   Widget build(BuildContext context) => PageFrame(
@@ -422,12 +440,42 @@ class _EmployeesPageState extends State<EmployeesPage> {
             ),
           ),
           const SizedBox(height: 14),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                const Text('Filter:', style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 260,
+                  child: DropdownButtonFormField<String>(
+                    value: genderFilter,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Gender'),
+                    items: const [
+                      DropdownMenuItem(value: 'All', child: Text('All Genders')),
+                      DropdownMenuItem(value: 'Male', child: Text('Male')),
+                      DropdownMenuItem(value: 'Female', child: Text('Female')),
+                      DropdownMenuItem(value: 'Unspecified', child: Text('Unspecified / Other')),
+                    ],
+                    onChanged: (value) => setState(() => genderFilter = value ?? 'All'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('The table and Print button will follow the selected gender filter.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600)),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 14),
           Expanded(
             child: CrudTable(
-              key: ValueKey('employees-$refreshToken'),
-              load: () => loadEmployees(),
+              key: ValueKey('employees-$refreshToken-$genderFilter'),
+              load: () => _loadEmployees(),
               searchHint: 'Search employee, bio number, gender, education, status, or date hired',
               addLabel: 'Add Employee',
+              reportTitle: _employeeReportTitle(),
               columns: const [
                 GridCol('full_name', 'Employee Name', flex: 3, primary: true),
                 GridCol('bio_number', 'Bio Number'),
