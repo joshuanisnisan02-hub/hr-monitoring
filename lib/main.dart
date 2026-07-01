@@ -1678,6 +1678,7 @@ class SelectedLicenseInput {
   final String name;
   final TextEditingController number = TextEditingController();
   final TextEditingController expiry = TextEditingController();
+  final TextEditingController attachment = TextEditingController();
   String attachmentUrl = '';
   String attachmentFileName = '';
   bool uploadingAttachment = false;
@@ -1688,6 +1689,7 @@ class SelectedLicenseInput {
   void dispose() {
     number.dispose();
     expiry.dispose();
+    attachment.dispose();
   }
 }
 
