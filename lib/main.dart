@@ -241,7 +241,7 @@ class PageFrame extends StatelessWidget {
 
 Future<List<dynamic>> loadEmployees({int limit = 1500}) => db
     .from('employees')
-    .select('id, full_name, bio_number, gender, education_level, date_hired, starting_date, employment_status, designation, employee_type, civil_status, teaching_status, current_salary, license_summary, birth_date, address, contact_number, email, guardian_name, guardian_relationship, guardian_contact, guardian_address, school_graduated, degree_course, notes')
+    .select('id, name_key, employee_code, full_name, bio_number, gender, education_level, date_hired, starting_date, employment_status, designation, employee_type, civil_status, teaching_status, current_salary, license_summary, birth_date, address, contact_number, email, guardian_name, guardian_relationship, guardian_contact, guardian_address, school_graduated, degree_course, notes')
     .order('full_name')
     .limit(limit);
 Future<List<dynamic>> loadContracts({int limit = 1500}) => db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, attachment_url, employees(full_name)').order('contract_end_date', ascending: true).limit(limit);
@@ -382,30 +382,67 @@ class QuickCard extends StatelessWidget {
       );
 }
 
-class EmployeesPage extends StatelessWidget {
+class EmployeesPage extends StatefulWidget {
   const EmployeesPage({super.key});
+
+  @override
+  State<EmployeesPage> createState() => _EmployeesPageState();
+}
+
+class _EmployeesPageState extends State<EmployeesPage> {
+  int refreshToken = 0;
+
+  void refreshEmployees() => setState(() => refreshToken++);
 
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Employees',
         subtitle: 'Add full employee information, contract, credentials, and view complete records.',
-        child: CrudTable(
-          load: () => loadEmployees(),
-          searchHint: 'Search employee, bio number, gender, education, status, or date hired',
-          addLabel: 'Add Employee',
-          columns: const [
-            GridCol('full_name', 'Employee Name', flex: 3, primary: true),
-            GridCol('bio_number', 'Bio Number'),
-            GridCol('gender', 'Gender'),
-            GridCol('education_level', 'Educational Attainment', flex: 2),
-            GridCol('date_hired_display', 'Date Hired'),
-            GridCol('employment_status', 'Status', isStatus: true),
-          ],
-          onAdd: (ctx, refresh) => addEmployeeFull(ctx, refresh),
-          onView: viewEmployee,
-          onEdit: editEmployee,
-          onDelete: (row) => db.from('employees').delete().eq('id', row['id']),
-        ),
+        child: Column(children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+                    Text('Excel Employee Matching', style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+                    SizedBox(height: 4),
+                    Text('Import tbl_employee CSV to fill missing profile fields for existing employees only. No new records are added.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+                FilledButton.icon(
+                  onPressed: () async {
+                    await importEmployeeCsvInfo(context);
+                    if (mounted) refreshEmployees();
+                  },
+                  icon: const Icon(Icons.upload_file_rounded),
+                  label: const Text('Import Employee Info'),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: CrudTable(
+              key: ValueKey('employees-$refreshToken'),
+              load: () => loadEmployees(),
+              searchHint: 'Search employee, bio number, gender, education, status, or date hired',
+              addLabel: 'Add Employee',
+              columns: const [
+                GridCol('full_name', 'Employee Name', flex: 3, primary: true),
+                GridCol('bio_number', 'Bio Number'),
+                GridCol('gender', 'Gender'),
+                GridCol('education_level', 'Educational Attainment', flex: 2),
+                GridCol('date_hired_display', 'Date Hired'),
+                GridCol('employment_status', 'Status', isStatus: true),
+              ],
+              onAdd: (ctx, refresh) => addEmployeeFull(ctx, refresh),
+              onView: viewEmployee,
+              onEdit: editEmployee,
+              onDelete: (row) => db.from('employees').delete().eq('id', row['id']),
+            ),
+          ),
+        ]),
       );
 }
 
@@ -843,6 +880,316 @@ class _RankFilterAutocompleteBoxState extends State<RankFilterAutocompleteBox> {
 }
 
 Widget rankFilterAutocompleteBox({required String selectedRank, required List<EditOption> options, required ValueChanged<String> onChanged}) => RankFilterAutocompleteBox(selectedRank: selectedRank, options: options, onChanged: onChanged);
+
+
+String employeeImportClean(String? value) {
+  final v = (value ?? '').replaceAll('\u0000', '').trim();
+  if (v.isEmpty) return '';
+  final lower = v.toLowerCase();
+  if (lower == 'null' || lower == 'none' || lower == 'n/a') return '';
+  return v;
+}
+
+bool employeeImportIsBlank(Object? value) {
+  final v = employeeImportClean('$value');
+  return v.isEmpty || v == '0';
+}
+
+String employeeImportAny(Map<String, String> row, List<String> keys) {
+  String normHeader(String value) => value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  final normalized = <String, String>{};
+  for (final entry in row.entries) {
+    normalized[normHeader(entry.key)] = entry.value;
+  }
+  for (final key in keys) {
+    final direct = employeeImportClean(row[key]);
+    if (direct.isNotEmpty) return direct;
+    final loose = employeeImportClean(normalized[normHeader(key)]);
+    if (loose.isNotEmpty) return loose;
+  }
+  return '';
+}
+
+String employeeImportPrimaryNameKey(String value) {
+  final cleaned = value.replaceAll('.', ' ').replaceAll(',', ',').trim();
+  if (cleaned.contains(',')) {
+    final parts = cleaned.split(',');
+    final last = parts.first.trim();
+    final rest = parts.skip(1).join(' ').trim();
+    final first = rest.split(RegExp(r'\s+')).where((p) => p.trim().isNotEmpty).cast<String>().toList();
+    if (last.isNotEmpty && first.isNotEmpty) return employeeImportNormalizeName('$last ${first.first}');
+  }
+  final tokens = employeeImportNormalizeName(cleaned).split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (tokens.length >= 2) return '${tokens.first} ${tokens[1]}';
+  return employeeImportNormalizeName(cleaned);
+}
+
+Set<String> employeeImportCsvMatchKeys(Map<String, String> row) {
+  final first = employeeImportAny(row, const ['emp_first_name', 'first_name', 'firstname', 'given_name', 'givenname']);
+  final middle = employeeImportAny(row, const ['emp_middle_name', 'middle_name', 'middlename', 'middle_initial']);
+  final last = employeeImportAny(row, const ['emp_last_name', 'last_name', 'lastname', 'surname', 'family_name']);
+  final full = employeeImportAny(row, const ['full_name', 'employee_name', 'name']);
+  return <String>{
+    employeeImportNormalizeName('$last $first $middle'),
+    employeeImportNormalizeName('$last $first'),
+    employeeImportNormalizeName('$first $middle $last'),
+    employeeImportNormalizeName('$first $last'),
+    employeeImportNormalizeName(full),
+    employeeImportPrimaryNameKey(full),
+    employeeImportPrimaryNameKey('$last, $first $middle'),
+  }..removeWhere((k) => k.isEmpty || k == 'NONE');
+}
+
+List<Map<String, dynamic>> employeeImportFindMatches(List<Map<String, dynamic>> existingRows, Map<String, List<Map<String, dynamic>>> byKey, Map<String, String> csvRow, String exactKey, String fullName) {
+  final found = <String, Map<String, dynamic>>{};
+  void addMatches(Iterable<Map<String, dynamic>> matches) {
+    for (final item in matches) {
+      found['${item['id']}'] = item;
+    }
+  }
+
+  addMatches(byKey[exactKey] ?? const <Map<String, dynamic>>[]);
+  for (final key in employeeImportCsvMatchKeys(csvRow)) {
+    addMatches(byKey[key] ?? const <Map<String, dynamic>>[]);
+  }
+
+  if (found.isNotEmpty) return found.values.toList();
+
+  final csvKeys = employeeImportCsvMatchKeys(csvRow);
+  for (final item in existingRows) {
+    final existingKeys = <String>{
+      employeeImportNormalizeName('${item['name_key'] ?? ''}'),
+      employeeImportNormalizeName('${item['full_name'] ?? ''}'),
+      employeeImportPrimaryNameKey('${item['full_name'] ?? ''}'),
+    }..removeWhere((k) => k.isEmpty);
+    if (existingKeys.any(csvKeys.contains)) found['${item['id']}'] = item;
+  }
+  return found.values.toList();
+}
+
+String employeeImportNormalizeName(String value) {
+  var v = value.toUpperCase().replaceAll('Ñ', 'N');
+  for (final token in const ['ATTY', 'MR', 'MS', 'MRS', 'JR', 'SR', 'III', 'IV', 'LPT', 'MAED', 'MBM', 'MBA', 'PHD', 'RSW', 'RCRIM', 'RGC', 'CPA', 'RL', 'CHRA', 'MIT', 'MST', 'MSCRIM', 'MSSW', 'MMREM', 'REA', 'REB', 'RPM', 'PRM', 'DBM', 'CEPL', 'MAPS', 'MAT', 'PE', 'MSHRM', 'CTP', 'CHP', 'MSPSY', 'MSPY']) {
+    v = v.replaceAll(RegExp('\\b$token\\b'), ' ');
+  }
+  return v.replaceAll(RegExp(r'[^A-Z0-9]+'), ' ').trim().replaceAll(RegExp(r'\s+'), ' ');
+}
+
+List<List<String>> parseEmployeeImportCsv(String input) {
+  final rows = <List<String>>[];
+  var row = <String>[];
+  final cell = StringBuffer();
+  var quoted = false;
+  for (var i = 0; i < input.length; i++) {
+    final ch = input[i];
+    if (quoted) {
+      if (ch == '"') {
+        if (i + 1 < input.length && input[i + 1] == '"') {
+          cell.write('"');
+          i++;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell.write(ch);
+      }
+    } else {
+      if (ch == '"') {
+        quoted = true;
+      } else if (ch == ',') {
+        row.add(cell.toString());
+        cell.clear();
+      } else if (ch == '\n') {
+        row.add(cell.toString().replaceAll('\r', ''));
+        cell.clear();
+        rows.add(row);
+        row = <String>[];
+      } else {
+        cell.write(ch);
+      }
+    }
+  }
+  if (cell.isNotEmpty || row.isNotEmpty) {
+    row.add(cell.toString().replaceAll('\r', ''));
+    rows.add(row);
+  }
+  return rows;
+}
+
+String employeeImportFullName(Map<String, String> r) {
+  final existingFull = employeeImportAny(r, const ['full_name', 'employee_name', 'name']);
+  if (existingFull.isNotEmpty) return existingFull.toUpperCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  final last = employeeImportAny(r, const ['emp_last_name', 'last_name', 'lastname', 'surname', 'family_name']).toUpperCase();
+  final first = employeeImportAny(r, const ['emp_first_name', 'first_name', 'firstname', 'given_name', 'givenname']).toUpperCase();
+  final middle = employeeImportAny(r, const ['emp_middle_name', 'middle_name', 'middlename', 'middle_initial']).toUpperCase();
+  return [if (last.isNotEmpty) '$last,', if (first.isNotEmpty) first, if (middle.isNotEmpty) middle].join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+}
+
+String? employeeImportDate(String value) {
+  final v = employeeImportClean(value);
+  if (v.isEmpty || v == '0000-00-00') return null;
+  final match = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})').firstMatch(v);
+  if (match == null) return null;
+  final y = int.tryParse(match.group(1)!);
+  final m = int.tryParse(match.group(2)!);
+  final d = int.tryParse(match.group(3)!);
+  if (y == null || m == null || d == null || y < 1900) return null;
+  return '${y.toString().padLeft(4, '0')}-${m.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+}
+
+String employeeImportStatus(String value) {
+  final v = employeeImportClean(value).toLowerCase();
+  if (v.contains('inactive') || v.contains('resigned') || v.contains('separated')) return 'inactive';
+  return 'active';
+}
+
+String employeeImportType(String value) {
+  final v = employeeImportClean(value).toLowerCase();
+  if (v.contains('part')) return 'part_time';
+  if (v.contains('staff')) return 'staff';
+  if (v.contains('probation')) return 'probationary';
+  return 'full_time';
+}
+
+void putIfMissing(Map<String, dynamic> target, Map<String, dynamic> existing, String key, Object? value) {
+  final v = value == null ? '' : employeeImportClean('$value');
+  if (v.isEmpty) return;
+  if (employeeImportIsBlank(existing[key])) target[key] = v;
+}
+
+Future<String> pickEmployeeCsvText() async {
+  final input = html.FileUploadInputElement()..accept = '.csv,text/csv';
+  input.click();
+  await input.onChange.first;
+  final file = input.files?.isNotEmpty == true ? input.files!.first : null;
+  if (file == null) return '';
+  final reader = html.FileReader();
+  reader.readAsText(file);
+  await reader.onLoad.first;
+  return '${reader.result ?? ''}';
+}
+
+Future<void> importEmployeeCsvInfo(BuildContext context) async {
+  try {
+    final csvText = await pickEmployeeCsvText();
+    if (csvText.trim().isEmpty) return;
+    final rows = parseEmployeeImportCsv(csvText);
+    if (rows.length < 2) {
+      if (context.mounted) showSnack(context, 'No CSV rows found.');
+      return;
+    }
+    final headers = rows.first.map((h) => h.trim()).toList();
+    final existingRows = (await loadEmployees(limit: 5000)).map((e) => normalizeRow(Map<String, dynamic>.from(e as Map))).toList();
+    final byKey = <String, List<Map<String, dynamic>>>{};
+    for (final e in existingRows) {
+      final keys = <String>{
+        employeeImportNormalizeName('${e['name_key'] ?? ''}'),
+        employeeImportNormalizeName('${e['full_name'] ?? ''}'),
+        employeeImportPrimaryNameKey('${e['full_name'] ?? ''}'),
+      }..removeWhere((k) => k.isEmpty);
+      final notes = '${e['notes'] ?? ''}';
+      if (notes.toLowerCase().contains('aliases:')) {
+        for (final alias in notes.split('|')) {
+          final k = employeeImportNormalizeName(alias.replaceAll('Aliases:', ''));
+          if (k.isNotEmpty) keys.add(k);
+        }
+      }
+      for (final k in keys) {
+        byKey.putIfAbsent(k, () => <Map<String, dynamic>>[]).add(e);
+      }
+    }
+
+    final updates = <Map<String, dynamic>>[];
+    var notFound = 0;
+    final ambiguous = <String>[];
+    var invalid = 0;
+    var noChanges = 0;
+
+    for (var i = 1; i < rows.length; i++) {
+      final row = rows[i];
+      final r = <String, String>{};
+      for (var c = 0; c < headers.length && c < row.length; c++) {
+        r[headers[c]] = row[c];
+      }
+      final first = employeeImportAny(r, const ['emp_first_name', 'first_name', 'firstname', 'given_name', 'givenname']);
+      final last = employeeImportAny(r, const ['emp_last_name', 'last_name', 'lastname', 'surname', 'family_name']);
+      if (first.isEmpty || last.isEmpty || first.toUpperCase() == 'NONE' || last.toUpperCase() == 'NONE') {
+        invalid++;
+        continue;
+      }
+      final fullName = employeeImportFullName(r);
+      final key = employeeImportNormalizeName('$last $first ${employeeImportAny(r, const ['emp_middle_name', 'middle_name', 'middlename', 'middle_initial'])}');
+      final data = <String, dynamic>{
+        'name_key': key,
+        'full_name': fullName,
+        'bio_number': employeeImportAny(r, const ['bio_number', 'biometric_number', 'bio_no', 'emp_bio_number', 'emp_id', 'employee_id', 'employee_code']),
+        'employee_code': employeeImportAny(r, const ['employee_code', 'emp_code', 'emp_id', 'employee_id']),
+        'gender': employeeImportAny(r, const ['emp_gender', 'gender', 'sex']),
+        'birth_date': employeeImportDate(employeeImportAny(r, const ['birthdate', 'birth_date', 'date_of_birth', 'dob', 'emp_birthdate'])),
+        'civil_status': employeeImportAny(r, const ['civil_status', 'civilstatus', 'marital_status']),
+        'address': employeeImportAny(r, const ['emp_address', 'address', 'home_address', 'residential_address']),
+        'email': employeeImportAny(r, const ['email', 'email_address', 'emp_email']),
+        'contact_number': employeeImportAny(r, const ['contact_no', 'contact_number', 'mobile_number', 'phone_number', 'emp_contact_no']),
+        'school_graduated': employeeImportAny(r, const ['school_graduated', 'school', 'college_university']),
+        'degree_course': employeeImportAny(r, const ['degree_attained', 'degree_course', 'course', 'program']),
+        'education_level': employeeImportAny(r, const ['education_level', 'educational_attainment', 'degree_attained', 'degree_course']),
+        'date_hired': employeeImportDate(employeeImportAny(r, const ['employment_date', 'date_hired', 'hired_date', 'date_started'])),
+        'starting_date': employeeImportDate(employeeImportAny(r, const ['employment_date', 'date_hired', 'hired_date', 'date_started'])),
+        'guardian_name': employeeImportAny(r, const ['emp_g_name', 'guardian_name', 'emergency_contact_name']),
+        'guardian_address': employeeImportAny(r, const ['emp_g_address', 'guardian_address', 'emergency_contact_address']),
+        'guardian_contact': employeeImportAny(r, const ['emp_g_contact', 'guardian_contact', 'emergency_contact_number']),
+        'designation': employeeImportAny(r, const ['emp_designation', 'designation', 'position']),
+        'employment_status': employeeImportStatus(employeeImportAny(r, const ['is_active', 'status', 'employment_status'])),
+        'employee_type': employeeImportType(employeeImportAny(r, const ['emp_status', 'employee_type', 'appointment_status'])),
+        'source_workbook': 'tbl_employee.csv',
+        'source_sheet': 'CSV Import',
+        'source_row': i + 1,
+        'updated_at': DateTime.now().toIso8601String(),
+      }..removeWhere((_, value) => value == null || employeeImportClean('$value').isEmpty);
+
+      final matches = employeeImportFindMatches(existingRows, byKey, r, key, fullName);
+      if (matches.length > 1) {
+        ambiguous.add(fullName);
+        continue;
+      }
+      if (matches.length == 1) {
+        final e = matches.first;
+        final update = <String, dynamic>{'id': e['id'], 'label': fullName};
+        for (final field in ['bio_number','employee_code','gender','birth_date','civil_status','address','email','contact_number','school_graduated','degree_course','education_level','date_hired','starting_date','guardian_name','guardian_address','guardian_contact','designation','employment_status','employee_type']) {
+          putIfMissing(update, e, field, data[field]);
+        }
+        if (update.length > 2) updates.add(update); else noChanges++;
+      } else {
+        notFound++;
+      }
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Import Employee Info?'),
+        content: SizedBox(
+          width: 520,
+          child: Text('Matched updates: ${updates.length}\nEmployees not found in system: $notFound\nNo changes needed: $noChanges\nSkipped invalid: $invalid\nSkipped ambiguous: ${ambiguous.length}\n\nOnly blank/missing fields will be filled. Existing non-empty values will not be overwritten. No new employee records will be added.'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Apply Import')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    for (final u in updates) {
+      final id = u.remove('id');
+      u.remove('label');
+      await db.from('employees').update(u).eq('id', id);
+    }
+    if (context.mounted) showSnack(context, 'Employee import completed. Updated ${updates.length}, not found $notFound, skipped ${ambiguous.length + invalid}.');
+  } catch (e) {
+    if (context.mounted) showSnack(context, 'Employee import failed: $e');
+  }
+}
 
 class GridCol {
   final String key;
@@ -2648,13 +2995,13 @@ Future<Map<String, dynamic>?> showRankingDialog(BuildContext context, List<EditO
                   rankAutocompleteBox('Previous Rank', previousRank, previousSalary, ranks, selectedEmployeeName)
                 else
                   textBox('Previous Rank', previousRank, readOnly: true),
-                textBox('Previous Salary', previousSalary, kind: FieldKind.number, readOnly: true),
+                textBox('Previous Salary', previousSalary, kind: FieldKind.number),
                 if (!isAdd) ...[
                   textBox('Points Earned', points, kind: FieldKind.number),
                   rankAutocompleteBox('Applied Rank', appliedRank, appliedSalary, ranks, selectedEmployeeName),
                   textBox('Applied Salary', appliedSalary, kind: FieldKind.number),
                 ],
-                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee, then pick the Previous Rank to auto-fill Previous Salary. Applied rank and points can be updated later using Edit.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
+                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: Text(isAdd ? 'Select Employee, then pick the Previous Rank to auto-fill Previous Salary. You can still manually edit the Previous Salary before saving. Applied rank and points can be updated later using Edit.' : 'Employee name is locked here. Use the table Approve button to approve the applied rank.', style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
               ]),
             ),
           ),
@@ -2734,7 +3081,7 @@ Widget rankAutocompleteBox(String label, TextEditingController controller, TextE
         },
         onSelected: (option) {
           controller.text = option.value;
-          if (option.salary != null) salaryController.text = formatMoney(adjustedRankSalary(option.salary!, employeeName));
+          if (option.salary != null) salaryController.text = formatMoney(option.salary);
         },
         fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) => TextFormField(
           controller: textController,
@@ -2744,7 +3091,7 @@ Widget rankAutocompleteBox(String label, TextEditingController controller, TextE
             controller.text = value;
             final selectedKey = normalizeRankKey(value);
             final exact = uniqueOptions(ranks).where((option) => normalizeRankKey(option.value) == selectedKey).toList();
-            if (exact.isNotEmpty && exact.first.salary != null) salaryController.text = formatMoney(adjustedRankSalary(exact.first.salary!, employeeName));
+            if (exact.isNotEmpty && exact.first.salary != null) salaryController.text = formatMoney(exact.first.salary);
           },
         ),
         optionsViewBuilder: (context, onSelected, options) => Align(
@@ -2784,7 +3131,7 @@ bool hasSalaryAlignmentBonus(Object? employeeName) {
   return parts.any(_salaryAlignmentBonusSurnames.contains);
 }
 
-num adjustedRankSalary(num salary, Object? employeeName) => salary + (hasSalaryAlignmentBonus(employeeName) ? 1000 : 0);
+num adjustedRankSalary(num salary, Object? employeeName) => salary;
 
 EditOption? matchedRankOption(List<EditOption> ranks, String rankText) {
   final key = normalizeRankKey(rankText);
@@ -2798,7 +3145,7 @@ EditOption? matchedRankOption(List<EditOption> ranks, String rankText) {
 void applyRankSalaryForEmployee(TextEditingController rankController, TextEditingController salaryController, List<EditOption> ranks, Object? employeeName) {
   final option = matchedRankOption(ranks, rankController.text);
   if (option?.salary == null) return;
-  salaryController.text = formatMoney(adjustedRankSalary(option!.salary!, employeeName));
+  salaryController.text = formatMoney(option!.salary);
 }
 
 Future<void> saveRow(BuildContext context, String table, Object? id, Map<String, dynamic> data, VoidCallback refresh) async {
