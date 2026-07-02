@@ -1,4 +1,4 @@
-name: Run hide resigned contracts patch
+name: Run contract modal upgrade patch
 
 'on':
   push:
@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply hide resigned contracts patch
-        run: python3 .github/scripts/hide_resigned_contracts.py
-      - name: Commit hide resigned contracts patch
+      - name: Apply contract modal upgrade patch
+        run: python3 .github/scripts/contract_modal_upgrade.py
+      - name: Commit contract modal upgrade patch
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add lib/main.dart
           git diff --cached --quiet && exit 0
-          git commit -m "Hide resigned employees from contracts"
+          git commit -m "Upgrade contract modal input flow"
           git push
-# trigger: hide-resigned-contracts-2
+# trigger: contract-modal-upgrade
