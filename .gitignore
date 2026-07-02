@@ -22,3 +22,5 @@ Thumbs.db
 # Local secrets
 .env
 .env.*
+
+.flutter-plugins-dependencies
