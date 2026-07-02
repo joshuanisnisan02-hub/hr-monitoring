@@ -1,4 +1,4 @@
-name: Run contract modal revert patch
+name: Run live contracts restore patch
 
 'on':
   push:
@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Restore old contract modal
-        run: python3 .github/scripts/revert_contract_modal_old.py
-      - name: Commit old contract modal restore
+      - name: Restore live contracts behavior
+        run: python3 .github/scripts/restore_live_contracts_view.py
+      - name: Commit live contracts restore
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add lib/main.dart
           git diff --cached --quiet && exit 0
-          git commit -m "Restore old add contract modal"
+          git commit -m "Restore live contracts behavior"
           git push
-# trigger: restore-old-contract-modal
+# trigger: restore-live-contracts-behavior
