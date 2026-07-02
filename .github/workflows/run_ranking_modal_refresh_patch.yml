@@ -1,4 +1,4 @@
-name: Run contract modal upgrade patch
+name: Run contract modal compile fix
 
 'on':
   push:
@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply contract modal upgrade patch
-        run: python3 .github/scripts/contract_modal_upgrade.py
-      - name: Commit contract modal upgrade patch
+      - name: Apply contract modal compile fix
+        run: python3 .github/scripts/fix_contract_modal_compile.py
+      - name: Commit contract modal compile fix
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add lib/main.dart
           git diff --cached --quiet && exit 0
-          git commit -m "Upgrade contract modal input flow"
+          git commit -m "Fix contract modal duration input"
           git push
-# trigger: contract-modal-upgrade
+# trigger: contract-modal-compile-fix
