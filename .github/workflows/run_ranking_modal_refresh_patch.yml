@@ -24,4 +24,4 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Hide resigned employees from contracts"
           git push
-# trigger: hide-resigned-contracts
+# trigger: hide-resigned-contracts-2
