@@ -1931,7 +1931,19 @@ Future<Map<String, dynamic>?> showContractDialog(BuildContext context, List<Edit
                   ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
                 contractTypeAutocompleteBox(contractType, contractTypes),
                 contractDatePickerBox(context, 'Start Date', startDate, (_) {}),
-                textBox('Duration In Months', durationMonths, kind: FieldKind.integer),
+                SizedBox(
+                  width: 354,
+                  child: TextFormField(
+                    controller: durationMonths,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Duration In Months'),
+                    validator: (v) {
+                      final text = (v ?? '').trim();
+                      if (text.isEmpty) return null;
+                      return int.tryParse(text.replaceAll(RegExp(r'[^0-9-]'), '')) == null ? 'Enter a valid month count' : null;
+                    },
+                  ),
+                ),
                 contractDatePickerBox(context, 'End Date', endDate, (_) => refreshStatus(setDialogState)),
                 SizedBox(
                   width: 354,
