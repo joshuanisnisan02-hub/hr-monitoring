@@ -1,4 +1,4 @@
-name: Run contract modal compile fix
+name: Run contract modal UI alignment patch
 
 'on':
   push:
@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply contract modal compile fix
-        run: python3 .github/scripts/fix_contract_modal_compile.py
-      - name: Commit contract modal compile fix
+      - name: Apply contract modal UI alignment patch
+        run: python3 .github/scripts/fix_contract_modal_ui.py
+      - name: Commit contract modal UI alignment patch
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add lib/main.dart
           git diff --cached --quiet && exit 0
-          git commit -m "Fix contract modal duration input"
+          git commit -m "Fix contract modal layout and auto end date"
           git push
-# trigger: contract-modal-compile-fix
+# trigger: contract-modal-ui-fix
