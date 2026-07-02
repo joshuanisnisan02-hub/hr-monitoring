@@ -1707,6 +1707,26 @@ String contractStatusFromEndDate(Object? value) {
   return 'On-going';
 }
 
+int? parseContractMonths(String text) {
+  final cleaned = text.replaceAll(RegExp(r'[^0-9-]'), '').trim();
+  if (cleaned.isEmpty) return null;
+  final months = int.tryParse(cleaned);
+  if (months == null || months <= 0) return null;
+  return months;
+}
+
+DateTime? contractEndDateFromStartAndMonths(Object? startValue, Object? monthsValue) {
+  final start = parseFlexibleDate(startValue);
+  final months = parseContractMonths('${monthsValue ?? ''}');
+  if (start == null || months == null) return null;
+  final monthIndex = (start.month - 1) + months;
+  final year = start.year + (monthIndex ~/ 12);
+  final month = (monthIndex % 12) + 1;
+  final lastDay = DateTime(year, month + 1, 0).day;
+  final day = start.day > lastDay ? lastDay : start.day;
+  return DateTime(year, month, day);
+}
+
 Future<List<String>> contractTypeOptions() async {
   const defaults = <String>[
     'Probationary Contract',
@@ -1736,7 +1756,7 @@ Future<List<String>> contractTypeOptions() async {
   return out;
 }
 
-Future<void> pickAndUploadContractPdf(BuildContext context, TextEditingController attachmentUrl, void Function(void Function()) setDialogState, void Function(String) setFileName, void Function(bool) setUploading) async {
+Future<void> pickAndUploadContractPdf(BuildContext context, TextEditingController attachmentUrl, StateSetter setDialogState, void Function(String) setFileName, void Function(bool) setUploading) async {
   final input = html.FileUploadInputElement()
     ..accept = 'application/pdf,.pdf'
     ..multiple = false;
@@ -1778,30 +1798,46 @@ Future<void> pickAndUploadContractPdf(BuildContext context, TextEditingControlle
   }
 }
 
-Widget contractDatePickerBox(BuildContext context, String label, TextEditingController controller, void Function(String) onPicked) => SizedBox(
+Widget contractDatePickerBox(BuildContext context, String label, TextEditingController controller, void Function(String) onPicked, {bool required = false, bool enabled = true}) => SizedBox(
       width: 354,
       child: TextFormField(
         controller: controller,
         readOnly: true,
+        enabled: enabled,
         decoration: InputDecoration(labelText: label, hintText: 'January 02, 2026', suffixIcon: const Icon(Icons.calendar_month_rounded)),
         validator: (v) {
-          if (v == null || v.trim().isEmpty) return null;
-          if (parseFlexibleDate(v.trim()) == null) return 'Use date picker or January 02, 2026';
+          final value = (v ?? '').trim();
+          if (required && value.isEmpty) return 'Required';
+          if (value.isNotEmpty && parseFlexibleDate(value) == null) return 'Use date picker or January 02, 2026';
           return null;
         },
-        onTap: () async {
-          final initial = parseFlexibleDate(controller.text) ?? DateTime.now();
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: initial,
-            firstDate: DateTime(1990),
-            lastDate: DateTime(2100),
-          );
-          if (picked == null) return;
-          final text = DateFormat('MMMM dd, yyyy').format(picked);
-          controller.text = text;
-          onPicked(text);
-        },
+        onTap: !enabled
+            ? null
+            : () async {
+                final initial = parseFlexibleDate(controller.text) ?? DateTime.now();
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: initial,
+                  firstDate: DateTime(1990),
+                  lastDate: DateTime(2100),
+                );
+                if (picked == null) return;
+                final text = DateFormat('MMMM dd, yyyy').format(picked);
+                controller.text = text;
+                onPicked(text);
+              },
+      ),
+    );
+
+Widget contractTextBox(String label, TextEditingController controller, {TextInputType keyboardType = TextInputType.text, String? Function(String?)? validator, void Function(String)? onChanged, bool readOnly = false}) => SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        readOnly: readOnly,
+        decoration: InputDecoration(labelText: label),
+        validator: validator,
+        onChanged: onChanged,
       ),
     );
 
@@ -1855,16 +1891,29 @@ Future<Map<String, dynamic>?> showContractDialog(BuildContext context, List<Edit
   final startDate = TextEditingController(text: formatEditValue(initial?['contract_start_date']));
   final durationMonths = TextEditingController(text: formatEditValue(initial?['duration_months']));
   final endDate = TextEditingController(text: formatEditValue(initial?['contract_end_date']));
+  final statusController = TextEditingController();
   final attachmentUrl = TextEditingController(text: formatEditValue(initial?['attachment_url']));
-  String status = contractStatusFromEndDate(endDate.text);
-  if (status.isEmpty) status = formatEditValue(initial?['status']);
-  if (!const ['On-going', 'For Renewal', 'Expired'].contains(status)) status = '';
   String attachmentFileName = attachmentUrl.text.trim().isEmpty ? '' : 'Existing contract PDF attached';
   bool uploadingAttachment = false;
 
-  void refreshStatus(StateSetter setDialogState) {
-    setDialogState(() => status = contractStatusFromEndDate(endDate.text));
+  void computeEndAndStatus(StateSetter? setDialogState) {
+    final computedEnd = contractEndDateFromStartAndMonths(startDate.text, durationMonths.text);
+    if (computedEnd != null) {
+      endDate.text = DateFormat('MMMM dd, yyyy').format(computedEnd);
+    } else if (startDate.text.trim().isEmpty || durationMonths.text.trim().isEmpty) {
+      endDate.clear();
+    }
+    final computedStatus = contractStatusFromEndDate(endDate.text);
+    statusController.text = computedStatus.isEmpty ? 'Auto-filled after date input' : computedStatus;
+    if (setDialogState != null) setDialogState(() {});
   }
+
+  if (endDate.text.trim().isEmpty) {
+    final computedEnd = contractEndDateFromStartAndMonths(startDate.text, durationMonths.text);
+    if (computedEnd != null) endDate.text = DateFormat('MMMM dd, yyyy').format(computedEnd);
+  }
+  final initialStatus = contractStatusFromEndDate(endDate.text);
+  statusController.text = initialStatus.isEmpty ? 'Auto-filled after date input' : initialStatus;
 
   final result = await showDialog<Map<String, dynamic>>(
     context: context,
@@ -1877,6 +1926,7 @@ Future<Map<String, dynamic>?> showContractDialog(BuildContext context, List<Edit
             key: formKey,
             child: SingleChildScrollView(
               child: Wrap(spacing: 14, runSpacing: 14, children: [
+                const DialogSectionTitle('Contract Information'),
                 if (isAdd)
                   SizedBox(
                     width: 354,
@@ -1930,39 +1980,32 @@ Future<Map<String, dynamic>?> showContractDialog(BuildContext context, List<Edit
                 else
                   ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
                 contractTypeAutocompleteBox(contractType, contractTypes),
-                contractDatePickerBox(context, 'Start Date', startDate, (_) {}),
-                SizedBox(
-                  width: 354,
-                  child: TextFormField(
-                    controller: durationMonths,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Duration In Months'),
-                    validator: (v) {
-                      final text = (v ?? '').trim();
-                      if (text.isEmpty) return null;
-                      return int.tryParse(text.replaceAll(RegExp(r'[^0-9-]'), '')) == null ? 'Enter a valid month count' : null;
-                    },
-                  ),
+                contractDatePickerBox(context, 'Start Date', startDate, (_) => computeEndAndStatus(setDialogState), required: true),
+                contractTextBox(
+                  'Duration In Months',
+                  durationMonths,
+                  keyboardType: TextInputType.number,
+                  validator: (v) => parseContractMonths(v ?? '') == null ? 'Required' : null,
+                  onChanged: (_) => computeEndAndStatus(setDialogState),
                 ),
-                contractDatePickerBox(context, 'End Date', endDate, (_) => refreshStatus(setDialogState)),
+                contractTextBox('End Date', endDate, readOnly: true, validator: (v) => (v == null || v.trim().isEmpty) ? 'Auto-fill requires start date and months' : null),
+                contractTextBox('Status', statusController, readOnly: true),
                 SizedBox(
-                  width: 354,
+                  width: 728,
                   child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _line)),
+                    child: Row(children: [
                       OutlinedButton.icon(
                         onPressed: uploadingAttachment ? null : () => pickAndUploadContractPdf(context, attachmentUrl, setDialogState, (name) => attachmentFileName = name, (v) => uploadingAttachment = v),
                         icon: uploadingAttachment ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.picture_as_pdf_rounded),
-                        label: Text(uploadingAttachment ? 'Uploading...' : (attachmentFileName.isEmpty ? 'Attach Contract' : 'Change Contract')),
+                        label: Text(uploadingAttachment ? 'Uploading...' : 'Attach Contract'),
                       ),
-                      const SizedBox(height: 8),
-                      Text(attachmentFileName.isEmpty ? 'No contract PDF attached' : attachmentFileName, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: attachmentFileName.isEmpty ? _muted : _ink, fontWeight: FontWeight.w700)),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(attachmentFileName.isEmpty ? 'No contract PDF attached' : attachmentFileName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: attachmentFileName.isEmpty ? _muted : _ink, fontWeight: FontWeight.w700))),
                     ]),
                   ),
                 ),
-                SizedBox(width: 354, child: Padding(padding: const EdgeInsets.only(top: 8), child: StatusChip(status.isEmpty ? 'Select End Date' : status))),
-                SizedBox(width: 728, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(16)), child: const Text('Status is automatic from End Date: expired when past due, for renewal within 90 days, otherwise on-going.', style: TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600)))),
               ]),
             ),
           ),
@@ -1971,13 +2014,14 @@ Future<Map<String, dynamic>?> showContractDialog(BuildContext context, List<Edit
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           FilledButton(
             onPressed: () {
+              computeEndAndStatus(setDialogState);
               if (!formKey.currentState!.validate()) return;
               final finalStatus = contractStatusFromEndDate(endDate.text);
               final out = <String, dynamic>{
                 'employee_id': isAdd ? emptyToNull(employeeId) : initial?['employee_id'],
                 'contract_type': emptyToNull(contractType.text),
                 'contract_start_date': toIsoDateInput(startDate.text),
-                'duration_months': int.tryParse(durationMonths.text.replaceAll(RegExp(r'[^0-9-]'), '')),
+                'duration_months': parseContractMonths(durationMonths.text),
                 'contract_end_date': toIsoDateInput(endDate.text),
                 'attachment_url': emptyToNull(attachmentUrl.text),
                 'status': finalStatus.isEmpty ? null : finalStatus,
@@ -1990,7 +2034,7 @@ Future<Map<String, dynamic>?> showContractDialog(BuildContext context, List<Edit
       ),
     ),
   );
-  for (final c in [contractType, startDate, durationMonths, endDate, attachmentUrl]) {
+  for (final c in [contractType, startDate, durationMonths, endDate, statusController, attachmentUrl]) {
     c.dispose();
   }
   return result;
