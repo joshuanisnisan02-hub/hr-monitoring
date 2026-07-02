@@ -24,4 +24,4 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Fix contract modal layout and auto end date"
           git push
-# trigger: contract-modal-ui-fix
+# trigger: contract-modal-ui-fix-2
