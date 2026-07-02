@@ -244,16 +244,7 @@ Future<List<dynamic>> loadEmployees({int limit = 1500}) => db
     .select('id, full_name, bio_number, gender, education_level, date_hired, starting_date, employment_status, designation, employee_type, civil_status, teaching_status, current_salary, license_summary, birth_date, address, contact_number, email, guardian_name, guardian_relationship, guardian_contact, guardian_address, school_graduated, degree_course, notes')
     .order('full_name')
     .limit(limit);
-Future<List<dynamic>> loadContracts({int limit = 1500}) async {
-  final rows = await db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, attachment_url, employees(full_name, employment_status)').order('contract_end_date', ascending: true).limit(limit);
-  return rows.where((item) {
-    final row = Map<String, dynamic>.from(item as Map);
-    if ('${row['status'] ?? ''}'.toLowerCase().contains('resigned')) return false;
-    final employee = row['employees'];
-    if (employee is Map && '${employee['employment_status'] ?? ''}'.toLowerCase().contains('resigned')) return false;
-    return true;
-  }).toList();
-}
+Future<List<dynamic>> loadContracts({int limit = 1500}) => db.from('employee_contracts').select('id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, attachment_url, employees(full_name)').order('contract_end_date', ascending: true).limit(limit);
 Future<List<dynamic>> loadLicenses({int limit = 1500}) => db.from('employee_licenses').select('id, employee_id, license_name, license_number, issued_date, expiry_date, status, attachment_url, employees(full_name)').order('expiry_date').limit(limit);
 
 Future<List<dynamic>> loadLicensesGrouped({int limit = 5000}) async {
@@ -1684,7 +1675,7 @@ Future<void> editEmployee(BuildContext context, Map<String, dynamic>? row, VoidC
 
 Future<void> editContract(BuildContext context, Map<String, dynamic>? row, VoidCallback refresh) async {
   final isAdd = row == null;
-  final employees = isAdd ? await activeEmployeeOptions() : const <EditOption>[];
+  final employees = isAdd ? await employeeOptions() : const <EditOption>[];
   final data = await showRecordDialog(
     context,
     isAdd ? 'Add Contract' : 'Edit Contract',
