@@ -301,13 +301,16 @@ class _ShellPageState extends State<ShellPage> {
       const EvaluationsPage(),
       const AppointmentPage(),
       const RankingPage(),
+      const ReportsPage(),
+      const ResignedEmployeesPage(),
     ];
+    final safeIndex = index.clamp(0, pages.length - 1).toInt();
     return Scaffold(
       body: Row(children: [
         AppSidebar(
             selectedIndex: index, onChanged: (i) => setState(() => index = i)),
         const VerticalDivider(width: 1, color: _line),
-        Expanded(child: pages[index]),
+        Expanded(child: pages[safeIndex]),
       ]),
     );
   }
@@ -494,7 +497,7 @@ class PageFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
+        padding: const EdgeInsets.fromLTRB(28, 18, 28, 18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title,
               style: const TextStyle(
@@ -503,13 +506,13 @@ class PageFrame extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                   color: _ink,
                   letterSpacing: -0.7)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 5),
           Text(subtitle,
               style: const TextStyle(
                   color: Color(0xFF52637A),
                   fontSize: 14,
                   fontWeight: FontWeight.w500)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 14),
           Expanded(child: child),
         ]),
       );
@@ -527,6 +530,31 @@ Future<List<dynamic>> loadContracts({int limit = 1500}) => db
         'id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, attachment_url, employees(full_name)')
     .order('contract_end_date', ascending: true)
     .limit(limit);
+
+Future<List<dynamic>> loadResignedEmployees({int limit = 5000}) async {
+  final employees = await loadEmployees(limit: limit);
+  final employeeRows = employees
+      .map((item) => normalizeRow(Map<String, dynamic>.from(item as Map)))
+      .toList();
+
+  final resignedIds = <String>{};
+  try {
+    final contracts = await loadContracts(limit: limit);
+    for (final item in contracts) {
+      final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+      final status = formatValue(row['status']).toLowerCase();
+      if (status.contains('resign')) resignedIds.add('${row['employee_id']}');
+    }
+  } catch (_) {}
+
+  return employeeRows.where((row) {
+    final status = formatValue(row['employment_status']).toLowerCase();
+    return status.contains('resign') || resignedIds.contains('${row['id']}');
+  }).toList()
+    ..sort((a, b) =>
+        formatValue(a['full_name']).compareTo(formatValue(b['full_name'])));
+}
+
 Future<List<dynamic>> loadLicenses({int limit = 1500}) => db
     .from('employee_licenses')
     .select(
@@ -584,6 +612,69 @@ Future<List<dynamic>> loadRankings({int limit = 1500}) => db
         'id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, approved_date, employees(full_name), ranking_cycles(name)')
     .order('points_earned', ascending: false)
     .limit(limit);
+
+bool isResignedText(Object? value) {
+  final text = '${value ?? ''}'.toLowerCase();
+  return text.contains('resign');
+}
+
+bool rowHasResignedStatus(Map<String, dynamic> row) {
+  return isResignedText(row['employment_status']) ||
+      isResignedText(row['employee_status']) ||
+      isResignedText(row['status']) ||
+      isResignedText(row['latest_status']) ||
+      isResignedText(row['contract_status']);
+}
+
+Future<Set<String>> loadResignedEmployeeIdSet() async {
+  final ids = <String>{};
+
+  try {
+    final employees = await db
+        .from('employees')
+        .select('id, employment_status, employee_status, status, latest_status')
+        .limit(5000);
+    for (final item in employees) {
+      final row = Map<String, dynamic>.from(item as Map);
+      if (rowHasResignedStatus(row)) ids.add('${row['id']}');
+    }
+  } catch (_) {}
+
+  try {
+    final contracts = await db
+        .from('employee_contracts')
+        .select('employee_id, status')
+        .limit(5000);
+    for (final item in contracts) {
+      final row = Map<String, dynamic>.from(item as Map);
+      if (isResignedText(row['status'])) ids.add('${row['employee_id']}');
+    }
+  } catch (_) {}
+
+  ids.removeWhere((value) => value.trim().isEmpty || value == 'null');
+  return ids;
+}
+
+String rowEmployeeId(Map<String, dynamic> row) {
+  final raw = row['employee_id'] ?? row['id'];
+  return '${raw ?? ''}'.trim();
+}
+
+Future<List<dynamic>> activeOnlyRows(Future<List<dynamic>> source) async {
+  final rows = await source;
+  final resignedIds = await loadResignedEmployeeIdSet();
+  return rows.where((item) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final id = rowEmployeeId(row);
+    if (id.isNotEmpty && resignedIds.contains(id)) return false;
+    if (rowHasResignedStatus(row)) return false;
+    return true;
+  }).toList();
+}
+
+Future<List<dynamic>> loadActiveEmployees({int limit = 5000}) =>
+    activeOnlyRows(loadEmployees(limit: limit));
+
 Future<List<dynamic>> loadAppointments({int limit = 5000}) => db
     .from('employee_appointments')
     .select(
@@ -770,7 +861,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
       genderFilter == 'All' || _genderKey(row['gender']) == genderFilter;
 
   Future<List<dynamic>> _loadEmployees() async {
-    final rows = await loadEmployees();
+    final rows = await loadActiveEmployees(limit: 5000);
     if (genderFilter == 'All') return rows;
     return rows
         .where((item) => _matchesGenderFilter(
@@ -802,37 +893,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
         child: Column(children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(children: [
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('Excel Employee Matching',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w900, color: _ink)),
-                        SizedBox(height: 4),
-                        Text(
-                            'Import tbl_employee CSV to fill missing profile fields for existing employees only. No new records are added.',
-                            style: TextStyle(
-                                color: _muted, fontWeight: FontWeight.w600)),
-                      ]),
-                ),
-                FilledButton.icon(
-                  onPressed: () async {
-                    await importEmployeeCsvInfo(context);
-                    if (mounted) refreshEmployees();
-                  },
-                  icon: const Icon(Icons.upload_file_rounded),
-                  label: const Text('Import Employee Info'),
-                ),
-              ]),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(children: [
                 const Text('Filter:',
                     style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
@@ -866,7 +927,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
               ]),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Expanded(
             child: CrudTable(
               pageSizeOptions: const [1, 10, 100],
@@ -904,7 +965,7 @@ class ContractsPage extends StatelessWidget {
         title: 'Contracts',
         subtitle: 'Manage contract records with dynamic total days left.',
         child: CrudTable(
-          load: () => loadContracts(),
+          load: () => activeOnlyRows(loadContracts()),
           searchHint: 'Search employee, contract type, date, or status',
           addLabel: 'Add Contract',
           columns: const [
@@ -957,7 +1018,7 @@ class LicensesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CrudTable(
-        load: () => loadLicensesGrouped(),
+        load: () => activeOnlyRows(loadLicensesGrouped()),
         searchHint: 'Search employee, license name, number, or status',
         addLabel: 'Add License',
         columns: const [
@@ -980,7 +1041,7 @@ class CertificatesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CrudTable(
-        load: () => loadCertificates(),
+        load: () => activeOnlyRows(loadCertificates()),
         searchHint: 'Search employee, certificate, number, or status',
         addLabel: 'Add Certificate',
         columns: const [
@@ -1006,7 +1067,7 @@ class EvaluationsPage extends StatelessWidget {
         title: 'Evaluations',
         subtitle: 'Manage evaluation ratings by academic year and semester.',
         child: CrudTable(
-          load: () => loadEvaluations(),
+          load: () => activeOnlyRows(loadEvaluations()),
           searchHint:
               'Search employee, academic year, semester, or description',
           addLabel: 'Add Evaluation',
@@ -1037,7 +1098,7 @@ class AppointmentPage extends StatelessWidget {
         subtitle:
             'View employee appointment classifications and assigned appointment/designation from the ranking Excel list.',
         child: CrudTable(
-          load: () => loadAppointments(),
+          load: () => activeOnlyRows(loadAppointments()),
           searchHint: 'Search employee, type, or appointment',
           addLabel: 'Add Appointment',
           allowAdd: false,
@@ -1153,7 +1214,7 @@ class _RankingPageState extends State<RankingPage> {
   }
 
   Future<List<dynamic>> _loadRankings() async {
-    final rows = await loadRankings(limit: 5000);
+    final rows = await activeOnlyRows(loadRankings(limit: 5000));
     return rows
         .map((item) => normalizeRow(Map<String, dynamic>.from(item as Map)))
         .where((row) =>
@@ -1169,7 +1230,7 @@ class _RankingPageState extends State<RankingPage> {
         child: Column(children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2127,11 +2188,12 @@ class _CrudTableState extends State<CrudTable> {
               }),
             ),
             if (widget.pageSizeOptions.length > 1) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
                   width: 220,
+                  height: 44,
                   child: DropdownButtonFormField<int>(
                     value: pageSize,
                     isExpanded: true,
@@ -2156,7 +2218,7 @@ class _CrudTableState extends State<CrudTable> {
                 child: sorted.isEmpty
                     ? const EmptyBox()
                     : buildTable(pageRows, activeSortKey)),
-            const SizedBox(height: 14),
+            const SizedBox(height: 6),
             PaginationFooter(
               page: safePage,
               pageCount: pageCount,
@@ -2289,7 +2351,7 @@ class TableToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: LayoutBuilder(builder: (context, constraints) {
             final compact = constraints.maxWidth < 940;
             final search = SizedBox(
@@ -2393,7 +2455,7 @@ class TableHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         color: const Color(0xFFF8FAFC),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         child: Row(children: [
           for (final col in columns)
             Expanded(
@@ -2411,7 +2473,7 @@ class TableHeader extends StatelessWidget {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 color: _ink,
-                                fontSize: 13))),
+                                fontSize: 12.5))),
                     if (sortKey == col.key)
                       Icon(
                           sortAscending
@@ -2431,7 +2493,7 @@ class TableHeader extends StatelessWidget {
                     style: TextStyle(
                         fontWeight: FontWeight.w900,
                         color: _ink,
-                        fontSize: 13))),
+                        fontSize: 12.5))),
         ]),
       );
 }
@@ -2460,8 +2522,8 @@ class TableRowItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         color: index.isEven ? Colors.white : const Color(0xFFFBFDFF),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        constraints: const BoxConstraints(minHeight: 50),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        constraints: const BoxConstraints(minHeight: 42),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           for (final col in columns)
             Expanded(
@@ -2519,8 +2581,8 @@ Widget tableCell(GridCol col, Object? raw) {
           style: TextStyle(
               fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500,
               color: _ink,
-              fontSize: 13,
-              height: 1.25)));
+              fontSize: 12.5,
+              height: 1.15)));
 }
 
 class PaginationFooter extends StatelessWidget {
@@ -2545,13 +2607,13 @@ class PaginationFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Row(children: [
             Expanded(
                 child: Text(
                     total == 0
                         ? 'No Records'
-                        : 'Showing $start-$end Of $total - Page ${page + 1} Of $pageCount - 10 Per Page',
+                        : 'Showing $start-$end Of $total - Page ${page + 1} Of $pageCount',
                     style: const TextStyle(
                         color: _muted, fontWeight: FontWeight.w800))),
             OutlinedButton.icon(
@@ -2595,7 +2657,7 @@ class StatusChip extends StatelessWidget {
       fg = const Color(0xFF991B1B);
     }
     return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration:
             BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
         child: Text(label,
@@ -2693,7 +2755,7 @@ class DialogSectionTitle extends StatelessWidget {
         width: 728,
         child: Container(
           margin: const EdgeInsets.only(top: 14, bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: const Color(0xFFEFF6FF),
             borderRadius: BorderRadius.circular(14),
@@ -3116,7 +3178,7 @@ Widget relatedSection(String title, List<dynamic> records, List<String> keys) =>
             Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(14),
@@ -3159,17 +3221,17 @@ class DetailTile extends StatelessWidget {
 }
 
 Future<List<EditOption>> employeeOptions() async {
-  final rows = await db
-      .from('employees')
-      .select('id, full_name')
-      .order('full_name')
-      .limit(3000);
-  final out = rows
-      .map<EditOption>(
-          (r) => EditOption(r['id'].toString(), formatValue(r['full_name'])))
+  final rows = await loadActiveEmployees(limit: 5000);
+  final options = rows
+      .map((item) {
+        final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+        return EditOption('${row['id']}', formatValue(row['full_name']));
+      })
+      .where((option) => option.value.trim().isNotEmpty && option.label != '-')
       .toList();
-  out.sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
-  return out;
+  options
+      .sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+  return uniqueOptions(options);
 }
 
 Future<List<String>> licenseNameOptions() async {
@@ -3333,35 +3395,520 @@ Future<void> editEmployee(BuildContext context, Map<String, dynamic>? row,
   await saveRow(context, 'employees', row?['id'], data, refresh);
 }
 
+const _contractTypeOptions = <EditOption>[
+  EditOption('Permanent', 'Permanent'),
+  EditOption('Probationary', 'Probationary'),
+  EditOption('Contractual', 'Contractual'),
+  EditOption('Part-time', 'Part-time'),
+  EditOption('Full-time', 'Full-time'),
+  EditOption('Temporary', 'Temporary'),
+  EditOption('Renewal', 'Renewal'),
+];
+
+class UploadedAttachment {
+  final String url;
+  final String fileName;
+  const UploadedAttachment(this.url, this.fileName);
+}
+
+Future<List<EditOption>> contractTypeOptions() async {
+  final rows =
+      await db.from('employee_contracts').select('contract_type').limit(5000);
+  final out = <EditOption>[];
+  final seen = <String>{};
+
+  void addType(Object? raw) {
+    final value = '${raw ?? ''}'.trim();
+    if (value.isEmpty || value == '-') return;
+    if (seen.add(value.toLowerCase())) out.add(EditOption(value, value));
+  }
+
+  for (final option in _contractTypeOptions) {
+    addType(option.value);
+  }
+  for (final item in rows) {
+    if (item is Map) addType(item['contract_type']);
+  }
+  out.sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+  return out;
+}
+
+String contractDateText(Object? value) {
+  final parsed = parseFlexibleDate(value);
+  if (parsed == null) return '';
+  return DateFormat('MMMM dd, yyyy').format(parsed);
+}
+
+DateTime addContractMonths(DateTime start, int months) {
+  final monthIndex = start.month + months - 1;
+  final year = start.year + (monthIndex ~/ 12);
+  final month = (monthIndex % 12) + 1;
+  final lastDay = DateTime(year, month + 1, 0).day;
+  final day = start.day > lastDay ? lastDay : start.day;
+  return DateTime(year, month, day);
+}
+
+String contractStatusFromEndDate(Object? value) {
+  final parsed = parseFlexibleDate(value);
+  if (parsed == null) return '';
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final end = DateTime(parsed.year, parsed.month, parsed.day);
+  final days = end.difference(today).inDays;
+  if (days < 0) return 'Expired';
+  if (days <= 90) return 'For Renewal';
+  return 'On-going';
+}
+
+Future<UploadedAttachment?> pickAndUploadContractPdf(
+    BuildContext context) async {
+  final input = html.FileUploadInputElement()
+    ..accept = 'application/pdf,.pdf'
+    ..multiple = false;
+  input.click();
+  await input.onChange.first;
+  final file = input.files?.isNotEmpty == true ? input.files!.first : null;
+  if (file == null) return null;
+
+  final lowerName = file.name.toLowerCase();
+  if (!lowerName.endsWith('.pdf') && file.type != 'application/pdf') {
+    showSnack(context, 'Only PDF files are allowed.');
+    return null;
+  }
+
+  try {
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(file);
+    await reader.onLoad.first;
+    final result = reader.result;
+    late final Uint8List bytes;
+    if (result is ByteBuffer) {
+      bytes = Uint8List.view(result);
+    } else if (result is Uint8List) {
+      bytes = result;
+    } else {
+      throw Exception('Unable to read selected PDF file.');
+    }
+
+    final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+    final path = 'contracts/${DateTime.now().millisecondsSinceEpoch}_$safeName';
+    await db.storage.from('hr-attachments').uploadBinary(path, bytes,
+        fileOptions:
+            const FileOptions(contentType: 'application/pdf', upsert: true));
+    final url = db.storage.from('hr-attachments').getPublicUrl(path);
+    return UploadedAttachment(url, file.name);
+  } catch (e) {
+    showSnack(context, 'PDF upload failed: $e');
+    return null;
+  }
+}
+
+Widget contractTypeAutocompleteBox(
+        TextEditingController controller, List<EditOption> options) =>
+    SizedBox(
+      width: 354,
+      child: Autocomplete<EditOption>(
+        initialValue: TextEditingValue(text: controller.text),
+        displayStringForOption: (option) => option.label,
+        optionsBuilder: (textEditingValue) {
+          final sorted = uniqueOptions(options).toList()
+            ..sort((a, b) =>
+                a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+          final query = textEditingValue.text.trim().toLowerCase();
+          if (query.isEmpty) return sorted;
+          final normalizedQuery = normalizeName(query);
+          return sorted.where((option) {
+            final label = option.label.toLowerCase();
+            final normalizedLabel = normalizeName(option.label);
+            return label.contains(query) ||
+                normalizedLabel.contains(normalizedQuery);
+          });
+        },
+        onSelected: (option) => controller.text = option.value,
+        fieldViewBuilder:
+            (context, textController, focusNode, onFieldSubmitted) =>
+                TextFormField(
+          controller: textController,
+          focusNode: focusNode,
+          decoration: const InputDecoration(
+            labelText: 'Contract Type',
+            hintText: 'Select or type contract type',
+            suffixIcon: Icon(Icons.search_rounded),
+          ),
+          validator: (value) =>
+              value == null || value.trim().isEmpty ? 'Required' : null,
+          onChanged: (value) => controller.text = value,
+        ),
+        optionsViewBuilder: (context, onSelected, options) => Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(14),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520, maxHeight: 320),
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  return ListTile(
+                    dense: true,
+                    title: Text(option.label, overflow: TextOverflow.ellipsis),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+Widget contractDatePickerBox(
+        BuildContext context,
+        TextEditingController controller,
+        StateSetter setDialogState,
+        VoidCallback recomputeContract) =>
+    SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        decoration: const InputDecoration(
+          labelText: 'Start Date',
+          hintText: 'Select start date',
+          suffixIcon: Icon(Icons.calendar_month_rounded),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) return 'Required';
+          if (parseFlexibleDate(value.trim()) == null) return 'Invalid date';
+          return null;
+        },
+        onTap: () async {
+          final current = parseFlexibleDate(controller.text) ?? DateTime.now();
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: current,
+            firstDate: DateTime(1950),
+            lastDate: DateTime(2100),
+          );
+          if (picked == null) return;
+          setDialogState(() {
+            controller.text = DateFormat('MMMM dd, yyyy').format(picked);
+            recomputeContract();
+          });
+        },
+      ),
+    );
+
+Widget contractReadOnlyBox(String label, TextEditingController controller,
+        {IconData? icon}) =>
+    SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        style: const TextStyle(color: _muted, fontWeight: FontWeight.w800),
+        decoration: InputDecoration(
+            labelText: label,
+            fillColor: const Color(0xFFF8FAFC),
+            suffixIcon: icon == null ? null : Icon(icon)),
+      ),
+    );
+
+Future<Map<String, dynamic>?> showContractDialog(
+    BuildContext context,
+    List<EditOption> employees,
+    List<EditOption> contractTypes,
+    Map<String, dynamic>? initial) async {
+  final isAdd = initial == null;
+  final formKey = GlobalKey<FormState>();
+  String? employeeId = isAdd ? null : initial?['employee_id']?.toString();
+  String selectedEmployeeName = isAdd ? '' : linkedEmployeeName(initial);
+  final contractType =
+      TextEditingController(text: formatEditValue(initial?['contract_type']));
+  final startDate = TextEditingController(
+      text: contractDateText(initial?['contract_start_date']));
+  final durationMonths =
+      TextEditingController(text: formatEditValue(initial?['duration_months']));
+  final endDate = TextEditingController(
+      text: contractDateText(initial?['contract_end_date']));
+  final status =
+      TextEditingController(text: formatEditValue(initial?['status']));
+  String attachmentUrl = formatEditValue(initial?['attachment_url']);
+  String attachmentFileName = attachmentUrl.isEmpty || attachmentUrl == '-'
+      ? ''
+      : Uri.decodeFull(attachmentUrl.split('/').last.split('?').first);
+  bool uploadingAttachment = false;
+
+  void recomputeContract() {
+    final start = parseFlexibleDate(startDate.text);
+    final months = int.tryParse(durationMonths.text.trim());
+    if (start != null && months != null && months > 0) {
+      final computedEnd = addContractMonths(
+          DateTime(start.year, start.month, start.day), months);
+      endDate.text = DateFormat('MMMM dd, yyyy').format(computedEnd);
+    }
+    status.text = contractStatusFromEndDate(endDate.text);
+  }
+
+  if (endDate.text.isEmpty) {
+    recomputeContract();
+  } else {
+    status.text = contractStatusFromEndDate(endDate.text);
+  }
+
+  final result = await showDialog<Map<String, dynamic>>(
+    context: context,
+    builder: (_) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: Text(isAdd ? 'Add Contract' : 'Edit Contract'),
+        content: SizedBox(
+          width: 760,
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Wrap(spacing: 14, runSpacing: 14, children: [
+                if (isAdd)
+                  SizedBox(
+                    width: 354,
+                    child: Autocomplete<EditOption>(
+                      displayStringForOption: (option) => option.label,
+                      optionsBuilder: (textEditingValue) {
+                        final sortedEmployees = uniqueOptions(employees)
+                            .toList()
+                          ..sort((a, b) => a.label
+                              .toLowerCase()
+                              .compareTo(b.label.toLowerCase()));
+                        final query =
+                            textEditingValue.text.trim().toLowerCase();
+                        if (query.isEmpty) return sortedEmployees;
+                        final normalizedQuery = normalizeName(query);
+                        return sortedEmployees.where((option) {
+                          final label = option.label.toLowerCase();
+                          final normalizedLabel = normalizeName(option.label);
+                          return label.contains(query) ||
+                              normalizedLabel.contains(normalizedQuery);
+                        });
+                      },
+                      onSelected: (option) => setDialogState(() {
+                        employeeId = option.value;
+                        selectedEmployeeName = option.label;
+                      }),
+                      fieldViewBuilder: (context, textController, focusNode,
+                              onFieldSubmitted) =>
+                          TextFormField(
+                        controller: textController,
+                        focusNode: focusNode,
+                        decoration: const InputDecoration(
+                          labelText: 'Employee Name',
+                          hintText: 'Select or type employee name',
+                          suffixIcon: Icon(Icons.search_rounded),
+                        ),
+                        validator: (_) =>
+                            employeeId == null || employeeId!.isEmpty
+                                ? 'Please select employee from the list'
+                                : null,
+                        onChanged: (value) => setDialogState(() {
+                          final typed = value.trim().toLowerCase();
+                          final exact = uniqueOptions(employees)
+                              .where((option) =>
+                                  option.label.toLowerCase() == typed)
+                              .toList();
+                          if (exact.isNotEmpty) {
+                            employeeId = exact.first.value;
+                            selectedEmployeeName = exact.first.label;
+                          } else {
+                            employeeId = null;
+                            selectedEmployeeName = '';
+                          }
+                        }),
+                      ),
+                      optionsViewBuilder: (context, onSelected, options) =>
+                          Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 6,
+                          borderRadius: BorderRadius.circular(14),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                                maxWidth: 520, maxHeight: 320),
+                            child: ListView.separated(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final option = options.elementAt(index);
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(option.label,
+                                      overflow: TextOverflow.ellipsis),
+                                  onTap: () => onSelected(option),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
+                contractTypeAutocompleteBox(contractType, contractTypes),
+                contractDatePickerBox(
+                    context, startDate, setDialogState, recomputeContract),
+                SizedBox(
+                  width: 354,
+                  child: TextFormField(
+                    controller: durationMonths,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        const InputDecoration(labelText: 'Duration In Months'),
+                    validator: (value) {
+                      final months = int.tryParse('${value ?? ''}'.trim());
+                      if (months == null || months <= 0)
+                        return 'Enter valid months';
+                      return null;
+                    },
+                    onChanged: (_) => setDialogState(recomputeContract),
+                  ),
+                ),
+                contractReadOnlyBox('End Date', endDate,
+                    icon: Icons.event_available_rounded),
+                contractReadOnlyBox('Status', status,
+                    icon: Icons.verified_rounded),
+                SizedBox(
+                  width: 728,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _line)),
+                    child: Row(children: [
+                      const Icon(Icons.picture_as_pdf_rounded, color: _danger),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Attach File (Upload PDF)',
+                                  style: TextStyle(
+                                      color: Color(0xFF1E40AF),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Text(
+                                attachmentFileName.isEmpty
+                                    ? 'No PDF attached'
+                                    : attachmentFileName,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: attachmentFileName.isEmpty
+                                        ? _muted
+                                        : _ink,
+                                    fontWeight: FontWeight.w800),
+                              ),
+                            ]),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: uploadingAttachment
+                            ? null
+                            : () async {
+                                setDialogState(
+                                    () => uploadingAttachment = true);
+                                final uploaded =
+                                    await pickAndUploadContractPdf(context);
+                                if (uploaded != null) {
+                                  setDialogState(() {
+                                    attachmentUrl = uploaded.url;
+                                    attachmentFileName = uploaded.fileName;
+                                  });
+                                }
+                                setDialogState(
+                                    () => uploadingAttachment = false);
+                              },
+                        icon: uploadingAttachment
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.upload_file_rounded),
+                        label: Text(uploadingAttachment
+                            ? 'Uploading...'
+                            : 'Upload PDF'),
+                      ),
+                    ]),
+                  ),
+                ),
+                SizedBox(
+                  width: 728,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(16)),
+                    child: const Text(
+                        'Select an employee, choose the contract type, pick the start date, then enter the duration in months. End Date and Status are automatically computed from those values.',
+                        style: TextStyle(
+                            color: Color(0xFF1E3A8A),
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: uploadingAttachment
+                ? null
+                : () {
+                    recomputeContract();
+                    if (!formKey.currentState!.validate()) return;
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    Navigator.of(context, rootNavigator: true).pop({
+                      'employee_id': isAdd
+                          ? emptyToNull(employeeId)
+                          : initial?['employee_id'],
+                      'contract_type': emptyToNull(contractType.text),
+                      'contract_start_date': toIsoDateInput(startDate.text),
+                      'duration_months':
+                          int.tryParse(durationMonths.text.trim()),
+                      'contract_end_date': toIsoDateInput(endDate.text),
+                      'attachment_url': emptyToNull(attachmentUrl),
+                      'status': emptyToNull(status.text),
+                    });
+                  },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  for (final c in [contractType, startDate, durationMonths, endDate, status]) {
+    c.dispose();
+  }
+  return result;
+}
+
 Future<void> editContract(BuildContext context, Map<String, dynamic>? row,
     VoidCallback refresh) async {
   final isAdd = row == null;
   final employees = isAdd ? await employeeOptions() : const <EditOption>[];
-  final data = await showRecordDialog(
-    context,
-    isAdd ? 'Add Contract' : 'Edit Contract',
-    [
-      if (isAdd)
-        EditField('employee_id', 'Employee Name',
-            kind: FieldKind.dropdown, required: true, options: employees),
-      const EditField('contract_type', 'Contract Type'),
-      const EditField('contract_start_date', 'Start Date',
-          kind: FieldKind.date),
-      const EditField('duration_months', 'Duration In Months',
-          kind: FieldKind.integer),
-      const EditField('contract_end_date', 'End Date', kind: FieldKind.date),
-      const EditField('attachment_url', 'Attachment URL'),
-      const EditField('status', 'Status', kind: FieldKind.dropdown, options: [
-        EditOption('On-going', 'On-going'),
-        EditOption('For Renewal', 'For Renewal'),
-        EditOption('Expired', 'Expired'),
-        EditOption('Archived', 'Archived'),
-        EditOption('Resigned', 'Resigned')
-      ]),
-    ],
-    row,
-    readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
-  );
+  final types = await contractTypeOptions();
+  final data = await showContractDialog(
+      context, employees, types, row == null ? null : normalizeRow(row));
   if (data == null) return;
   if (isAdd &&
       !await ensureNoEmployeeDuplicate(
@@ -3784,7 +4331,8 @@ Future<void> viewLicenseGroup(
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(14),
@@ -4609,7 +5157,8 @@ Future<Map<String, dynamic>?> showRankingDialog(
                 SizedBox(
                     width: 728,
                     child: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                             color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(16)),
@@ -4847,6 +5396,37 @@ class ReportConfig {
   const ReportConfig(this.title, this.load, this.columns);
 }
 
+class ResignedEmployeesPage extends StatelessWidget {
+  const ResignedEmployeesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Resigned Employees',
+        subtitle:
+            'Employees marked as resigned are separated from the active Employees table.',
+        child: CrudTable(
+          load: () => loadResignedEmployees(),
+          searchHint:
+              'Search resigned employee, bio number, type, date, or status',
+          addLabel: 'Add Employee',
+          allowAdd: false,
+          reportTitle: 'Resigned Employees Report',
+          columns: const [
+            GridCol('full_name', 'Employee Name', flex: 3, primary: true),
+            GridCol('bio_number', 'Bio Number'),
+            GridCol('gender', 'Gender'),
+            GridCol('employee_type', 'Type'),
+            GridCol('date_hired_display', 'Date Hired'),
+            GridCol('employment_status', 'Status', isStatus: true),
+          ],
+          onView: viewEmployee,
+          onEdit: editEmployee,
+          showDelete: false,
+          onDelete: (row) async {},
+        ),
+      );
+}
+
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
 
@@ -4858,8 +5438,8 @@ class _ReportsPageState extends State<ReportsPage> {
   int selected = 0;
 
   List<ReportConfig> get reports => [
-        ReportConfig(
-            'Employee Master List', () => loadEmployees(limit: 5000), const [
+        ReportConfig('Employee Master List',
+            () => loadActiveEmployees(limit: 5000), const [
           GridCol('full_name', 'Employee Name', flex: 3, primary: true),
           GridCol('bio_number', 'Bio Number'),
           GridCol('gender', 'Gender'),
@@ -4868,7 +5448,7 @@ class _ReportsPageState extends State<ReportsPage> {
           GridCol('employment_status', 'Status'),
         ]),
         ReportConfig('Contract Monitoring Report',
-            () => loadContracts(limit: 5000), const [
+            () => activeOnlyRows(loadContracts(limit: 5000)), const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('contract_type', 'Contract Type', flex: 2),
           GridCol('status', 'Status'),
@@ -4876,7 +5456,8 @@ class _ReportsPageState extends State<ReportsPage> {
           GridCol('contract_end_date', 'End'),
           GridCol('days_left', 'Days Left', isNumber: true),
         ]),
-        ReportConfig('License Report', () => loadLicenses(limit: 5000), const [
+        ReportConfig('License Report',
+            () => activeOnlyRows(loadLicenses(limit: 5000)), const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('license_name', 'License', flex: 2),
           GridCol('license_number', 'License No.', flex: 2),
@@ -4899,7 +5480,8 @@ class _ReportsPageState extends State<ReportsPage> {
           GridCol('total_rating', 'Total', isNumber: true),
           GridCol('total_description', 'Description', flex: 2),
         ]),
-        ReportConfig('Ranking Report', () => loadRankings(limit: 5000), const [
+        ReportConfig('Ranking Report',
+            () => activeOnlyRows(loadRankings(limit: 5000)), const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('appointment', 'Appointment', flex: 2),
           GridCol('previous_rank_text', 'Previous Rank', flex: 2),
