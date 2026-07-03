@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 path = Path('lib/main.dart')
 if not path.exists():
@@ -28,7 +28,10 @@ old = r'''Future<void> editAppointment(BuildContext context, Map<String, dynamic
           required: true,
           options: [
             EditOption('Full-time', 'Full-time'),
-            EditOption('Probationary', 'Probationary')
+          EditOption('Full-time-Probationary', 'Full-time-Probationary'),
+          EditOption('Part-time', 'Part-time'),
+          EditOption('Probationary', 'Probationary'),
+          EditOption('Compliance', 'Compliance')
           ]),
       EditField('appointment_title', 'Appointment', required: true),
     ],
@@ -54,7 +57,10 @@ new = r'''Future<void> editAppointment(BuildContext context, Map<String, dynamic
         required: true,
         options: [
           EditOption('Full-time', 'Full-time'),
-          EditOption('Probationary', 'Probationary')
+          EditOption('Full-time-Probationary', 'Full-time-Probationary'),
+          EditOption('Part-time', 'Part-time'),
+          EditOption('Probationary', 'Probationary'),
+          EditOption('Compliance', 'Compliance')
         ]),
     const EditField('appointment_title', 'Appointment', required: true),
   ];
@@ -85,3 +91,4 @@ if text == original:
 else:
     path.write_text(text, encoding='utf-8')
     print('Enabled Add Appointment button and ranking-style employee selection.')
+

@@ -1352,13 +1352,13 @@ class AppointmentPage extends StatelessWidget {
           load: () => activeOnlyRows(loadAppointments()),
           searchHint: 'Search employee, type, or appointment',
           addLabel: 'Add Appointment',
-          allowAdd: false,
           reportTitle: 'Appointment Reference Report',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
             GridCol('category', 'Type', flex: 2),
             GridCol('appointment_title', 'Appointment', flex: 4),
           ],
+          onAdd: (ctx, refresh) => editAppointment(ctx, null, refresh),
           onView: viewAppointment,
           onEdit: editAppointment,
           onDelete: (row) =>
@@ -1388,26 +1388,42 @@ Future<void> viewAppointment(
   );
 }
 
-Future<void> editAppointment(BuildContext context, Map<String, dynamic> row,
+Future<void> editAppointment(BuildContext context, Map<String, dynamic>? row,
     VoidCallback refresh) async {
-  final data = await showRecordDialog(
-    context,
-    'Edit Appointment',
-    const [
-      EditField('category', 'Type',
+  final isAdd = row == null;
+  final fields = <EditField>[
+    if (isAdd)
+      EditField('employee_id', 'Employee Name',
           kind: FieldKind.dropdown,
           required: true,
-          options: [
-            EditOption('Full-time', 'Full-time'),
-            EditOption('Probationary', 'Probationary')
-          ]),
-      EditField('appointment_title', 'Appointment', required: true),
-    ],
-    row,
-    readOnlyEmployeeName: linkedEmployeeName(row),
+          options: await employeeOptions()),
+    const EditField('category', 'Type',
+        kind: FieldKind.dropdown,
+        required: true,
+        options: [
+          EditOption('Full-time', 'Full-time'),
+          EditOption('Full-time-Probationary', 'Full-time-Probationary'),
+          EditOption('Part-time', 'Part-time'),
+          EditOption('Probationary', 'Probationary'),
+          EditOption('Compliance', 'Compliance')
+        ]),
+    const EditField('appointment_title', 'Appointment', required: true),
+  ];
+
+  final data = await showRecordDialog(
+    context,
+    isAdd ? 'Add Appointment' : 'Edit Appointment',
+    fields,
+    normalizeRow(row ?? {}),
+    readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
   );
   if (data == null) return;
-  await saveRow(context, 'employee_appointments', row['id'], data, refresh);
+  if (isAdd &&
+      !await ensureNoEmployeeDuplicate(
+          context, 'employee_appointments', data['employee_id'], 'appointment')) {
+    return;
+  }
+  await saveRow(context, 'employee_appointments', row?['id'], data, refresh);
 }
 
 class RankingPage extends StatefulWidget {
@@ -6498,4 +6514,5 @@ String escapeHtml(String input) => input
 void showSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
+
 
