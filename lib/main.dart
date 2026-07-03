@@ -2869,6 +2869,84 @@ class ReadOnlyEmployeeBox extends StatelessWidget {
       );
 }
 
+
+Widget employeeAutocompleteField({
+  required List<EditOption> employees,
+  required String? employeeId,
+  required ValueChanged<String?> onEmployeeChanged,
+  double width = 354,
+}) =>
+    SizedBox(
+      width: width,
+      child: Autocomplete<EditOption>(
+        displayStringForOption: (option) => option.label,
+        optionsBuilder: (textEditingValue) {
+          final sortedEmployees = uniqueOptions(employees).toList()
+            ..sort((a, b) =>
+                a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+          final query = textEditingValue.text.trim().toLowerCase();
+          if (query.isEmpty) return sortedEmployees;
+          final normalizedQuery = normalizeName(query);
+          return sortedEmployees.where((option) {
+            final label = option.label.toLowerCase();
+            final normalizedLabel = normalizeName(option.label);
+            return label.contains(query) ||
+                normalizedLabel.contains(normalizedQuery);
+          });
+        },
+        onSelected: (option) => onEmployeeChanged(option.value),
+        fieldViewBuilder:
+            (context, textController, focusNode, onFieldSubmitted) =>
+                TextFormField(
+          controller: textController,
+          focusNode: focusNode,
+          decoration: const InputDecoration(
+            labelText: 'Employee Name',
+            hintText: 'Select or type employee name',
+            suffixIcon: Icon(Icons.search_rounded),
+          ),
+          validator: (_) => employeeId == null || employeeId.isEmpty
+              ? 'Please select employee from the list'
+              : null,
+          onChanged: (value) {
+            final typed = value.trim().toLowerCase();
+            final exact = uniqueOptions(employees)
+                .where((option) => option.label.toLowerCase() == typed)
+                .toList();
+            if (exact.isNotEmpty) {
+              onEmployeeChanged(exact.first.value);
+            } else {
+              onEmployeeChanged(null);
+            }
+          },
+        ),
+        optionsViewBuilder: (context, onSelected, options) => Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(14),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520, maxHeight: 320),
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  return ListTile(
+                    dense: true,
+                    title: Text(option.label, overflow: TextOverflow.ellipsis),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
 class DialogSectionTitle extends StatelessWidget {
   final String title;
   const DialogSectionTitle(this.title, {super.key});
@@ -2977,6 +3055,16 @@ List<Widget> buildDialogFieldWidgets(
 
     final width = f.kind == FieldKind.multiline ? 728.0 : 354.0;
     if (f.kind == FieldKind.dropdown) {
+      if (f.key == 'employee_id') {
+        widgets.add(employeeAutocompleteField(
+          employees: f.options,
+          employeeId: selected[f.key],
+          width: width,
+          onEmployeeChanged: (value) =>
+              setDialogState(() => selected[f.key] = value),
+        ));
+        continue;
+      }
       final opts = uniqueOptions(f.options);
       widgets.add(SizedBox(
         width: width,
@@ -4137,25 +4225,12 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const DialogSectionTitle('Employee Information'),
-                    SizedBox(
+                    employeeAutocompleteField(
+                      employees: employees,
+                      employeeId: employeeId,
                       width: 430,
-                      child: DropdownButtonFormField<String>(
-                        value: employeeId,
-                        isExpanded: true,
-                        hint: const Text('Select Employee'),
-                        decoration:
-                            const InputDecoration(labelText: 'Employee Name'),
-                        items: uniqueOptions(employees)
-                            .map((o) => DropdownMenuItem<String>(
-                                value: o.value,
-                                child: Text(o.label,
-                                    overflow: TextOverflow.ellipsis)))
-                            .toList(),
-                        validator: (v) => v == null || v.isEmpty
-                            ? 'Please select employee'
-                            : null,
-                        onChanged: (v) => setDialogState(() => employeeId = v),
-                      ),
+                      onEmployeeChanged: (value) =>
+                          setDialogState(() => employeeId = value),
                     ),
                     const SizedBox(height: 16),
                     const DialogSectionTitle('License Checklist'),
@@ -4653,25 +4728,12 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const DialogSectionTitle('Employee Information'),
-                    SizedBox(
+                    employeeAutocompleteField(
+                      employees: employees,
+                      employeeId: employeeId,
                       width: 430,
-                      child: DropdownButtonFormField<String>(
-                        value: employeeId,
-                        isExpanded: true,
-                        hint: const Text('Select Employee'),
-                        decoration:
-                            const InputDecoration(labelText: 'Employee Name'),
-                        items: uniqueOptions(employees)
-                            .map((o) => DropdownMenuItem<String>(
-                                value: o.value,
-                                child: Text(o.label,
-                                    overflow: TextOverflow.ellipsis)))
-                            .toList(),
-                        validator: (v) => v == null || v.isEmpty
-                            ? 'Please select employee'
-                            : null,
-                        onChanged: (v) => setDialogState(() => employeeId = v),
-                      ),
+                      onEmployeeChanged: (value) =>
+                          setDialogState(() => employeeId = value),
                     ),
                     const SizedBox(height: 16),
                     const DialogSectionTitle('Certificate Checklist'),
@@ -5514,11 +5576,33 @@ Future<void> saveRow(BuildContext context, String table, Object? id,
   }
 }
 
-class ReportConfig {
+
+class SummaryReportCategory {
   final String title;
-  final Future<List<dynamic>> Function() load;
-  final List<GridCol> columns;
-  const ReportConfig(this.title, this.load, this.columns);
+  final String keyLabel;
+  final Future<List<SummaryReportRow>> Function() load;
+  const SummaryReportCategory(this.title, this.keyLabel, this.load);
+}
+
+class SummaryReportRow {
+  final String label;
+  final int total;
+  final int male;
+  final int female;
+  const SummaryReportRow({required this.label, required this.total, this.male = 0, this.female = 0});
+}
+
+class _SummaryBucket {
+  int total = 0;
+  int male = 0;
+  int female = 0;
+
+  void add(String gender) {
+    total++;
+    final key = gender.trim().toLowerCase();
+    if (key == 'male' || key == 'm') male++;
+    if (key == 'female' || key == 'f') female++;
+  }
 }
 
 class ResignedEmployeesPage extends StatelessWidget {
@@ -5562,74 +5646,19 @@ class ReportsPage extends StatefulWidget {
 class _ReportsPageState extends State<ReportsPage> {
   int selected = 0;
 
-  List<ReportConfig> get reports => [
-        ReportConfig('Employee Master List',
-            () => loadActiveEmployees(limit: 5000), const [
-          GridCol('full_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('bio_number', 'Bio Number'),
-          GridCol('gender', 'Gender'),
-          GridCol('education_level', 'Educational Attainment', flex: 2),
-          GridCol('date_hired_display', 'Date Hired'),
-          GridCol('employment_status', 'Status'),
-        ]),
-        ReportConfig('Contract Monitoring Report',
-            () => activeOnlyRows(loadContracts(limit: 5000)), const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('contract_type', 'Contract Type', flex: 2),
-          GridCol('status', 'Status'),
-          GridCol('contract_start_date', 'Start'),
-          GridCol('contract_end_date', 'End'),
-          GridCol('days_left', 'Days Left', isNumber: true),
-        ]),
-        ReportConfig('License Report',
-            () => activeOnlyRows(loadLicenses(limit: 5000)), const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('license_name', 'License', flex: 2),
-          GridCol('license_number', 'License No.', flex: 2),
-          GridCol('expiry_date', 'Expiry'),
-          GridCol('status', 'Status'),
-        ]),
-        ReportConfig('National Certificate Report',
-            () => loadCertificates(limit: 5000), const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('certificate_name', 'Certificate', flex: 3),
-          GridCol('certificate_type', 'Type', flex: 2),
-          GridCol('expiry_date', 'Expiry'),
-          GridCol('status', 'Status'),
-        ]),
-        ReportConfig(
-            'Evaluation Report', () => loadEvaluations(limit: 5000), const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('academic_year', 'A.Y.'),
-          GridCol('semester', 'Semester'),
-          GridCol('total_rating', 'Total', isNumber: true),
-          GridCol('total_description', 'Description', flex: 2),
-        ]),
-        ReportConfig('Ranking Report',
-            () => activeOnlyRows(loadRankings(limit: 5000)), const [
-          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-          GridCol('appointment', 'Appointment', flex: 2),
-          GridCol('previous_rank_text', 'Previous Rank', flex: 2),
-          GridCol('previous_salary', 'Basic Salary', isMoney: true),
-          GridCol('applied_rank_text', 'Rank Applied', flex: 2),
-          GridCol('applied_salary', 'Basic Salary Adjustment',
-              flex: 2, isMoney: true),
-          GridCol('points_earned', 'Points Earned', isNumber: true),
-          GridCol('approved_rank_text', 'Approved Rank', flex: 2),
-          GridCol('approved_date', 'Approved Date'),
-          GridCol('appointment_title', 'Appointment', flex: 3),
-        ]),
+  List<SummaryReportCategory> get reports => [
+        SummaryReportCategory('Contract Type Gender Summary Report', 'Type', loadContractTypeGenderSummary),
+        SummaryReportCategory('Gender Summary Report', 'Gender', loadGenderSummary),
+        SummaryReportCategory('Ranks Summary Report', 'Rank', loadRanksSummary),
+        SummaryReportCategory('Type of License Summary Report', 'Type of License', loadLicenseTypeSummary),
+        SummaryReportCategory('NC/TM Summary Report', 'NC/TM', loadCertificateTypeSummary),
       ];
 
-  Future<void> printCurrentReport(ReportConfig config) async {
+  Future<void> printCurrentReport(SummaryReportCategory config) async {
     final printWindow = html.window.open('about:blank', '_blank');
     try {
-      final data = await config.load();
-      final rows = data
-          .map((item) => normalizeRow(Map<String, dynamic>.from(item as Map)))
-          .toList();
-      final markup =
-          buildPrintableReportHtml(config.title, config.columns, rows);
+      final rows = await config.load();
+      final markup = buildPrintableSummaryReportHtml(config.title, config.keyLabel, rows);
       final blob = html.Blob([markup], 'text/html');
       final url = html.Url.createObjectUrlFromBlob(blob);
       if (printWindow != null) {
@@ -5647,7 +5676,7 @@ class _ReportsPageState extends State<ReportsPage> {
     final config = reports[selected];
     return PageFrame(
       title: 'Reports',
-      subtitle: 'Print reports per HR module.',
+      subtitle: 'Print each summary category separately in two-column table format.',
       child: Column(children: [
         Card(
           child: Padding(
@@ -5658,10 +5687,10 @@ class _ReportsPageState extends State<ReportsPage> {
                 child: DropdownButtonFormField<int>(
                   value: selected,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Report Type'),
+                  decoration: const InputDecoration(labelText: 'Summary Category'),
                   items: [
                     for (var i = 0; i < reports.length; i++)
-                      DropdownMenuItem(value: i, child: Text(reports[i].title))
+                      DropdownMenuItem(value: i, child: Text(reports[i].title, overflow: TextOverflow.ellipsis))
                   ],
                   onChanged: (v) => setState(() => selected = v ?? 0),
                 ),
@@ -5673,27 +5702,23 @@ class _ReportsPageState extends State<ReportsPage> {
                   label: const Text('Print Report')),
               const SizedBox(width: 12),
               const Expanded(
-                  child: Text('Opens a print-ready A4 landscape report.',
-                      style: TextStyle(
-                          color: _muted, fontWeight: FontWeight.w600))),
+                  child: Text('Select one category, then print that category as a simple summary table.',
+                      style: TextStyle(color: _muted, fontWeight: FontWeight.w600))),
             ]),
           ),
         ),
         const SizedBox(height: 14),
         Expanded(
-          child: FutureBuilder<List<dynamic>>(
+          child: FutureBuilder<List<SummaryReportRow>>(
             key: ValueKey(selected),
             future: config.load(),
             builder: (context, snap) {
-              if (snap.connectionState != ConnectionState.done)
+              if (snap.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
+              }
               if (snap.hasError) return ErrorBox('${snap.error}');
-              final rows = (snap.data ?? [])
-                  .map((item) =>
-                      normalizeRow(Map<String, dynamic>.from(item as Map)))
-                  .toList();
-              return ReportPreview(
-                  title: config.title, columns: config.columns, rows: rows);
+              final rows = snap.data ?? const <SummaryReportRow>[];
+              return SummaryReportPreview(title: config.title, keyLabel: config.keyLabel, rows: rows);
             },
           ),
         ),
@@ -5702,15 +5727,125 @@ class _ReportsPageState extends State<ReportsPage> {
   }
 }
 
-class ReportPreview extends StatelessWidget {
+Future<Map<String, String>> employeeGenderById() async {
+  final employees = await loadEmployees(limit: 5000);
+  final out = <String, String>{};
+  for (final item in employees) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final id = '${row['id'] ?? ''}'.trim();
+    if (id.isNotEmpty) out[id] = formatValue(row['gender']);
+  }
+  return out;
+}
+
+String reportCleanLabel(Object? value, String fallback) {
+  final text = formatValue(value).trim();
+  if (text.isEmpty || text == '-') return fallback;
+  return text;
+}
+
+List<SummaryReportRow> bucketRows(Map<String, _SummaryBucket> buckets, {List<String> preferredOrder = const [], bool includeTotalRow = false}) {
+  final keys = <String>[];
+  for (final item in preferredOrder) {
+    if (buckets.containsKey(item)) keys.add(item);
+  }
+  final remaining = buckets.keys.where((key) => !keys.contains(key)).toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  keys.addAll(remaining);
+  final rows = [
+    for (final key in keys)
+      SummaryReportRow(label: key, total: buckets[key]!.total, male: buckets[key]!.male, female: buckets[key]!.female),
+  ];
+  if (includeTotalRow) {
+    rows.add(SummaryReportRow(
+      label: 'TOTAL',
+      total: rows.fold<int>(0, (sum, row) => sum + row.total),
+      male: rows.fold<int>(0, (sum, row) => sum + row.male),
+      female: rows.fold<int>(0, (sum, row) => sum + row.female),
+    ));
+  }
+  return rows;
+}
+
+Future<List<SummaryReportRow>> loadContractTypeGenderSummary() async {
+  final genderById = await employeeGenderById();
+  final rows = await activeOnlyRows(loadContracts(limit: 5000));
+  final buckets = <String, _SummaryBucket>{};
+  for (final item in rows) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final type = reportCleanLabel(row['contract_type'], 'Unspecified');
+    final gender = genderById['${row['employee_id'] ?? ''}'] ?? '';
+    buckets.putIfAbsent(type, () => _SummaryBucket()).add(gender);
+  }
+  for (final type in const ['Full-time', 'Full-time-Probationary', 'Part-time', 'Probationary', 'Compliance']) {
+    buckets.putIfAbsent(type, () => _SummaryBucket());
+  }
+  return bucketRows(buckets, preferredOrder: const ['Full-time', 'Full-time-Probationary', 'Part-time', 'Probationary', 'Compliance']);
+}
+
+Future<List<SummaryReportRow>> loadGenderSummary() async {
+  final employees = await loadActiveEmployees(limit: 5000);
+  var female = 0;
+  var male = 0;
+  for (final item in employees) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final gender = formatValue(row['gender']).trim().toLowerCase();
+    if (gender == 'female' || gender == 'f') female++;
+    if (gender == 'male' || gender == 'm') male++;
+  }
+  return [
+    SummaryReportRow(label: 'Total Female', total: female),
+    SummaryReportRow(label: 'Total Male', total: male),
+    SummaryReportRow(label: 'Total Gender\n(Female + Male)', total: female + male),
+  ];
+}
+
+Future<List<SummaryReportRow>> loadRanksSummary() async {
+  final genderById = await employeeGenderById();
+  final rows = await activeOnlyRows(loadRankings(limit: 5000));
+  final buckets = <String, _SummaryBucket>{};
+  for (final item in rows) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final rank = reportCleanLabel(row['approved_rank_text'] ?? row['applied_rank_text'] ?? row['previous_rank_text'], 'Unspecified');
+    final gender = genderById['${row['employee_id'] ?? ''}'] ?? '';
+    buckets.putIfAbsent(rank, () => _SummaryBucket()).add(gender);
+  }
+  return bucketRows(buckets, includeTotalRow: true);
+}
+
+Future<List<SummaryReportRow>> loadLicenseTypeSummary() async {
+  final genderById = await employeeGenderById();
+  final rows = await activeOnlyRows(loadLicenses(limit: 5000));
+  final buckets = <String, _SummaryBucket>{};
+  for (final item in rows) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final type = reportCleanLabel(row['license_name'], 'Unspecified');
+    final gender = genderById['${row['employee_id'] ?? ''}'] ?? '';
+    buckets.putIfAbsent(type, () => _SummaryBucket()).add(gender);
+  }
+  return bucketRows(buckets, includeTotalRow: true);
+}
+
+Future<List<SummaryReportRow>> loadCertificateTypeSummary() async {
+  final genderById = await employeeGenderById();
+  final rows = await activeOnlyRows(loadCertificates(limit: 5000));
+  final buckets = <String, _SummaryBucket>{};
+  for (final item in rows) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final name = reportCleanLabel(row['certificate_name'] ?? row['certificate_type'], 'Unspecified');
+    final gender = genderById['${row['employee_id'] ?? ''}'] ?? '';
+    buckets.putIfAbsent(name, () => _SummaryBucket()).add(gender);
+  }
+  return bucketRows(buckets, includeTotalRow: true);
+}
+
+class SummaryReportPreview extends StatelessWidget {
   final String title;
-  final List<GridCol> columns;
-  final List<Map<String, dynamic>> rows;
-  const ReportPreview(
-      {super.key,
-      required this.title,
-      required this.columns,
-      required this.rows});
+  final String keyLabel;
+  final List<SummaryReportRow> rows;
+  const SummaryReportPreview({super.key, required this.title, required this.keyLabel, required this.rows});
+
+  bool get showGenderColumns => title == 'Contract Type Gender Summary Report';
+  bool get isGenderSummary => title == 'Gender Summary Report';
 
   @override
   Widget build(BuildContext context) => Card(
@@ -5721,34 +5856,29 @@ class ReportPreview extends StatelessWidget {
                 width: double.infinity,
                 color: const Color(0xFFF8FAFC),
                 padding: const EdgeInsets.all(16),
-                child: Text('$title Preview',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w900, color: _ink))),
+                child: Text('$title Preview', style: const TextStyle(fontWeight: FontWeight.w900, color: _ink))),
             const Divider(height: 1, color: _line),
             Expanded(
               child: rows.isEmpty
                   ? const EmptyBox()
                   : ListView.separated(
-                      itemCount: rows.take(50).length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1, color: _line),
-                      itemBuilder: (_, i) => Container(
-                        padding: const EdgeInsets.all(14),
-                        child: Wrap(spacing: 12, runSpacing: 8, children: [
-                          for (final c in columns)
-                            SizedBox(
-                                width: 180,
-                                child: Text(
-                                    '${c.label}: ${c.isMoney ? formatMoney(valueFor(rows[i], c.key)) : formatValue(valueFor(rows[i], c.key))}',
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontWeight: c.primary
-                                            ? FontWeight.w800
-                                            : FontWeight.w500,
-                                        color: _ink))),
-                        ]),
-                      ),
+                      itemCount: rows.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: _line),
+                      itemBuilder: (_, i) {
+                        final row = rows[i];
+                        final isTotal = row.label.toUpperCase() == 'TOTAL' || row.label.startsWith('Total Gender');
+                        final leftLabel = isGenderSummary ? 'Gender: ${row.label}' : '$keyLabel: ${row.label}';
+                        return Container(
+                          color: isTotal ? const Color(0xFFFBFDFF) : Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                          child: Row(children: [
+                            Expanded(flex: 2, child: Text(leftLabel, style: TextStyle(fontWeight: isTotal ? FontWeight.w900 : FontWeight.w800, color: _ink))),
+                            Expanded(child: Text('Total: ${row.total}', style: TextStyle(color: _ink, fontWeight: isTotal ? FontWeight.w900 : FontWeight.w500))),
+                            if (showGenderColumns) Expanded(child: Text('Male: ${row.male}', style: const TextStyle(color: _ink, fontWeight: FontWeight.w500))),
+                            if (showGenderColumns) Expanded(child: Text('Female: ${row.female}', style: const TextStyle(color: _ink, fontWeight: FontWeight.w500))),
+                          ]),
+                        );
+                      },
                     ),
             ),
           ]),
@@ -5759,11 +5889,29 @@ class ReportPreview extends StatelessWidget {
 String buildPrintableReportHtml(
     String title, List<GridCol> columns, List<Map<String, dynamic>> rows) {
   final cols = columns.map((c) => '<th>${escapeHtml(c.label)}</th>').join();
-  final body = rows
-      .map((r) =>
-          '<tr>${columns.map((c) => '<td>${escapeHtml(c.isMoney ? formatMoney(valueFor(r, c.key)) : formatValue(valueFor(r, c.key)))}</td>').join()}</tr>')
-      .join();
+  final body = rows.map((r) {
+    final cells = columns.map((c) {
+      final raw = valueFor(r, c.key);
+      final value = c.isMoney ? formatMoney(raw) : formatValue(raw);
+      return '<td>${escapeHtml(value)}</td>';
+    }).join();
+    return '<tr>$cells</tr>';
+  }).join();
   return '''<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#0f172a}h1{font-size:18px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:top}th{background:#eff6ff}</style></head><body><h1>${escapeHtml(title)}</h1><table><thead><tr>$cols</tr></thead><tbody>$body</tbody></table><script>window.print();</script></body></html>''';
+}
+
+String buildPrintableSummaryReportHtml(String title, String keyLabel, List<SummaryReportRow> rows) {
+  final showGenderColumns = title == 'Contract Type Gender Summary Report';
+  final isGenderSummary = title == 'Gender Summary Report';
+  final body = rows.map((r) {
+    final isTotal = r.label.toUpperCase() == 'TOTAL' || r.label.startsWith('Total Gender');
+    final leftLabel = isGenderSummary ? 'Gender: ${r.label}' : '$keyLabel: ${r.label}';
+    final cells = showGenderColumns
+        ? '<td>${escapeHtml(leftLabel)}</td><td>${escapeHtml('Total: ${r.total}')}</td><td>${escapeHtml('Male: ${r.male}')}</td><td>${escapeHtml('Female: ${r.female}')}</td>'
+        : '<td>${escapeHtml(leftLabel)}</td><td>${escapeHtml('Total: ${r.total}')}</td>';
+    return '<tr${isTotal ? ' class="total-row"' : ''}>$cells</tr>';
+  }).join();
+  return '''<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>@page{size:A4 portrait;margin:14mm}body{font-family:Arial,sans-serif;color:#0f172a}h1{font-size:18px;margin:0 0 12px}table{width:100%;border-collapse:collapse;font-size:12px}td{border:1px solid #cbd5e1;padding:8px;text-align:left;vertical-align:top}td:first-child{font-weight:700;background:#f8fafc}.total-row td{font-weight:800;background:#eff6ff}</style></head><body><h1>${escapeHtml(title)}</h1><table><tbody>$body</tbody></table><script>window.print();</script></body></html>''';
 }
 
 List<EditField> employeeEditFields() => const [
