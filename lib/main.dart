@@ -1,4 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
+﻿// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'dart:async';
 import 'dart:typed_data';
@@ -576,7 +576,7 @@ Future<List<dynamic>> loadLicensesGrouped({int limit = 5000}) async {
     if (list.isEmpty) continue;
     final first = list.first;
     String bullets(String key) =>
-        list.map((r) => '• ${formatValue(r[key])}').join('\n');
+        list.map((r) => 'â€¢ ${formatValue(r[key])}').join('\n');
     out.add({
       'id': first['id'],
       'employee_id': first['employee_id'],
@@ -681,6 +681,57 @@ Future<List<dynamic>> loadAppointments({int limit = 5000}) => db
     .order('category')
     .limit(limit);
 
+
+class DashboardData {
+  final Map<String, dynamic> counts;
+  final int totalFemale;
+  final int totalMale;
+  final int rankSummary;
+  final int licenseSummary;
+  final int certificateSummary;
+
+  const DashboardData({
+    required this.counts,
+    required this.totalFemale,
+    required this.totalMale,
+    required this.rankSummary,
+    required this.licenseSummary,
+    required this.certificateSummary,
+  });
+
+  int get totalGender => totalFemale + totalMale;
+}
+
+Future<DashboardData> loadDashboardData() async {
+  final countRows = await db.from('hr_dashboard_counts').select();
+  final counts = countRows.isNotEmpty
+      ? Map<String, dynamic>.from(countRows.first as Map)
+      : <String, dynamic>{};
+
+  final employees = await loadActiveEmployees(limit: 5000);
+  var female = 0;
+  var male = 0;
+  for (final item in employees) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final gender = formatValue(row['gender']).trim().toLowerCase();
+    if (gender == 'female' || gender == 'f') female++;
+    if (gender == 'male' || gender == 'm') male++;
+  }
+
+  final rankings = await activeOnlyRows(loadRankings(limit: 5000));
+  final licenses = await activeOnlyRows(loadLicenses(limit: 5000));
+  final certificates = await activeOnlyRows(loadCertificates(limit: 5000));
+
+  return DashboardData(
+    counts: counts,
+    totalFemale: female,
+    totalMale: male,
+    rankSummary: rankings.length,
+    licenseSummary: licenses.length,
+    certificateSummary: certificates.length,
+  );
+}
+
 class DashboardPage extends StatelessWidget {
   final ValueChanged<int> onNavigate;
   const DashboardPage({super.key, required this.onNavigate});
@@ -688,68 +739,129 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Dashboard',
-        subtitle: 'At-a-glance summary of imported Excel records.',
-        child: FutureBuilder<List<dynamic>>(
-          future: db.from('hr_dashboard_counts').select(),
+        subtitle:
+            'At-a-glance summary of HR monitoring records. Click a card to open the related module/report.',
+        child: FutureBuilder<DashboardData>(
+          future: loadDashboardData(),
           builder: (_, snap) {
-            if (snap.connectionState != ConnectionState.done)
+            if (snap.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
+            }
             if (snap.hasError) return ErrorBox('${snap.error}');
-            final row = snap.data?.isNotEmpty == true
-                ? snap.data!.first as Map<String, dynamic>
-                : <String, dynamic>{};
-            final cards = [
+            final data = snap.data ??
+                const DashboardData(
+                  counts: {},
+                  totalFemale: 0,
+                  totalMale: 0,
+                  rankSummary: 0,
+                  licenseSummary: 0,
+                  certificateSummary: 0,
+                );
+            final row = data.counts;
+            final moduleCards = [
               Metric(
                   'Active Employees',
                   row['active_employees'],
                   Icons.people_alt_rounded,
                   const Color(0xFFEFF6FF),
-                  const Color(0xFF1D4ED8)),
+                  const Color(0xFF1D4ED8),
+                  targetIndex: 1),
               Metric(
                   'Active Faculty',
                   row['active_faculty'],
                   Icons.school_rounded,
                   const Color(0xFFF0FDF4),
-                  const Color(0xFF15803D)),
+                  const Color(0xFF15803D),
+                  targetIndex: 1),
               Metric(
                   'For Renewal',
                   row['contracts_for_renewal'],
                   Icons.schedule_rounded,
                   const Color(0xFFFFFBEB),
-                  const Color(0xFFB45309)),
+                  const Color(0xFFB45309),
+                  targetIndex: 2),
               Metric(
                   'Expired Contracts',
                   row['expired_contracts'],
                   Icons.warning_amber_rounded,
                   const Color(0xFFFEF2F2),
-                  const Color(0xFFB91C1C)),
+                  const Color(0xFFB91C1C),
+                  targetIndex: 2),
               Metric('Licenses Due', row['licenses_due'], Icons.badge_rounded,
-                  const Color(0xFFF5F3FF), const Color(0xFF6D28D9)),
+                  const Color(0xFFF5F3FF), const Color(0xFF6D28D9),
+                  targetIndex: 3),
               Metric(
                   'Certificates Due',
                   row['certificates_due'],
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
-                  const Color(0xFF0E7490)),
+                  const Color(0xFF0E7490),
+                  targetIndex: 3),
               Metric('Ranking Records', row['ranking_applications'],
-                  Icons.leaderboard_rounded, const Color(0xFFF8FAFC), _ink),
+                  Icons.leaderboard_rounded, const Color(0xFFF8FAFC), _ink,
+                  targetIndex: 6),
+            ];
+            final reportCards = [
+              Metric('Total Female', data.totalFemale, Icons.female_rounded,
+                  const Color(0xFFFDF2F8), const Color(0xFFDB2777),
+                  targetIndex: 7),
+              Metric('Total Male', data.totalMale, Icons.male_rounded,
+                  const Color(0xFFEFF6FF), const Color(0xFF2563EB),
+                  targetIndex: 7),
+              Metric('Total Gender', data.totalGender, Icons.wc_rounded,
+                  const Color(0xFFF8FAFC), _ink,
+                  targetIndex: 7),
+              Metric('Rank Summary', data.rankSummary, Icons.bar_chart_rounded,
+                  const Color(0xFFF0FDF4), const Color(0xFF16A34A),
+                  targetIndex: 7),
+              Metric('License Summary', data.licenseSummary,
+                  Icons.badge_rounded, const Color(0xFFFFF7ED),
+                  const Color(0xFFC2410C),
+                  targetIndex: 7),
+              Metric('NC/TM Summary', data.certificateSummary,
+                  Icons.workspace_premium_rounded, const Color(0xFFECFEFF),
+                  const Color(0xFF0E7490),
+                  targetIndex: 7),
             ];
             return SingleChildScrollView(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Text('Module Status',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: _ink,
+                            fontSize: 16)),
+                    const SizedBox(height: 14),
                     Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: cards.map((m) => MetricCard(m)).toList()),
-                    const SizedBox(height: 24),
-                    Wrap(spacing: 14, runSpacing: 14, children: [
+                        spacing: 24,
+                        runSpacing: 24,
+                        children: moduleCards
+                            .map((m) => MetricCard(m, onNavigate: onNavigate))
+                            .toList()),
+                    const SizedBox(height: 30),
+                    const Text('Report Totals',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: _ink,
+                            fontSize: 16)),
+                    const SizedBox(height: 14),
+                    Wrap(
+                        spacing: 24,
+                        runSpacing: 24,
+                        children: reportCards
+                            .map((m) => MetricCard(m, onNavigate: onNavigate))
+                            .toList()),
+                    const SizedBox(height: 30),
+                    Wrap(spacing: 20, runSpacing: 14, children: [
                       QuickCard('Manage Employees', Icons.people_alt_rounded,
                           () => onNavigate(1)),
                       QuickCard('Manage Contracts', Icons.assignment_rounded,
                           () => onNavigate(2)),
                       QuickCard('Manage Credentials', Icons.badge_rounded,
                           () => onNavigate(3)),
+                      QuickCard('Open Reports', Icons.summarize_rounded,
+                          () => onNavigate(7)),
                     ]),
                   ]),
             );
@@ -764,46 +876,62 @@ class Metric {
   final IconData icon;
   final Color bg;
   final Color fg;
-  const Metric(this.title, this.value, this.icon, this.bg, this.fg);
+  final int? targetIndex;
+  const Metric(this.title, this.value, this.icon, this.bg, this.fg,
+      {this.targetIndex});
 }
 
 class MetricCard extends StatelessWidget {
   final Metric metric;
-  const MetricCard(this.metric, {super.key});
+  final ValueChanged<int>? onNavigate;
+  const MetricCard(this.metric, {super.key, this.onNavigate});
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 255,
-        height: 136,
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                        color: metric.bg,
-                        borderRadius: BorderRadius.circular(14)),
-                    child: Icon(metric.icon, color: metric.fg)),
-                const Spacer(),
-                Text('${metric.value ?? 0}',
-                    style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w900,
-                        color: _ink,
-                        letterSpacing: -0.7)),
-              ]),
-              const Spacer(),
-              Text(metric.title,
+  Widget build(BuildContext context) {
+    final content = Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                  color: metric.bg, borderRadius: BorderRadius.circular(14)),
+              child: Icon(metric.icon, color: metric.fg)),
+          const Spacer(),
+          Text('${metric.value ?? 0}',
+              style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  color: _ink,
+                  letterSpacing: -0.7)),
+        ]),
+        const Spacer(),
+        Row(children: [
+          Expanded(
+              child: Text(metric.title,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w900, color: _ink)),
-            ]),
-          ),
-        ),
-      );
+                      fontWeight: FontWeight.w900, color: _ink))),
+          if (metric.targetIndex != null)
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B)),
+        ]),
+      ]),
+    );
+
+    return SizedBox(
+      width: 248,
+      height: 128,
+      child: Card(
+        child: metric.targetIndex == null || onNavigate == null
+            ? content
+            : InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: () => onNavigate!(metric.targetIndex!),
+                child: content,
+              ),
+      ),
+    );
+  }
 }
 
 class QuickCard extends StatelessWidget {
@@ -814,7 +942,7 @@ class QuickCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 250,
+        width: 245,
         child: Card(
           child: InkWell(
             borderRadius: BorderRadius.circular(22),
@@ -1713,7 +1841,7 @@ List<Map<String, dynamic>> employeeImportFindMatches(
 }
 
 String employeeImportNormalizeName(String value) {
-  var v = value.toUpperCase().replaceAll('Ñ', 'N');
+  var v = value.toUpperCase().replaceAll('Ã‘', 'N');
   for (final token in const [
     'ATTY',
     'MR',
@@ -4576,7 +4704,7 @@ Future<Map<String, dynamic>?> pickLicenseRecordToEdit(
           itemBuilder: (_, i) => ListTile(
             title: Text(formatValue(records[i]['license_name'])),
             subtitle: Text(
-                'License No.: ${formatValue(records[i]['license_number'])} • Expiry: ${formatValue(records[i]['expiry_date'])}'),
+                'License No.: ${formatValue(records[i]['license_number'])} â€¢ Expiry: ${formatValue(records[i]['expiry_date'])}'),
             onTap: () => Navigator.pop(context, records[i]),
           ),
         ),
@@ -6370,3 +6498,4 @@ String escapeHtml(String input) => input
 void showSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
+
