@@ -763,7 +763,7 @@ class _EvaluationsPageState extends State<EvaluationsPage> {
 
 enum EvaluationType { superior, peer, self, student }
 
-class EvaluationTypeTable extends StatelessWidget {
+class EvaluationTypeTable extends StatefulWidget {
   final List<Map<String, dynamic>> rows;
   final String title;
   final String reportPeriod;
@@ -785,53 +785,34 @@ class EvaluationTypeTable extends StatelessWidget {
     required this.onDelete,
   });
 
-  static const double noWidth = 54;
-  static const double nameWidth = 390;
-  static const double ratingWidth = 130;
-  static const double descriptionWidth = 250;
+  @override
+  State<EvaluationTypeTable> createState() => _EvaluationTypeTableState();
+}
+
+class _EvaluationTypeTableState extends State<EvaluationTypeTable> {
+  String sortKey = 'employee_name';
+  bool sortAscending = true;
+
   static const double actionWidth = 112;
-  static const double tableWidth = noWidth + nameWidth + ratingWidth + descriptionWidth + actionWidth;
 
-  Widget _cell(
-    Widget child,
-    double width, {
-    double height = 34,
-    Color color = Colors.white,
-    Alignment alignment = Alignment.center,
-    EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 6),
-  }) => Container(
-        width: width,
-        height: height,
-        alignment: alignment,
-        padding: padding,
-        decoration: BoxDecoration(color: color, border: Border.all(color: Colors.black.withOpacity(0.68), width: 0.6)),
-        child: child,
-      );
-
-  Widget _textCell(String value, double width, {double height = 34, Color color = Colors.white, bool bold = false, Alignment alignment = Alignment.center}) => _cell(
-        Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: bold ? FontWeight.w800 : FontWeight.w600, color: Colors.black)),
-        width,
-        height: height,
-        color: color,
-        alignment: alignment,
-      );
-
-  String _ratingText(Object? value) {
-    final n = num.tryParse('${value ?? ''}'.replaceAll(',', '').trim());
-    if (n == null) return '';
-    return n % 1 == 0 ? n.toInt().toString() : n.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '').replaceFirst(RegExp(r'\.$'), '');
-  }
+  List<GridCol> get columns => [
+        const GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+        const GridCol('academic_year', 'A.Y.'),
+        const GridCol('semester', 'Semester'),
+        const GridCol('_evaluation_rating', 'Rating', isNumber: true),
+        const GridCol('_evaluation_description', 'Description', flex: 2),
+      ];
 
   String _description(Map<String, dynamic> row) {
-    final existing = formatValueRaw(row[descriptionKey]).trim();
+    final existing = formatValueRaw(row[widget.descriptionKey]).trim();
     if (existing.isNotEmpty && existing != '-') return existing.toUpperCase();
-    final rating = num.tryParse('${row[ratingKey] ?? ''}');
+    final rating = num.tryParse('${row[widget.ratingKey] ?? ''}');
     if (rating == null) {
-      if (type == EvaluationType.student) return 'FAILED';
-      if (type == EvaluationType.self) return 'UNSATISFACTORY';
+      if (widget.type == EvaluationType.student) return 'FAILED';
+      if (widget.type == EvaluationType.self) return 'UNSATISFACTORY';
       return 'UNACCEPTABLE';
     }
-    switch (type) {
+    switch (widget.type) {
       case EvaluationType.self:
         if (rating >= 4.5) return 'OUTSTANDING';
         if (rating >= 4.0) return 'VERY SATISFACTORY';
@@ -850,98 +831,73 @@ class EvaluationTypeTable extends StatelessWidget {
     }
   }
 
-  Color _ratingColor(Object? value) {
-    final rating = num.tryParse('${value ?? ''}');
-    if (rating == null) return Colors.white;
-    if (type == EvaluationType.superior) {
-      if (rating >= 90) return const Color(0xFF84CC6A);
-      if (rating >= 85) return const Color(0xFFA6D96A);
-      if (rating >= 75) return const Color(0xFFC5E384);
-      return const Color(0xFFF4CCCC);
-    }
-    if (type == EvaluationType.peer) {
-      if (rating >= 95) return const Color(0xFF63BE7B);
-      if (rating >= 85) return const Color(0xFF92D050);
-      if (rating >= 75) return const Color(0xFFC5E384);
-      return const Color(0xFFF4CCCC);
-    }
-    return Colors.white;
+  List<Map<String, dynamic>> _tableRows() => widget.rows.map((row) {
+        final out = Map<String, dynamic>.from(row);
+        out['_evaluation_rating'] = row[widget.ratingKey];
+        out['_evaluation_description'] = _description(row);
+        return out;
+      }).toList();
+
+  Future<void> _confirmDelete(BuildContext context, Map<String, dynamic> row) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Evaluation?'),
+        content: Text('This will remove the evaluation record for ${formatValue(row['employee_name'])}.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await widget.onDelete(row);
   }
-
-  Widget _header(String text, double width, {double height = 30}) => _cell(
-        Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black)),
-        width,
-        height: height,
-        color: const Color(0xFF94A3B8),
-      );
-
-  Widget _subHeader(String text, double width) => _cell(
-        Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Colors.black)),
-        width,
-        height: 28,
-        color: const Color(0xFFB7C3D0),
-      );
-
-  Widget _dataRow(Map<String, dynamic> row, int index) => Row(children: [
-        _textCell('${index + 1}', noWidth, height: 30),
-        _cell(Text(formatValue(row['employee_name']), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)), nameWidth, height: 30, alignment: Alignment.centerLeft),
-        _textCell(_ratingText(row[ratingKey]), ratingWidth, height: 30, color: _ratingColor(row[ratingKey])),
-        _textCell(_description(row), descriptionWidth, height: 30),
-        _cell(Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          IconButton(icon: const Icon(Icons.edit_rounded, size: 18), tooltip: 'Edit', padding: EdgeInsets.zero, constraints: const BoxConstraints.tightFor(width: 36, height: 30), onPressed: () => onEdit(row)),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: _danger),
-            tooltip: 'Delete',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(width: 36, height: 30),
-            onPressed: () async => onDelete(row),
-          ),
-        ]), actionWidth, height: 30),
-      ]);
 
   @override
   Widget build(BuildContext context) {
-    if (rows.isEmpty) return const EmptyBox();
+    final tableRows = _tableRows()..sort((a, b) => compareRows(a, b, sortKey, sortAscending));
+    if (tableRows.isEmpty) return const EmptyBox();
     return Card(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(22),
-        child: Scrollbar(
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: tableWidth,
-              child: Column(children: [
-                Container(width: tableWidth, height: 30, color: const Color(0xFFFF0000), alignment: Alignment.center, child: const Text('Cronasia Foundation College, Inc.', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900))),
-                Container(width: tableWidth, height: 22, color: const Color(0xFFFFD966), alignment: Alignment.center, child: Text('$title  |  $reportPeriod', style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w900))),
-                Row(children: [
-                  _header('NO.', noWidth),
-                  _header('Name', nameWidth),
-                  _header(title, ratingWidth + descriptionWidth),
-                  _header('Actions', actionWidth),
-                ]),
-                Row(children: [
-                  _subHeader('', noWidth),
-                  _subHeader('', nameWidth),
-                  _subHeader('RATING', ratingWidth),
-                  _subHeader('Description', descriptionWidth),
-                  _subHeader('', actionWidth),
-                ]),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(children: [
-                      for (var i = 0; i < rows.length; i++) _dataRow(rows[i], i),
-                    ]),
-                  ),
-                ),
-              ]),
+        child: Column(children: [
+          TableHeader(
+            columns: columns,
+            sortKey: sortKey,
+            sortAscending: sortAscending,
+            showActions: true,
+            actionWidth: actionWidth,
+            onSort: (key) => setState(() {
+              if (sortKey == key) {
+                sortAscending = !sortAscending;
+              } else {
+                sortKey = key;
+                sortAscending = true;
+              }
+            }),
+          ),
+          const Divider(height: 1, color: _line),
+          Expanded(
+            child: ListView.separated(
+              itemCount: tableRows.length,
+              separatorBuilder: (_, __) => const Divider(height: 1, color: _line),
+              itemBuilder: (_, i) => TableRowItem(
+                row: tableRows[i],
+                columns: columns,
+                index: i,
+                actionWidth: actionWidth,
+                onEdit: () => widget.onEdit(tableRows[i]),
+                onDelete: () => _confirmDelete(context, tableRows[i]),
+              ),
             ),
           ),
-        ),
+        ]),
       ),
     );
   }
 }
+
 class AppointmentPage extends StatelessWidget {
   const AppointmentPage({super.key});
 
