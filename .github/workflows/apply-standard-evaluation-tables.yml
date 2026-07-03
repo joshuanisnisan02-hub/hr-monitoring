@@ -1,0 +1,48 @@
+name: Apply Standard Evaluation Tables
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/apply-standard-evaluation-tables.yml'
+      - '.github/scripts/apply_standard_evaluation_tables_local.ps1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-standard-evaluation-tables:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply standard evaluation table patch
+        shell: pwsh
+        run: |
+          .github/scripts/apply_standard_evaluation_tables_local.ps1
+
+      - name: Verify old Excel-style header removed
+        shell: bash
+        run: |
+          ! grep -q "Cronasia Foundation College" lib/main.dart
+          grep -q "class _EvaluationTypeTableState" lib/main.dart
+          grep -q "TableHeader" lib/main.dart
+          grep -q "TableRowItem" lib/main.dart
+
+      - name: Commit patched main.dart
+        shell: bash
+        run: |
+          if git diff --quiet -- lib/main.dart; then
+            echo "No standard evaluation table changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          git commit -m "Use standard tables for evaluations"
+          git push
