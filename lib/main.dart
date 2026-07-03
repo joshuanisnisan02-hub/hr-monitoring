@@ -602,8 +602,7 @@ Future<List<dynamic>> loadCertificates({int limit = 1500}) => db
     .limit(limit);
 Future<List<dynamic>> loadEvaluations({int limit = 1500}) => db
     .from('evaluation_records')
-    .select(
-        'id, employee_id, academic_year, semester, superior_rating, peer_rating, self_rating, student_rating, total_rating, total_description, employees(full_name)')
+    .select('id, employee_id, academic_year, semester, superior_rating, superior_description, peer_rating, peer_description, self_rating, self_description, student_rating, student_description, total_rating, total_description, employees(full_name)')
     .order('academic_year')
     .limit(limit);
 Future<List<dynamic>> loadRankings({int limit = 1500}) => db
@@ -1065,28 +1064,152 @@ class EvaluationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Evaluations',
-        subtitle: 'Manage evaluation ratings by academic year and semester.',
-        child: CrudTable(
-          load: () => activeOnlyRows(loadEvaluations()),
-          searchHint:
-              'Search employee, academic year, semester, or description',
-          addLabel: 'Add Evaluation',
-          columns: const [
-            GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-            GridCol('academic_year', 'A.Y.'),
-            GridCol('semester', 'Semester'),
-            GridCol('superior_rating', 'Superior', isNumber: true),
-            GridCol('peer_rating', 'Peer', isNumber: true),
-            GridCol('student_rating', 'Student', isNumber: true),
-            GridCol('total_rating', 'Total', isNumber: true),
-            GridCol('total_description', 'Description', flex: 2),
-          ],
-          onAdd: (ctx, refresh) => editEvaluation(ctx, null, refresh),
-          onEdit: editEvaluation,
-          onDelete: (row) =>
-              db.from('evaluation_records').delete().eq('id', row['id']),
+        subtitle: 'Manage faculty evaluation records by evaluation type.',
+        child: const DefaultTabController(
+          length: 4,
+          child: Column(children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 720,
+                child: TabBar(
+                  isScrollable: true,
+                  tabs: [
+                    Tab(text: 'Superior'),
+                    Tab(text: 'Peer-to-Peer'),
+                    Tab(text: 'Self'),
+                    Tab(text: 'Student'),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: TabBarView(children: [
+                EvaluationTab(
+                  title: 'Superior Evaluation',
+                  ratingKey: 'superior_rating',
+                  descriptionKey: 'superior_description',
+                  kind: EvaluationKind.superior,
+                ),
+                EvaluationTab(
+                  title: 'Peer-to-Peer Evaluation',
+                  ratingKey: 'peer_rating',
+                  descriptionKey: 'peer_description',
+                  kind: EvaluationKind.peer,
+                ),
+                EvaluationTab(
+                  title: 'Self Evaluation',
+                  ratingKey: 'self_rating',
+                  descriptionKey: 'self_description',
+                  kind: EvaluationKind.self,
+                ),
+                EvaluationTab(
+                  title: 'Student Evaluation',
+                  ratingKey: 'student_rating',
+                  descriptionKey: 'student_description',
+                  kind: EvaluationKind.student,
+                ),
+              ]),
+            ),
+          ]),
         ),
       );
+}
+
+enum EvaluationKind { superior, peer, self, student }
+
+class EvaluationTab extends StatelessWidget {
+  final String title;
+  final String ratingKey;
+  final String descriptionKey;
+  final EvaluationKind kind;
+
+  const EvaluationTab({
+    super.key,
+    required this.title,
+    required this.ratingKey,
+    required this.descriptionKey,
+    required this.kind,
+  });
+
+  Future<List<dynamic>> _loadRows() async {
+    final rows = await activeOnlyRows(loadEvaluations(limit: 5000));
+    final normalized = rows.map((item) {
+      final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+      row['evaluation_rating'] = row[ratingKey];
+      row['evaluation_description'] = evaluationDescription(row, kind, ratingKey, descriptionKey);
+      return row;
+    }).toList();
+
+    normalized.sort((a, b) {
+      final ay = formatValue(b['academic_year']).compareTo(formatValue(a['academic_year']));
+      if (ay != 0) return ay;
+      final semester = formatValue(b['semester']).compareTo(formatValue(a['semester']));
+      if (semester != 0) return semester;
+      return formatValue(a['employee_name']).compareTo(formatValue(b['employee_name']));
+    });
+
+    final seen = <String>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final row in normalized) {
+      final key = '${row['employee_id'] ?? row['employee_name'] ?? ''}'.trim().toLowerCase();
+      if (key.isEmpty || !seen.add(key)) continue;
+      unique.add(row);
+    }
+    return unique;
+  }
+
+  @override
+  Widget build(BuildContext context) => CrudTable(
+        load: () => _loadRows(),
+        searchHint: 'Search employee, academic year, semester, rating, or description',
+        addLabel: 'Add Evaluation',
+        reportTitle: '$title Report',
+        columns: const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('evaluation_rating', 'Rating', isNumber: true),
+          GridCol('evaluation_description', 'Description', flex: 2),
+        ],
+        onAdd: (ctx, refresh) => editEvaluation(ctx, null, refresh),
+        onEdit: editEvaluation,
+        onDelete: (row) => db.from('evaluation_records').delete().eq('id', row['id']),
+      );
+}
+
+String evaluationDescription(Map<String, dynamic> row, EvaluationKind kind, String ratingKey, String descriptionKey) {
+  final saved = formatValueRaw(row[descriptionKey]).trim();
+  if (saved.isNotEmpty && saved != '-') return saved.toUpperCase();
+
+  final total = formatValueRaw(row['total_description']).trim();
+  if ((kind == EvaluationKind.student || kind == EvaluationKind.self) && total.isNotEmpty && total != '-') {
+    return total.toUpperCase();
+  }
+
+  final rating = num.tryParse('${row[ratingKey] ?? ''}'.replaceAll(',', '').trim());
+  if (rating == null) {
+    if (kind == EvaluationKind.student) return 'FAILED';
+    if (kind == EvaluationKind.self) return 'UNSATISFACTORY';
+    return 'UNACCEPTABLE';
+  }
+
+  switch (kind) {
+    case EvaluationKind.self:
+      if (rating >= 4.5) return 'OUTSTANDING';
+      if (rating >= 4.0) return 'VERY SATISFACTORY';
+      if (rating >= 3.0) return 'SATISFACTORY';
+      return 'UNSATISFACTORY';
+    case EvaluationKind.student:
+      if (rating >= 4.2) return 'EXCELLENT';
+      if (rating >= 3.4) return 'GOOD';
+      if (rating >= 2.6) return 'FAIR';
+      return 'FAILED';
+    case EvaluationKind.superior:
+    case EvaluationKind.peer:
+      if (rating >= 85) return 'EXCEEDS EXPECTATION';
+      if (rating >= 75) return 'MEETS EXPECTATION';
+      return 'UNACCEPTABLE';
+  }
 }
 
 class AppointmentPage extends StatelessWidget {
@@ -4880,14 +5003,16 @@ Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row,
             kind: FieldKind.dropdown, required: true, options: employees),
       const EditField('academic_year', 'Academic Year', required: true),
       const EditField('semester', 'Semester', required: true),
-      const EditField('superior_rating', 'Superior Rating',
-          kind: FieldKind.number),
+      const EditField('superior_rating', 'Superior Rating', kind: FieldKind.number),
+      const EditField('superior_description', 'Superior Description'),
       const EditField('peer_rating', 'Peer Rating', kind: FieldKind.number),
+      const EditField('peer_description', 'Peer-to-Peer Description'),
       const EditField('self_rating', 'Self Rating', kind: FieldKind.number),
-      const EditField('student_rating', 'Student Rating',
-          kind: FieldKind.number),
+      const EditField('self_description', 'Self Description'),
+      const EditField('student_rating', 'Student Rating', kind: FieldKind.number),
+      const EditField('student_description', 'Student Description'),
       const EditField('total_rating', 'Total Rating', kind: FieldKind.number),
-      const EditField('total_description', 'Description'),
+      const EditField('total_description', 'Overall Description'),
     ],
     row,
     readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
@@ -4895,7 +5020,7 @@ Future<void> editEvaluation(BuildContext context, Map<String, dynamic>? row,
   if (data == null) return;
   if (isAdd &&
       !await ensureNoEmployeeDuplicate(
-          context, 'evaluation_records', data['employee_id'], 'evaluation'))
+          context, 'evaluation_records', data['employee_id'], 'evaluation. This employee already has an evaluation record'))
     return;
   await saveRow(context, 'evaluation_records', row?['id'], data, refresh);
 }
