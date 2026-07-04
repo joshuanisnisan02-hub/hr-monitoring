@@ -17,12 +17,16 @@ const publicClientKey = String.fromEnvironment(
 );
 
 const _primary = Color(0xFF2563EB);
-const _accent = Color(0xFF4B5FA7);
+const _accent = Color(0xFF4F63B6);
 const _ink = Color(0xFF0F172A);
 const _muted = Color(0xFF64748B);
-const _bg = Color(0xFFF8FAFC);
+const _bg = Color(0xFFF4F7FB);
 const _line = Color(0xFFE2E8F0);
 const _danger = Color(0xFFDC2626);
+const _surface = Color(0xFFFFFFFF);
+const _surfaceSoft = Color(0xFFF8FAFC);
+const _primarySoft = Color(0xFFEFF6FF);
+const _shadowSoft = Color(0x140F172A);
 const _pageSize = 10;
 
 SupabaseClient get db => Supabase.instance.client;
@@ -33,6 +37,290 @@ void safeRefresh(VoidCallback refresh) {
 
 final Map<String, List<dynamic>> _crudTableDataCache =
     <String, List<dynamic>>{};
+
+// OFFICIAL_ACTIVE_EMPLOYEE_LIST_START
+const List<String> officialActiveEmployeeNames = <String>[
+  'Aba, Mary Stephanie',
+  'Advincula, Jesel C., LPT',
+  'Agustin, Wowie D., LPT',
+  'Alegato, Mark Lhister',
+  'Amlato, Jeroboam C.',
+  'Andang, Abdulgani T., MSCRIM, RCRIM',
+  'Aniñon, Clotilde P., LPT',
+  'Avenido, Restituto Jr., E., MBM, LPT',
+  'Ballista, Beverly Joy, LPT',
+  'Bangcong, Charyn P., LPT',
+  'Batilaran, Quirico JR. M., RCG',
+  'Beatingo, Dave Bryan J.',
+  'Behiga, Charissa Mae G., MAED, LPT',
+  'Belgar, Christian John',
+  'Belgira, Judy Ann, LPT',
+  'Belvar, Cristian Ric H., LPT',
+  'Besonia, Kwin Y.',
+  'Bigno, Jhon Bernand D. , LPT',
+  'Bioco, Aijelon',
+  'Borongan, Gibb B., MPA, LPT',
+  'Borro, Enarcisa P., MAED',
+  'Caballero, Annajane R., RCRIM',
+  'Cabarubias, Monica B., RL',
+  'Cabidog, Mary Monica, LPT',
+  'Cabrera, Kristine J., MBM, LPT',
+  'Cagande, Eryll John, LPT',
+  'Cahilig, Christian',
+  'Calle, Reycart C.',
+  'Campilan, Gremar',
+  'Canales, Janine Hope',
+  'Caparoso, Marie Claire, LPT',
+  'Carlon, Marian P., LPT',
+  'Casi, Irene W., RCRIM',
+  'Cauntao, Karen Grace A., LPT',
+  'Celo, Lisa L., RL',
+  'Centes, Cynthia B., MBM, LPT',
+  'Ciudad, Mai Grape G., MAED, LPT',
+  'Cocjin, Charry, RN',
+  'Colipano, Tessie R., Ph.D',
+  'Cuyos, Marites M., MBM',
+  'Cuyos, Rosso, MBM',
+  'Dalayap, Lloyd A., PHD, RPM',
+  'Dalogdog, Joehmar B., MSCJ,RCRIM',
+  'Dapsan, Eldie John L., LPT',
+  'David, Elenito G.',
+  'Dayaganon, Jenneal A.',
+  'De Castro, Christopher JR., MSCJ, RCRIM',
+  'De Vera, Freden S.',
+  'Digan, Licona A., PhD',
+  'Dionio, Rosie Shane T., RCRIM',
+  'Dona, Cris, LPT',
+  'Doyac, Adrian S., LPT',
+  'Dumilig, Ernan C., LPT',
+  'Duran, Leomil Jay B., MIT, LPT',
+  'Duran, Zulaika, LPT',
+  'Ebona, James Edmund, LPT',
+  'Epil, Saturnino D., Jr., RSW',
+  'Espinoza, Joan R., MBM,LPT, CHRA',
+  'Filoteo, Alan D.',
+  'Flores, Willyn L., RSW',
+  'Gallardo, Justin Dave B.',
+  'Gallardo, Erma, LPT',
+  'Gamil, Honey Mae S., RCRIM',
+  'Gania, Mark Joseph P., RCRIM',
+  'Gasan, Christian Mae, LPT',
+  'Germinal, Jenelyn',
+  'Germinal, Juvan Roy D., CPA',
+  'Gortisano, Rene D., MBM, LPT, CHRA, CHP',
+  'Gruzo, Emmanuel Hope C., CPA',
+  'Hassan, Almaddie',
+  'Hermoso, Alberto',
+  'Hitalia, Ma. Cresanta G.,MBM',
+  'Hoyohoy, Ma. Lerma., LPT',
+  'Hussin, Portia H., LPT',
+  'Inderio, Karen Joy B.',
+  'Jeronan, Yvonnie ., MAT-PE, LPT',
+  'Jimenez, Joey S.',
+  'Julius M. Bernardo, LPT',
+  'Langgong, Charlotte K., MSSW, RSW',
+  'Laroza, Cristine Lyn., LPT',
+  'Linga, Jeazel S., LPT',
+  'Lizada, Remart John P.',
+  'Lumantas, Jonathan, LPT',
+  'Luyang, Noraliza M., MBM, LPT',
+  'Mahinay-Palmejar, Lovely D., LPT',
+  'Mantua, Famila D.',
+  'Maonio, June Ray C.',
+  'Mariscal, Leane Jen C., LPT',
+  'Marquez, Ariel DT., MAT-PE, LPT',
+  'Medina, Nova Mae C., RPm',
+  'Mentino, Rhea Christine, LPT',
+  'Mina, Cathrena Jane A., LPT',
+  'Mission, Erlinda., DM, CPA',
+  'Momo, Marjorie G., MSCJ, RCRIM',
+  'Montaño, Quencyfaith C., MBM, LPT',
+  'Nacilla, Maria Fe MBA',
+  'Nisnisan, Joshua',
+  'Nocete,Fretch H.., PHD, MSHRM, LPT',
+  'Non, Garda May G., MAED, LPT',
+  'Non, Nenita, RL, MALS',
+  'Ofiaza, Maria Sheena B., LPT',
+  'Oreiro, Mark Dominic M., LPT',
+  'Pabilona, Syrel John H., RL',
+  'Palomares, Ma. Jessa A.',
+  'Palon, Jovanny T., LPT',
+  'Patangan, Princess Jouce B., MAED, LPT',
+  'Patok JR., Sofonias P., LPT',
+  'Patuar, Kenneth Joy, LPT',
+  'Patuar, Nhaser, LPT',
+  'Payongayong, Jeselle G., MAED, LPT',
+  'Pedrigosa, Ma. Claudjean P.',
+  'Pelobello, Suzaine Mae',
+  'Pendon, Leonard David T.',
+  'Peraman, Kimberly T., LPT',
+  'Pilapil, Ariel Jhon',
+  'Plarisan, Laica A., LPT',
+  'Polalon, Jorita E., LPT',
+  'Ponteres, Harold, LPT',
+  'Prieto, Crissa Mae, LPT',
+  'Pua, PCapt. Ronnie R., RCRIM',
+  'Revilla, Creshyl F., LPT',
+  'Roble, Arnel JR, LPT',
+  'Roderos, Jobille Love, RSW',
+  'Roman, Rosalia, MMREM, REA, REB, LPT',
+  'Rosales, Honey Mae M., RSW',
+  'Saligumba, Maria Era C., RSW',
+  'Salmo, Whenah M., RCRIM',
+  'Saludo, Ian Jay',
+  'Santillan, Jessa Marie S., MBM,LPT',
+  'Santos, Jectofer B., MAT-PE, LPT',
+  'Sardalla, Allan',
+  'Saulong, Ronelo A., RSW',
+  'Sayson, Adams Jay, LPT',
+  'Sebastian, Kristal Kae',
+  'Señires, Normie E., REB',
+  'Serrano, Alvin Jay C., MAED, LPT',
+  'Suhayon, Sylvester, LPT',
+  'Suyao, Jethroel Hervey S., LPT',
+  'Tagupa, Marychell N., LPT',
+  'Tampos, Carvin Paul G.',
+  'Ternora, Jhonmer F., LPT',
+  'Tidalgo, Hermer B., MAED, LPT',
+  'Tipawan, Frencess Jann O., LPT',
+  'Titong, Salvador D., Jr., LPT',
+  'Tobato, May Maeh V., MAED, LPT',
+  'Tomampos, Ellah Jessa G., MBM, LPT',
+  'Torcuator, Dennis Oliver G.',
+  'Tres Reyes, Ronald C. MSPY',
+  'Ubaldo, Ivy M., MAED',
+  'Umadhay, Julius Czar., LPT',
+  'Utay, Honey Babe Erica B.',
+  'Valenzuela, Elvine',
+  'Vazquez, Rea Joy G., MAPS, LPT',
+  'Venancio, Daniel P., LPT',
+  'Villamarzo, Joanne L., MAT-PE, LPT',
+  'Villanueva, Rey F.',
+  'Whittmer, Ira',
+  'Yubal, Eugine P., LPT',
+  'Zamora, Romel A., MAED, LPT',
+  'Zapanta, Marivic P., MAED, LPT',
+];
+
+String officialEmployeeClean(String value) {
+  var out = value
+      .toLowerCase()
+      .replaceAll('ñ', 'n')
+      .replaceAll('á', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ó', 'o')
+      .replaceAll('ú', 'u')
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+
+  final remove = <String>{
+    'lpt',
+    'maed',
+    'mbm',
+    'mscrim',
+    'rcrim',
+    'rcg',
+    'rgc',
+    'rl',
+    'rn',
+    'phd',
+    'mba',
+    'mit',
+    'mssw',
+    'rsw',
+    'cpa',
+    'mat',
+    'pe',
+    'maps',
+    'map',
+    'mmrem',
+    'rea',
+    'reb',
+    'chra',
+    'chp',
+    'ctp',
+    'mscj',
+    'rpm',
+    'prm',
+    'mshrm',
+    'dm',
+    'mpa',
+    'mspsy',
+    'pcapt',
+    'atty',
+    'jr',
+    'sr',
+    'ii',
+    'iii',
+    'cepl',
+    'dbm',
+    'is',
+    'mrm',
+    'ce',
+    'mrem',
+    'cthm',
+    'rmt',
+    'mspsych'
+  };
+
+  return out
+      .split(RegExp(r'\s+'))
+      .where((token) => token.isNotEmpty && !remove.contains(token))
+      .join(' ');
+}
+
+String officialEmployeeKey(Object? value) {
+  var raw = '${value ?? ''}'.trim().toLowerCase();
+  if (raw.isEmpty || raw == '-') return '';
+
+  String lastPart;
+  String restPart;
+
+  final comma = raw.indexOf(',');
+  if (comma >= 0) {
+    lastPart = raw.substring(0, comma);
+    restPart = raw.substring(comma + 1);
+  } else {
+    final cleaned = officialEmployeeClean(raw);
+    final parts =
+        cleaned.split(RegExp(r'\s+')).where((x) => x.isNotEmpty).toList();
+    if (parts.isEmpty) return '';
+    lastPart = parts.last;
+    restPart =
+        parts.length > 1 ? parts.sublist(0, parts.length - 1).join(' ') : '';
+  }
+
+  final last = officialEmployeeClean(lastPart);
+  final rest = officialEmployeeClean(restPart);
+  final tokens = rest.split(RegExp(r'\s+')).where((x) => x.isNotEmpty).toList();
+  final first = tokens.isEmpty ? '' : tokens.first;
+
+  return '$last|$first';
+}
+
+final Map<String, String> officialActiveEmployeeNameByKey = <String, String>{
+  for (final name in officialActiveEmployeeNames)
+    officialEmployeeKey(name): name,
+};
+
+bool isOfficialActiveEmployeeRow(Map<String, dynamic> row) {
+  final possibleNames = <Object?>[
+    row['full_name'],
+    row['employee_name'],
+    if (row['employees'] is Map) (row['employees'] as Map)['full_name'],
+  ];
+
+  for (final name in possibleNames) {
+    final key = officialEmployeeKey(name);
+    if (key.isNotEmpty && officialActiveEmployeeNameByKey.containsKey(key)) {
+      return true;
+    }
+  }
+  return false;
+}
+// OFFICIAL_ACTIVE_EMPLOYEE_LIST_END
 
 Future<void> showActionAlert(BuildContext context, String title, String message,
     {IconData icon = Icons.check_circle_rounded,
@@ -78,47 +366,58 @@ class HrApp extends StatelessWidget {
         scaffoldBackgroundColor: _bg,
         colorScheme: ColorScheme.fromSeed(seedColor: _primary),
         fontFamily: 'Arial',
+        visualDensity: VisualDensity.standard,
         cardTheme: CardThemeData(
           elevation: 0,
-          color: Colors.white,
+          color: _surface,
+          surfaceTintColor: Colors.transparent,
+          margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(24),
               side: const BorderSide(color: _line)),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: _accent,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+            minimumSize: const Size(44, 44),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: _accent,
             side: const BorderSide(color: Color(0xFFCBD5E1)),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999)),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            minimumSize: const Size(44, 44),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: _surface,
+          surfaceTintColor: Colors.transparent,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: _surface,
           hintStyle: const TextStyle(color: _muted),
           labelStyle: const TextStyle(
               color: Color(0xFF1E40AF), fontWeight: FontWeight.w600),
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               borderSide: const BorderSide(color: _line)),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               borderSide: const BorderSide(color: _line)),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               borderSide: const BorderSide(color: _primary, width: 1.6)),
         ),
       ),
@@ -206,7 +505,7 @@ class _LoginPageState extends State<LoginPage> {
             width: 430,
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.all(28),
+                padding: const EdgeInsets.all(32),
                 child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -244,7 +543,7 @@ class _LoginPageState extends State<LoginPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               color: _muted, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
                       TextField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -343,7 +642,7 @@ class _ShellPageState extends State<ShellPage> {
     return Scaffold(
       body: Row(children: [
         AppSidebar(selectedIndex: safeIndex, onChanged: selectPage),
-        const VerticalDivider(width: 1, color: _line),
+        const SizedBox.shrink(),
         Expanded(
           child: IndexedStack(
             index: safeIndex,
@@ -420,9 +719,12 @@ class AppSidebar extends StatelessWidget {
     ];
 
     return Container(
-      width: 240,
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      width: 252,
+      decoration: const BoxDecoration(
+        color: _surface,
+        border: Border(right: BorderSide(color: _line)),
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
       child: SafeArea(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -432,7 +734,7 @@ class AppSidebar extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient:
                     const LinearGradient(colors: [_primary, Color(0xFF4F46E5)]),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: const [
                   BoxShadow(
                       color: Color(0x332563EB),
@@ -454,7 +756,7 @@ class AppSidebar extends StatelessWidget {
           const Text('Faculty and staff records',
               style: TextStyle(
                   fontSize: 12, color: _muted, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 18),
+          const SizedBox(height: 24),
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.zero,
@@ -497,19 +799,19 @@ class SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.only(bottom: 8),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: selected ? const Color(0xFFEFF6FF) : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
+              color: selected ? _primarySoft : Colors.transparent,
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
                   color:
-                      selected ? const Color(0xFFDBEAFE) : Colors.transparent),
+                      selected ? const Color(0xFFBFDBFE) : Colors.transparent),
             ),
             child: Row(children: [
               Icon(icon,
@@ -539,7 +841,7 @@ class PageFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(28, 18, 28, 18),
+        padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title,
               style: const TextStyle(
@@ -554,7 +856,7 @@ class PageFrame extends StatelessWidget {
                   color: Color(0xFF52637A),
                   fontSize: 14,
                   fontWeight: FontWeight.w500)),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
           Expanded(child: child),
         ]),
       );
@@ -754,6 +1056,7 @@ Future<List<dynamic>> activeOnlyRows(Future<List<dynamic>> source) async {
     final id = rowEmployeeId(row);
     if (id.isNotEmpty && resignedIds.contains(id)) return false;
     if (rowHasResignedStatus(row)) return false;
+    if (!isOfficialActiveEmployeeRow(row)) return false;
     return true;
   }).toList();
 }
@@ -769,52 +1072,135 @@ Future<List<dynamic>> loadAppointments({int limit = 5000}) => db
     .limit(limit);
 
 class DashboardData {
-  final Map<String, dynamic> counts;
+  final int activeEmployees;
+  final int activeFaculty;
+  final int resignedEmployees;
   final int totalFemale;
   final int totalMale;
-  final int rankSummary;
-  final int licenseSummary;
-  final int certificateSummary;
+  final int contractsTotal;
+  final int contractsOngoing;
+  final int contractsForRenewal;
+  final int expiredContracts;
+  final int licensesTotal;
+  final int licensesDue;
+  final int certificatesTotal;
+  final int certificatesDue;
+  final int evaluationsTotal;
+  final int appointmentsTotal;
+  final int rankingsTotal;
 
   const DashboardData({
-    required this.counts,
+    required this.activeEmployees,
+    required this.activeFaculty,
+    required this.resignedEmployees,
     required this.totalFemale,
     required this.totalMale,
-    required this.rankSummary,
-    required this.licenseSummary,
-    required this.certificateSummary,
+    required this.contractsTotal,
+    required this.contractsOngoing,
+    required this.contractsForRenewal,
+    required this.expiredContracts,
+    required this.licensesTotal,
+    required this.licensesDue,
+    required this.certificatesTotal,
+    required this.certificatesDue,
+    required this.evaluationsTotal,
+    required this.appointmentsTotal,
+    required this.rankingsTotal,
   });
 
   int get totalGender => totalFemale + totalMale;
+  int get credentialsTotal => licensesTotal + certificatesTotal;
+}
+
+Map<String, dynamic> dashboardRow(dynamic item) =>
+    normalizeRow(Map<String, dynamic>.from(item as Map));
+
+String dashboardStatus(dynamic item) =>
+    formatValue(dashboardRow(item)['status']).trim().toLowerCase();
+
+bool dashboardStatusContains(dynamic item, List<String> terms) {
+  final status = dashboardStatus(item);
+  return terms.any(status.contains);
 }
 
 Future<DashboardData> loadDashboardData() async {
-  final countRows = await db.from('hr_dashboard_counts').select();
-  final counts = countRows.isNotEmpty
-      ? Map<String, dynamic>.from(countRows.first as Map)
-      : <String, dynamic>{};
+  final results = await Future.wait<List<dynamic>>([
+    loadActiveEmployees(limit: 5000),
+    loadResignedEmployees(limit: 5000),
+    activeOnlyRows(loadContracts(limit: 5000)),
+    activeOnlyRows(loadLicenses(limit: 5000)),
+    activeOnlyRows(loadCertificates(limit: 5000)),
+    activeOnlyRows(loadEvaluations(limit: 5000)),
+    activeOnlyRows(loadAppointments(limit: 5000)),
+    activeOnlyRows(loadRankings(limit: 5000)),
+  ]);
 
-  final employees = await loadActiveEmployees(limit: 5000);
+  final employees = results[0];
+  final resignedEmployees = results[1];
+  final contracts = results[2];
+  final licenses = results[3];
+  final certificates = results[4];
+  final evaluations = results[5];
+  final appointments = results[6];
+  final rankings = results[7];
+
   var female = 0;
   var male = 0;
+  var faculty = 0;
+
   for (final item in employees) {
-    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final row = dashboardRow(item);
     final gender = formatValue(row['gender']).trim().toLowerCase();
     if (gender == 'female' || gender == 'f') female++;
     if (gender == 'male' || gender == 'm') male++;
+
+    final roleText = [
+      row['designation'],
+      row['employee_type'],
+      row['teaching_status'],
+      row['education_level'],
+    ].map(formatValue).join(' ').toLowerCase();
+    if (roleText.contains('faculty') ||
+        roleText.contains('teacher') ||
+        roleText.contains('teaching')) {
+      faculty++;
+    }
   }
 
-  final rankings = await activeOnlyRows(loadRankings(limit: 5000));
-  final licenses = await activeOnlyRows(loadLicenses(limit: 5000));
-  final certificates = await activeOnlyRows(loadCertificates(limit: 5000));
+  final contractsForRenewal = contracts
+      .where((item) => dashboardStatusContains(item, ['renew']))
+      .length;
+  final expiredContracts = contracts
+      .where((item) => dashboardStatusContains(item, ['expired']))
+      .length;
+  final contractsOngoing = contracts
+      .where((item) =>
+          dashboardStatusContains(item, ['ongoing', 'on-going', 'active']))
+      .length;
+  final licensesDue = licenses
+      .where((item) => dashboardStatusContains(item, ['renew', 'expired']))
+      .length;
+  final certificatesDue = certificates
+      .where((item) => dashboardStatusContains(item, ['renew', 'expired']))
+      .length;
 
   return DashboardData(
-    counts: counts,
+    activeEmployees: employees.length,
+    activeFaculty: faculty,
+    resignedEmployees: resignedEmployees.length,
     totalFemale: female,
     totalMale: male,
-    rankSummary: rankings.length,
-    licenseSummary: licenses.length,
-    certificateSummary: certificates.length,
+    contractsTotal: contracts.length,
+    contractsOngoing: contractsOngoing,
+    contractsForRenewal: contractsForRenewal,
+    expiredContracts: expiredContracts,
+    licensesTotal: licenses.length,
+    licensesDue: licensesDue,
+    certificatesTotal: certificates.length,
+    certificatesDue: certificatesDue,
+    evaluationsTotal: evaluations.length,
+    appointmentsTotal: appointments.length,
+    rankingsTotal: rankings.length,
   );
 }
 
@@ -826,7 +1212,7 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Dashboard',
         subtitle:
-            'At-a-glance summary of HR monitoring records. Click a card to open the related module/report.',
+            'Live summary based on the current data shown in each module. Click a card to open its module.',
         child: FutureBuilder<DashboardData>(
           future: loadDashboardData(),
           builder: (_, snap) {
@@ -836,58 +1222,102 @@ class DashboardPage extends StatelessWidget {
             if (snap.hasError) return ErrorBox('${snap.error}');
             final data = snap.data ??
                 const DashboardData(
-                  counts: {},
+                  activeEmployees: 0,
+                  activeFaculty: 0,
+                  resignedEmployees: 0,
                   totalFemale: 0,
                   totalMale: 0,
-                  rankSummary: 0,
-                  licenseSummary: 0,
-                  certificateSummary: 0,
+                  contractsTotal: 0,
+                  contractsOngoing: 0,
+                  contractsForRenewal: 0,
+                  expiredContracts: 0,
+                  licensesTotal: 0,
+                  licensesDue: 0,
+                  certificatesTotal: 0,
+                  certificatesDue: 0,
+                  evaluationsTotal: 0,
+                  appointmentsTotal: 0,
+                  rankingsTotal: 0,
                 );
-            final row = data.counts;
-            final moduleCards = [
+
+            final moduleCards = <Metric>[
               Metric(
-                  'Active Employees',
-                  row['active_employees'],
+                  'Employees',
+                  data.activeEmployees,
                   Icons.people_alt_rounded,
                   const Color(0xFFEFF6FF),
                   const Color(0xFF1D4ED8),
                   targetIndex: 1),
+              Metric('Contracts', data.contractsTotal, Icons.assignment_rounded,
+                  const Color(0xFFFFFBEB), const Color(0xFFB45309),
+                  targetIndex: 2),
+              Metric('Credentials', data.credentialsTotal, Icons.badge_rounded,
+                  const Color(0xFFF5F3FF), const Color(0xFF6D28D9),
+                  targetIndex: 3),
               Metric(
-                  'Active Faculty',
-                  row['active_faculty'],
-                  Icons.school_rounded,
+                  'Evaluations',
+                  data.evaluationsTotal,
+                  Icons.rate_review_rounded,
+                  const Color(0xFFECFEFF),
+                  const Color(0xFF0E7490),
+                  targetIndex: 4),
+              Metric(
+                  'Appointments',
+                  data.appointmentsTotal,
+                  Icons.work_outline_rounded,
                   const Color(0xFFF0FDF4),
                   const Color(0xFF15803D),
-                  targetIndex: 1),
+                  targetIndex: 5),
+              Metric('Ranking', data.rankingsTotal, Icons.leaderboard_rounded,
+                  const Color(0xFFF8FAFC), _ink,
+                  targetIndex: 6),
+              Metric('Reports', data.totalGender, Icons.summarize_rounded,
+                  const Color(0xFFFFF7ED), const Color(0xFFC2410C),
+                  targetIndex: 7),
+              Metric(
+                  'Resigned Employees',
+                  data.resignedEmployees,
+                  Icons.person_off_rounded,
+                  const Color(0xFFFEF2F2),
+                  const Color(0xFFB91C1C),
+                  targetIndex: 8),
+            ];
+
+            final attentionCards = <Metric>[
+              Metric(
+                  'Ongoing Contracts',
+                  data.contractsOngoing,
+                  Icons.verified_rounded,
+                  const Color(0xFFF0FDF4),
+                  const Color(0xFF15803D),
+                  targetIndex: 2),
               Metric(
                   'For Renewal',
-                  row['contracts_for_renewal'],
+                  data.contractsForRenewal,
                   Icons.schedule_rounded,
                   const Color(0xFFFFFBEB),
                   const Color(0xFFB45309),
                   targetIndex: 2),
               Metric(
                   'Expired Contracts',
-                  row['expired_contracts'],
+                  data.expiredContracts,
                   Icons.warning_amber_rounded,
                   const Color(0xFFFEF2F2),
                   const Color(0xFFB91C1C),
                   targetIndex: 2),
-              Metric('Licenses Due', row['licenses_due'], Icons.badge_rounded,
+              Metric('Licenses Due', data.licensesDue, Icons.badge_rounded,
                   const Color(0xFFF5F3FF), const Color(0xFF6D28D9),
                   targetIndex: 3),
               Metric(
                   'Certificates Due',
-                  row['certificates_due'],
+                  data.certificatesDue,
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
                   const Color(0xFF0E7490),
                   targetIndex: 3),
-              Metric('Ranking Records', row['ranking_applications'],
-                  Icons.leaderboard_rounded, const Color(0xFFF8FAFC), _ink,
-                  targetIndex: 6),
             ];
-            final reportCards = [
+
+            final reportCards = <Metric>[
               Metric('Total Female', data.totalFemale, Icons.female_rounded,
                   const Color(0xFFFDF2F8), const Color(0xFFDB2777),
                   targetIndex: 7),
@@ -897,65 +1327,82 @@ class DashboardPage extends StatelessWidget {
               Metric('Total Gender', data.totalGender, Icons.wc_rounded,
                   const Color(0xFFF8FAFC), _ink,
                   targetIndex: 7),
-              Metric('Rank Summary', data.rankSummary, Icons.bar_chart_rounded,
-                  const Color(0xFFF0FDF4), const Color(0xFF16A34A),
-                  targetIndex: 7),
-              Metric(
-                  'License Summary',
-                  data.licenseSummary,
-                  Icons.badge_rounded,
-                  const Color(0xFFFFF7ED),
-                  const Color(0xFFC2410C),
+              Metric('Active Faculty', data.activeFaculty, Icons.school_rounded,
+                  const Color(0xFFF0FDF4), const Color(0xFF15803D),
+                  targetIndex: 1),
+              Metric('License Summary', data.licensesTotal, Icons.badge_rounded,
+                  const Color(0xFFFFF7ED), const Color(0xFFC2410C),
                   targetIndex: 7),
               Metric(
                   'NC/TM Summary',
-                  data.certificateSummary,
+                  data.certificatesTotal,
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
                   const Color(0xFF0E7490),
                   targetIndex: 7),
             ];
-            return SingleChildScrollView(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Module Status',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: _ink,
-                            fontSize: 16)),
-                    const SizedBox(height: 14),
-                    Wrap(
-                        spacing: 24,
-                        runSpacing: 24,
-                        children: moduleCards
-                            .map((m) => MetricCard(m, onNavigate: onNavigate))
-                            .toList()),
-                    const SizedBox(height: 30),
-                    const Text('Report Totals',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: _ink,
-                            fontSize: 16)),
-                    const SizedBox(height: 14),
-                    Wrap(
-                        spacing: 24,
-                        runSpacing: 24,
-                        children: reportCards
-                            .map((m) => MetricCard(m, onNavigate: onNavigate))
-                            .toList()),
-                    const SizedBox(height: 30),
-                    Wrap(spacing: 20, runSpacing: 14, children: [
-                      QuickCard('Manage Employees', Icons.people_alt_rounded,
-                          () => onNavigate(1)),
-                      QuickCard('Manage Contracts', Icons.assignment_rounded,
-                          () => onNavigate(2)),
-                      QuickCard('Manage Credentials', Icons.badge_rounded,
-                          () => onNavigate(3)),
-                      QuickCard('Open Reports', Icons.summarize_rounded,
-                          () => onNavigate(7)),
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                _crudTableDataCache.clear();
+                await loadDashboardData();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Per Module Data',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: _ink,
+                              fontSize: 16)),
+                      const SizedBox(height: 14),
+                      Wrap(
+                          spacing: 24,
+                          runSpacing: 24,
+                          children: moduleCards
+                              .map((m) => MetricCard(m, onNavigate: onNavigate))
+                              .toList()),
+                      const SizedBox(height: 30),
+                      const Text('Needs Attention',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: _ink,
+                              fontSize: 16)),
+                      const SizedBox(height: 14),
+                      Wrap(
+                          spacing: 24,
+                          runSpacing: 24,
+                          children: attentionCards
+                              .map((m) => MetricCard(m, onNavigate: onNavigate))
+                              .toList()),
+                      const SizedBox(height: 30),
+                      const Text('Report Totals',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: _ink,
+                              fontSize: 16)),
+                      const SizedBox(height: 14),
+                      Wrap(
+                          spacing: 24,
+                          runSpacing: 24,
+                          children: reportCards
+                              .map((m) => MetricCard(m, onNavigate: onNavigate))
+                              .toList()),
+                      const SizedBox(height: 30),
+                      Wrap(spacing: 20, runSpacing: 14, children: [
+                        QuickCard('Manage Employees', Icons.people_alt_rounded,
+                            () => onNavigate(1)),
+                        QuickCard('Manage Contracts', Icons.assignment_rounded,
+                            () => onNavigate(2)),
+                        QuickCard('Manage Credentials', Icons.badge_rounded,
+                            () => onNavigate(3)),
+                        QuickCard('Open Reports', Icons.summarize_rounded,
+                            () => onNavigate(7)),
+                      ]),
                     ]),
-                  ]),
+              ),
             );
           },
         ),
@@ -1112,7 +1559,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
         child: Column(children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(children: [
                 const Text('Filter:',
                     style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
@@ -1261,7 +1708,7 @@ class _ContractsPageState extends State<ContractsPage> {
         child: Column(children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(children: [
                 const Text('Filter:',
                     style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
@@ -2321,7 +2768,7 @@ class _RankingPageState extends State<RankingPage> {
         child: Column(children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -3467,21 +3914,21 @@ class TableToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: LayoutBuilder(builder: (context, constraints) {
             final compact = constraints.maxWidth < 940;
             final search = SizedBox(
-              width: compact ? constraints.maxWidth : 360,
+              width: compact ? constraints.maxWidth : 390,
               child: TextField(
                   onChanged: onSearch,
                   decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.search_rounded),
                       hintText: hint,
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC))),
+                      fillColor: _surfaceSoft)),
             );
             final sort = SizedBox(
-              width: 188,
+              width: 200,
               child: DropdownButtonFormField<String>(
                   value: sortKey,
                   isExpanded: true,
@@ -3544,7 +3991,7 @@ class TableToolbar extends StatelessWidget {
                   children: widgets);
             return Row(children: [
               Expanded(child: search),
-              for (final w in widgets.skip(1)) ...[const SizedBox(width: 10), w]
+              for (final w in widgets.skip(1)) ...[const SizedBox(width: 12), w]
             ]);
           }),
         ),
@@ -3589,7 +4036,7 @@ class TableHeader extends StatelessWidget {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w900,
                                 color: _ink,
-                                fontSize: 12.5))),
+                                fontSize: 13))),
                     if (sortKey == col.key)
                       Icon(
                           sortAscending
@@ -3609,7 +4056,7 @@ class TableHeader extends StatelessWidget {
                     style: TextStyle(
                         fontWeight: FontWeight.w900,
                         color: _ink,
-                        fontSize: 12.5))),
+                        fontSize: 13))),
         ]),
       );
 }
@@ -3639,9 +4086,9 @@ class TableRowItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: index.isEven ? Colors.white : const Color(0xFFFBFDFF),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-        constraints: const BoxConstraints(minHeight: 42),
+        color: index.isEven ? _surface : _surfaceSoft,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+        constraints: const BoxConstraints(minHeight: 54),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           for (final col in columns)
             Expanded(
@@ -3657,26 +4104,26 @@ class TableRowItem extends StatelessWidget {
                     tooltip: 'View',
                     onPressed: onView,
                     icon: const Icon(Icons.visibility_rounded,
-                        color: Color(0xFF0E7490), size: 20)),
+                        color: Color(0xFF0E7490), size: 19)),
               if (onEdit != null)
                 IconButton(
                     tooltip: 'Edit',
                     onPressed: onEdit,
                     icon: const Icon(Icons.edit_rounded,
-                        color: _primary, size: 20)),
+                        color: _primary, size: 19)),
               if (onApprove != null)
                 IconButton(
                     tooltip: 'Approve Applied Rank',
                     onPressed: onApprove,
                     icon: const Icon(Icons.check_circle_rounded,
-                        color: Color(0xFF16A34A), size: 20)),
+                        color: Color(0xFF16A34A), size: 19)),
               if (extraAction != null) extraAction!,
               if (onDelete != null)
                 IconButton(
                     tooltip: 'Delete',
                     onPressed: onDelete,
                     icon: const Icon(Icons.delete_outline_rounded,
-                        color: _danger, size: 20)),
+                        color: _danger, size: 19)),
             ]),
           ),
         ]),
@@ -3727,7 +4174,7 @@ class PaginationFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(children: [
             Expanded(
                 child: Text(
@@ -3848,7 +4295,7 @@ class ReadOnlyEmployeeBox extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: _line)),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -3952,7 +4399,7 @@ Widget addEmployeeSelectedLicenseCard(BuildContext context,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: _line),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -4056,7 +4503,7 @@ Widget addEmployeeSelectedCertificateCard(BuildContext context,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: _line),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -4161,7 +4608,7 @@ class DialogSectionTitle extends StatelessWidget {
         width: 728,
         child: Container(
           margin: const EdgeInsets.only(top: 14, bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xFFEFF6FF),
             borderRadius: BorderRadius.circular(14),
@@ -4218,7 +4665,7 @@ class EmployeeStatusActionRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: _line)),
           child: Row(children: [
             const Text('Status:',
@@ -5174,7 +5621,7 @@ Widget relatedSection(String title, List<dynamic> records, List<String> keys) =>
             Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(14),
@@ -5468,7 +5915,7 @@ Widget? employeeResignRowAction(
   return IconButton(
     tooltip: 'Mark as Resigned',
     onPressed: () => markEmployeeAsResigned(context, row, refresh),
-    icon: const Icon(Icons.person_off_rounded, color: _danger, size: 20),
+    icon: const Icon(Icons.person_off_rounded, color: _danger, size: 19),
   );
 }
 
@@ -5712,7 +6159,7 @@ Widget contractReadOnlyBox(String label, TextEditingController controller,
         style: const TextStyle(color: _muted, fontWeight: FontWeight.w800),
         decoration: InputDecoration(
             labelText: label,
-            fillColor: const Color(0xFFF8FAFC),
+            fillColor: _surfaceSoft,
             suffixIcon: icon == null ? null : Icon(icon)),
       ),
     );
@@ -5886,7 +6333,7 @@ Future<Map<String, dynamic>?> showContractDialog(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(color: _line)),
                     child: Row(children: [
                       const Icon(Icons.picture_as_pdf_rounded, color: _danger),
@@ -6205,7 +6652,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                         width: double.infinity,
                         decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: _line)),
                         child: Column(children: [
                           Container(
@@ -6994,7 +7441,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                         width: double.infinity,
                         decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: _line)),
                         child: Column(children: [
                           Container(
