@@ -1726,22 +1726,6 @@ Map<String, dynamic> recomputeEvaluationTotals(Map<String, dynamic> row) {
   return data;
 }
 
-Widget evaluationFormulaNote() => SizedBox(
-      width: 728,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFBFDBFE))),
-        child: const Text(
-          'Total Rating = average of all converted category percentages. Superior and Peer are already out of 100. Self and Student are converted to percent by multiplying by 20. Overall Description is based on the 100-point total.',
-          style:
-              TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-
 Widget evaluationRatingBox(
   EvaluationKind kind,
   TextEditingController rating,
@@ -1898,8 +1882,6 @@ Future<Map<String, dynamic>?> showFullEvaluationDialog(BuildContext context,
                         ),
                       ),
                     ]),
-                    const SizedBox(height: 16),
-                    evaluationFormulaNote(),
                   ]),
             ),
           ),
@@ -2093,8 +2075,6 @@ Future<void> viewEvaluation(
               DetailTile('Overall Description',
                   formatValue(computed['total_description'])),
             ]),
-            const SizedBox(height: 14),
-            evaluationFormulaNote(),
           ]),
         ),
       ),
