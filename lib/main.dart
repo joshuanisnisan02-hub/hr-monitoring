@@ -31,6 +31,9 @@ void safeRefresh(VoidCallback refresh) {
   WidgetsBinding.instance.addPostFrameCallback((_) => refresh());
 }
 
+final Map<String, List<dynamic>> _crudTableDataCache =
+    <String, List<dynamic>>{};
+
 Future<void> showActionAlert(BuildContext context, String title, String message,
     {IconData icon = Icons.check_circle_rounded,
     Color iconColor = const Color(0xFF16A34A)}) async {
@@ -313,11 +316,19 @@ class ShellPage extends StatefulWidget {
 
 class _ShellPageState extends State<ShellPage> {
   int index = 0;
+  final Set<int> visitedPages = {0};
+
+  void selectPage(int nextIndex) {
+    setState(() {
+      index = nextIndex;
+      visitedPages.add(nextIndex);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final pages = [
-      DashboardPage(onNavigate: (i) => setState(() => index = i)),
+      DashboardPage(onNavigate: selectPage),
       const EmployeesPage(),
       const ContractsPage(),
       const CredentialsPage(),
@@ -328,12 +339,20 @@ class _ShellPageState extends State<ShellPage> {
       const ResignedEmployeesPage(),
     ];
     final safeIndex = index.clamp(0, pages.length - 1).toInt();
+    visitedPages.add(safeIndex);
     return Scaffold(
       body: Row(children: [
-        AppSidebar(
-            selectedIndex: index, onChanged: (i) => setState(() => index = i)),
+        AppSidebar(selectedIndex: safeIndex, onChanged: selectPage),
         const VerticalDivider(width: 1, color: _line),
-        Expanded(child: pages[safeIndex]),
+        Expanded(
+          child: IndexedStack(
+            index: safeIndex,
+            children: [
+              for (var i = 0; i < pages.length; i++)
+                visitedPages.contains(i) ? pages[i] : const SizedBox.shrink(),
+            ],
+          ),
+        ),
       ]),
     );
   }
@@ -3144,6 +3163,15 @@ class _CrudTableState extends State<CrudTable> {
   String? sortKey;
   bool sortAscending = true;
 
+  String get cacheKey =>
+      widget.key?.toString() ?? widget.reportTitle ?? widget.addLabel;
+
+  Future<List<dynamic>> loadAndCache() async {
+    final rows = await widget.load();
+    _crudTableDataCache[cacheKey] = rows;
+    return rows;
+  }
+
   @override
   void dispose() {
     tableScrollController.dispose();
@@ -3160,12 +3188,12 @@ class _CrudTableState extends State<CrudTable> {
     pageSize = options.contains(widget.initialPageSize)
         ? widget.initialPageSize
         : options.first;
-    future = widget.load();
+    future = loadAndCache();
     sortKey = widget.columns.first.key;
   }
 
   void refresh() => setState(() {
-        future = widget.load();
+        future = loadAndCache();
       });
 
   void scrollBothToTop() {
@@ -3216,10 +3244,13 @@ class _CrudTableState extends State<CrudTable> {
   @override
   Widget build(BuildContext context) => FutureBuilder<List<dynamic>>(
         future: future,
+        initialData: _crudTableDataCache[cacheKey],
         builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done)
+          final hasUsableData = snap.data != null;
+          if (snap.connectionState != ConnectionState.done && !hasUsableData) {
             return const Center(child: CircularProgressIndicator());
-          if (snap.hasError) return ErrorBox('${snap.error}');
+          }
+          if (snap.hasError && !hasUsableData) return ErrorBox('${snap.error}');
           final rows = (snap.data ?? [])
               .map((item) =>
                   normalizeRow(Map<String, dynamic>.from(item as Map)))
