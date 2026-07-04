@@ -3746,32 +3746,76 @@ class _CrudTableState extends State<CrudTable> {
               }),
             ),
             if (widget.pageSizeOptions.length > 1) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Align(
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
-                  width: 220,
-                  height: 44,
-                  child: DropdownButtonFormField<int>(
-                    value: pageSize,
-                    isExpanded: true,
-                    decoration:
-                        const InputDecoration(labelText: 'Display Names'),
-                    items: widget.pageSizeOptions
-                        .map((value) => DropdownMenuItem<int>(
-                            value: value, child: Text('$value per page')))
-                        .toList(),
-                    onChanged: (value) => setState(() {
-                      pageSize = value ?? pageSize;
-                      page = 0;
-                      WidgetsBinding.instance
-                          .addPostFrameCallback((_) => scrollBothToTop());
-                    }),
+                  width: 198,
+                  height: 42,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(14, 7, 8, 4),
+                          decoration: BoxDecoration(
+                            color: _surface,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: _primary, width: 1.4),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: pageSize,
+                              isExpanded: true,
+                              isDense: true,
+                              borderRadius: BorderRadius.circular(16),
+                              icon: const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 20),
+                              style: const TextStyle(
+                                color: _ink,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              items: widget.pageSizeOptions
+                                  .map((value) => DropdownMenuItem<int>(
+                                        value: value,
+                                        child: Text('$value per page'),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) => setState(() {
+                                pageSize = value ?? pageSize;
+                                page = 0;
+                                WidgetsBinding.instance.addPostFrameCallback(
+                                    (_) => scrollBothToTop());
+                              }),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 13,
+                        top: -8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          color: _bg,
+                          child: const Text(
+                            'Display Names',
+                            style: TextStyle(
+                              color: _primary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Expanded(
                 child: sorted.isEmpty
                     ? const EmptyBox()
