@@ -3109,6 +3109,7 @@ class CrudTable extends StatefulWidget {
   final int initialPageSize;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
+  final bool showActions;
   const CrudTable(
       {super.key,
       required this.load,
@@ -3123,6 +3124,7 @@ class CrudTable extends StatefulWidget {
       this.onApprove,
       this.extraAction,
       this.showDelete = true,
+      this.showActions = true,
       this.reportTitle,
       this.pageSizeOptions = const [10],
       this.initialPageSize = 10,
@@ -3182,6 +3184,7 @@ class _CrudTableState extends State<CrudTable> {
   }
 
   double get actionWidth {
+    if (!widget.showActions) return 0;
     var count = widget.onEdit == null ? 0 : 1; // Edit button
     if (widget.onView != null) count++;
     if (widget.onApprove != null) count++;
@@ -3321,7 +3324,7 @@ class _CrudTableState extends State<CrudTable> {
                 columns: widget.columns,
                 sortKey: activeSortKey,
                 sortAscending: sortAscending,
-                showActions: true,
+                showActions: widget.showActions,
                 actionWidth: actionWidth,
                 onSort: (key) {
                   setState(() {
@@ -3346,10 +3349,10 @@ class _CrudTableState extends State<CrudTable> {
                   columns: widget.columns,
                   index: i,
                   actionWidth: actionWidth,
-                  onView: widget.onView == null
+                  onView: !widget.showActions || widget.onView == null
                       ? null
                       : () => widget.onView!(context, rows[i]),
-                  onEdit: widget.onEdit == null
+                  onEdit: !widget.showActions || widget.onEdit == null
                       ? null
                       : () => widget.onEdit!(context, rows[i], refresh),
                   onApprove: widget.onApprove == null
@@ -3358,7 +3361,7 @@ class _CrudTableState extends State<CrudTable> {
                   extraAction: widget.extraAction == null
                       ? null
                       : widget.extraAction!(context, rows[i], refresh),
-                  onDelete: widget.showDelete
+                  onDelete: widget.showActions && widget.showDelete
                       ? () => confirmDelete(context, rows[i])
                       : null,
                 ),
@@ -7814,6 +7817,7 @@ class ResignedEmployeesPage extends StatelessWidget {
           addLabel: 'Add Employee',
           allowAdd: false,
           reportTitle: 'Resigned Employees Report',
+          showActions: false,
           columns: const [
             GridCol('full_name', 'Employee Name', flex: 3, primary: true),
             GridCol('bio_number', 'Bio Number'),
