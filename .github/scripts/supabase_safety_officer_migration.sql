@@ -3,7 +3,7 @@
 
 create table if not exists public.employee_safety_officers (
   id bigserial primary key,
-  employee_id bigint references public.employees(id) on delete cascade,
+  employee_id uuid references public.employees(id) on delete cascade,
   safety_officer_name text not null,
   certificate_number text,
   issued_date date,
