@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -33,6 +34,25 @@ SupabaseClient get db => Supabase.instance.client;
 
 void safeRefresh(VoidCallback refresh) {
   WidgetsBinding.instance.addPostFrameCallback((_) => refresh());
+}
+
+class DateSlashInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length > 8) digits = digits.substring(0, 8);
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i == 2 || i == 4) buffer.write('/');
+      buffer.write(digits[i]);
+    }
+    final out = buffer.toString();
+    return TextEditingValue(
+      text: out,
+      selection: TextSelection.collapsed(offset: out.length),
+    );
+  }
 }
 
 final Map<String, List<dynamic>> _crudTableDataCache =
@@ -322,6 +342,240 @@ bool isOfficialActiveEmployeeRow(Map<String, dynamic> row) {
 }
 // OFFICIAL_ACTIVE_EMPLOYEE_LIST_END
 
+String archiveModuleFromTitle(String? title, String fallback) {
+  final raw = (title == null || title.trim().isEmpty) ? fallback : title;
+  return raw.replaceAll(' Report', '').trim();
+}
+
+String archiveEmployeeNameFromRow(Map<String, dynamic> row) {
+  if (row['employee_name'] != null) return formatValue(row['employee_name']);
+  if (row['full_name'] != null) return formatValue(row['full_name']);
+  if (row['employees'] is Map)
+    return formatValue((row['employees'] as Map)['full_name']);
+  return '-';
+}
+
+Object? archiveEmployeeIdFromRow(Map<String, dynamic> row) =>
+    row['employee_id'] ?? row['id'];
+
+Future<void> archiveRecordSnapshot({
+  required String tableName,
+  required String moduleName,
+  required String archiveType,
+  required Map<String, dynamic> row,
+}) async {
+  final normalized = normalizeRow(Map<String, dynamic>.from(row));
+  await db.from('archived_records').insert({
+    'module_name': moduleName,
+    'table_name': tableName,
+    'original_id': '${normalized['id'] ?? ''}',
+    'employee_id': archiveEmployeeIdFromRow(normalized)?.toString(),
+    'employee_name': archiveEmployeeNameFromRow(normalized),
+    'archive_type': archiveType,
+    'record_data': normalized,
+    'archived_at': DateTime.now().toIso8601String(),
+    'is_restored': false,
+  });
+}
+
+Future<void> archiveDeletedRecord({
+  required String? tableName,
+  required String moduleName,
+  required Map<String, dynamic> row,
+}) async {
+  if (tableName == null || tableName.trim().isEmpty) return;
+  await archiveRecordSnapshot(
+    tableName: tableName,
+    moduleName: moduleName,
+    archiveType: 'deleted',
+    row: row,
+  );
+}
+
+Future<void> archiveOldContractBeforeUpdate(String table, Object? id) async {
+  if (table != 'employee_contracts' || id == null) return;
+  try {
+    final rows = await db
+        .from('employee_contracts')
+        .select(
+            'id, employee_id, contract_type, contract_start_date, duration_months, contract_end_date, status, attachment_url, employees(full_name)')
+        .eq('id', id)
+        .limit(1);
+    if (rows is List && rows.isNotEmpty) {
+      await archiveRecordSnapshot(
+        tableName: 'employee_contracts',
+        moduleName: 'Contracts',
+        archiveType: 'old_contract',
+        row: normalizeRow(Map<String, dynamic>.from(rows.first as Map)),
+      );
+    }
+  } catch (_) {}
+}
+
+Future<List<dynamic>> loadArchivedRecords({
+  required bool oldContracts,
+  List<String> moduleFilters = const <String>[],
+}) async {
+  final rows = await db
+      .from('archived_records')
+      .select()
+      .eq('archive_type', oldContracts ? 'old_contract' : 'deleted')
+      .order('archived_at', ascending: false)
+      .limit(5000);
+
+  return rows.map((item) {
+    final row = Map<String, dynamic>.from(item as Map);
+    row['archived_at_display'] = row['archived_at'];
+    row['restore_status'] =
+        row['is_restored'] == true ? 'Restored' : 'Archived';
+    return row;
+  }).where((row) {
+    if (oldContracts || moduleFilters.isEmpty) return true;
+    final moduleName = formatValue(row['module_name']).trim().toLowerCase();
+    return moduleFilters.any((filter) => moduleName == filter.toLowerCase());
+  }).toList();
+}
+
+Map<String, dynamic> archiveRestoreData(Map<String, dynamic> data) {
+  final out = Map<String, dynamic>.from(data);
+  out.remove('id');
+  out.remove('employees');
+  out.remove('ranking_cycles');
+  out.remove('employee_name');
+  out.remove('cycle_name');
+  out.remove('date_hired_display');
+  out.remove('date_resigned_display');
+  out.remove('days_left');
+  out.remove('license_ids');
+  out.remove('license_records');
+  out.remove('certificate_ids');
+  out.remove('certificate_records');
+  out.remove('safety_officer_ids');
+  out.remove('safety_officer_records');
+  out.removeWhere((key, value) => value == null || value.toString() == '-');
+  return out;
+}
+
+Future<void> restoreArchivedRecord(BuildContext context,
+    Map<String, dynamic> row, VoidCallback refresh) async {
+  if (row['is_restored'] == true) {
+    showSnack(context, 'This archive was already restored.');
+    return;
+  }
+  final table = '${row['table_name'] ?? ''}'.trim();
+  final dataRaw = row['record_data'];
+  if (table.isEmpty || dataRaw is! Map) {
+    showSnack(context, 'Archive data is incomplete.');
+    return;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Restore Archived Record?'),
+      content: Text(
+          'This will restore ${formatValue(row['employee_name'])} back to ${formatValue(row['module_name'])} as a new active record.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel')),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(context, true),
+          icon: const Icon(Icons.restore_rounded),
+          label: const Text('Restore'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    final data = Map<String, dynamic>.from(dataRaw);
+    if (table == 'employee_licenses' && data['license_records'] is List) {
+      final records = (data['license_records'] as List)
+          .whereType<Map>()
+          .map((r) => archiveRestoreData(Map<String, dynamic>.from(r)))
+          .toList();
+      if (records.isNotEmpty) await db.from(table).insert(records);
+    } else if (table == 'employee_certificates' &&
+        data['certificate_records'] is List) {
+      final records = (data['certificate_records'] as List)
+          .whereType<Map>()
+          .map((r) => archiveRestoreData(Map<String, dynamic>.from(r)))
+          .toList();
+      if (records.isNotEmpty) await db.from(table).insert(records);
+    } else {
+      await db.from(table).insert(archiveRestoreData(data));
+    }
+    await db.from('archived_records').update({
+      'is_restored': true,
+      'restored_at': DateTime.now().toIso8601String(),
+    }).eq('id', row['id']);
+    refresh();
+    if (context.mounted) showSnack(context, 'Archived record restored.');
+  } catch (e) {
+    if (context.mounted) showSnack(context, 'Restore failed: $e');
+  }
+}
+
+Widget? restoreArchivedRecordAction(
+    BuildContext context, Map<String, dynamic> row, VoidCallback refresh) {
+  if (row['is_restored'] == true) return null;
+  return IconButton(
+    tooltip: 'Restore',
+    onPressed: () => restoreArchivedRecord(context, row, refresh),
+    icon: const Icon(Icons.restore_rounded, color: Color(0xFF16A34A), size: 19),
+  );
+}
+
+Future<void> viewArchivedRecord(
+    BuildContext context, Map<String, dynamic> row) async {
+  final data = row['record_data'] is Map
+      ? Map<String, dynamic>.from(row['record_data'] as Map)
+      : <String, dynamic>{};
+  final cleanEntries = data.entries
+      .where((entry) =>
+          entry.value != null &&
+          entry.value.toString().trim().isNotEmpty &&
+          entry.key != 'employees' &&
+          entry.key != 'ranking_cycles')
+      .toList();
+  await showDialog<void>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text(
+          '${formatValue(row['module_name'])} - ${formatValue(row['employee_name'])}'),
+      content: SizedBox(
+        width: 850,
+        child: SingleChildScrollView(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            detailSection('Archive Information', row, const {
+              'Module': 'module_name',
+              'Table': 'table_name',
+              'Type': 'archive_type',
+              'Archived At': 'archived_at_display',
+              'Status': 'restore_status',
+            }),
+            const SizedBox(height: 8),
+            const Text('Stored Record Data',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w900, color: _ink)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 10, runSpacing: 10, children: [
+              for (final entry in cleanEntries)
+                DetailTile(titleCase(entry.key),
+                    formatDetailValue(entry.value, entry.key)),
+            ]),
+          ]),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: const Text('Close'))
+      ],
+    ),
+  );
+}
+
 Future<void> showActionAlert(BuildContext context, String title, String message,
     {IconData icon = Icons.check_circle_rounded,
     Color iconColor = const Color(0xFF16A34A)}) async {
@@ -502,7 +756,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) => Scaffold(
         body: Center(
           child: SizedBox(
-            width: 430,
+            width: 680,
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -636,6 +890,7 @@ class _ShellPageState extends State<ShellPage> {
       const RankingPage(),
       const ReportsPage(),
       const ResignedEmployeesPage(),
+      const ArchivedPage(),
     ];
     final safeIndex = index.clamp(0, pages.length - 1).toInt();
     visitedPages.add(safeIndex);
@@ -716,6 +971,7 @@ class AppSidebar extends StatelessWidget {
       NavItem('Ranking', Icons.leaderboard_rounded),
       NavItem('Reports', Icons.summarize_rounded),
       NavItem('Resigned Employees', Icons.person_off_rounded),
+      NavItem('Archived', Icons.archive_rounded),
     ];
 
     return Container(
@@ -865,7 +1121,7 @@ class PageFrame extends StatelessWidget {
 Future<List<dynamic>> loadEmployees({int limit = 1500}) => db
     .from('employees')
     .select(
-        'id, name_key, employee_code, full_name, bio_number, gender, education_level, date_hired, starting_date, employment_status, designation, employee_type, civil_status, teaching_status, current_salary, license_summary, birth_date, address, contact_number, email, guardian_name, guardian_relationship, guardian_contact, guardian_address, school_graduated, degree_course, notes')
+        'id, name_key, employee_code, full_name, bio_number, gender, education_level, date_hired, starting_date, date_resigned, employment_status, designation, employee_type, civil_status, teaching_status, current_salary, license_summary, birth_date, address, contact_number, email, guardian_name, guardian_relationship, guardian_contact, guardian_address, school_graduated, degree_course, notes')
     .order('full_name')
     .limit(limit);
 Future<List<dynamic>> loadContracts({int limit = 1500}) => db
@@ -978,6 +1234,44 @@ Future<List<dynamic>> loadCertificatesGrouped({int limit = 5000}) async {
       'certificate_records': list,
       'certificate_name': bullets('certificate_name'),
       'certificate_type': bullets('certificate_type'),
+      'certificate_number': bullets('certificate_number'),
+      'expiry_date': bullets('expiry_date'),
+      'status': bullets('status'),
+    });
+  }
+  out.sort((a, b) => formatValue(a['employee_name'])
+      .compareTo(formatValue(b['employee_name'])));
+  return out;
+}
+
+Future<List<dynamic>> loadSafetyOfficers({int limit = 1500}) => db
+    .from('employee_safety_officers')
+    .select(
+        'id, employee_id, safety_officer_name, certificate_number, issued_date, expiry_date, status, attachment_url, employees(full_name)')
+    .order('expiry_date')
+    .limit(limit);
+
+Future<List<dynamic>> loadSafetyOfficersGrouped({int limit = 5000}) async {
+  final rows = await loadSafetyOfficers(limit: limit);
+  final groups = <String, List<Map<String, dynamic>>>{};
+  for (final item in rows) {
+    final row = normalizeRow(Map<String, dynamic>.from(item as Map));
+    final key = '${row['employee_id'] ?? row['employee_name'] ?? ''}';
+    groups.putIfAbsent(key, () => <Map<String, dynamic>>[]).add(row);
+  }
+  final out = <Map<String, dynamic>>[];
+  for (final entry in groups.entries) {
+    final list = entry.value;
+    if (list.isEmpty) continue;
+    final first = list.first;
+    String bullets(String key) => credentialBulletList(list, key);
+    out.add({
+      'id': first['id'],
+      'employee_id': first['employee_id'],
+      'employee_name': first['employee_name'],
+      'safety_officer_ids': list.map((r) => r['id']).toList(),
+      'safety_officer_records': list,
+      'safety_officer_name': bullets('safety_officer_name'),
       'certificate_number': bullets('certificate_number'),
       'expiry_date': bullets('expiry_date'),
       'status': bullets('status'),
@@ -1604,6 +1898,8 @@ class _EmployeesPageState extends State<EmployeesPage> {
                   'Search employee, bio number, gender, education, status, or date hired',
               addLabel: 'Add Employee',
               reportTitle: _employeeReportTitle(),
+              archiveTableName: 'employees',
+              archiveModuleName: 'Employees',
               columns: const [
                 GridCol('full_name', 'Employee Name', flex: 3, primary: true),
                 GridCol('bio_number', 'Bio Number'),
@@ -1783,6 +2079,8 @@ class _ContractsPageState extends State<ContractsPage> {
               searchHint: 'Search employee, contract type, date, or status',
               addLabel: 'Add Contract',
               reportTitle: _reportTitle(),
+              archiveTableName: 'employee_contracts',
+              archiveModuleName: 'Contracts',
               columns: const [
                 GridCol('employee_name', 'Employee Name',
                     flex: 3, primary: true),
@@ -1811,9 +2109,9 @@ class CredentialsPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Credentials',
         subtitle:
-            'Manage licenses and national certificates linked to employees.',
+            'Manage licenses, national certificates, and safety officer credentials linked to employees.',
         child: const DefaultTabController(
-          length: 2,
+          length: 3,
           child: Column(children: [
             Align(
                 alignment: Alignment.centerLeft,
@@ -1821,12 +2119,16 @@ class CredentialsPage extends StatelessWidget {
                     width: 430,
                     child: TabBar(tabs: [
                       Tab(text: 'Licenses'),
-                      Tab(text: 'National Certificates')
+                      Tab(text: 'National Certificates'),
+                      Tab(text: 'Safety Officer')
                     ]))),
             SizedBox(height: 16),
             Expanded(
-                child:
-                    TabBarView(children: [LicensesTab(), CertificatesTab()])),
+                child: TabBarView(children: [
+              LicensesTab(),
+              CertificatesTab(),
+              SafetyOfficersTab()
+            ])),
           ]),
         ),
       );
@@ -1840,6 +2142,8 @@ class LicensesTab extends StatelessWidget {
         load: () => activeOnlyRows(loadLicensesGrouped()),
         searchHint: 'Search employee, license name, number, or status',
         addLabel: 'Add License',
+        archiveTableName: 'employee_licenses',
+        archiveModuleName: 'Credentials - Licenses',
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('license_name', 'License', flex: 2),
@@ -1871,6 +2175,8 @@ class CertificatesTab extends StatelessWidget {
         load: () => activeOnlyRows(loadCertificatesGrouped()),
         searchHint: 'Search employee, certificate, number, or status',
         addLabel: 'Add Certificate',
+        archiveTableName: 'employee_certificates',
+        archiveModuleName: 'Credentials - Certificates',
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('certificate_name', 'Certificate', flex: 3),
@@ -1890,6 +2196,43 @@ class CertificatesTab extends StatelessWidget {
             }
           } else {
             await db.from('employee_certificates').delete().eq('id', row['id']);
+          }
+        },
+      );
+}
+
+class SafetyOfficersTab extends StatelessWidget {
+  const SafetyOfficersTab({super.key});
+
+  @override
+  Widget build(BuildContext context) => CrudTable(
+        load: () => activeOnlyRows(loadSafetyOfficersGrouped()),
+        searchHint:
+            'Search employee, safety officer, certificate number, or status',
+        addLabel: 'Add Safety Officer',
+        archiveTableName: 'employee_safety_officers',
+        archiveModuleName: 'Credentials - Safety Officer',
+        columns: const [
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('safety_officer_name', 'Safety Officer', flex: 3),
+          GridCol('certificate_number', 'Certificate No.', flex: 2),
+          GridCol('expiry_date', 'Expiry'),
+          GridCol('status', 'Status', isStatus: true),
+        ],
+        onAdd: (ctx, refresh) => editSafetyOfficer(ctx, null, refresh),
+        onView: viewSafetyOfficerGroup,
+        onEdit: editSafetyOfficer,
+        onDelete: (row) async {
+          final ids = row['safety_officer_ids'];
+          if (ids is List && ids.isNotEmpty) {
+            for (final id in ids) {
+              await db.from('employee_safety_officers').delete().eq('id', id);
+            }
+          } else {
+            await db
+                .from('employee_safety_officers')
+                .delete()
+                .eq('id', row['id']);
           }
         },
       );
@@ -2039,6 +2382,8 @@ class EvaluationTab extends StatelessWidget {
         addLabel: 'Add Evaluation',
         allowAdd: false,
         reportTitle: '$title Report',
+        archiveTableName: 'evaluation_records',
+        archiveModuleName: 'Evaluations',
         columns: const [
           GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
           GridCol('evaluation_rating', 'Rating', isNumber: true),
@@ -2193,12 +2538,12 @@ Map<String, dynamic> recomputeEvaluationTotals(Map<String, dynamic> row) {
 }
 
 Widget evaluationRatingBox(
-  EvaluationKind kind,
-  TextEditingController rating,
-  TextEditingController description,
-  VoidCallback recompute,
-  StateSetter setDialogState,
-) {
+    EvaluationKind kind,
+    TextEditingController rating,
+    TextEditingController description,
+    VoidCallback recompute,
+    StateSetter setDialogState,
+    {VoidCallback? onDateSubmit}) {
   final maxScore = evaluationMaxScore(kind);
   return Wrap(spacing: 14, runSpacing: 14, children: [
     SizedBox(
@@ -2611,6 +2956,98 @@ Future<void> editFullEvaluation(BuildContext context, Map<String, dynamic>? row,
   }
 }
 
+Future<void> viewSafetyOfficerGroup(
+    BuildContext context, Map<String, dynamic> row) async {
+  final normalized = normalizeRow(row);
+  final records = normalized['safety_officer_records'] is List
+      ? normalized['safety_officer_records'] as List<dynamic>
+      : <dynamic>[normalized];
+  await showDialog<void>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title:
+          Text('Safety Officer - ${formatValue(normalized['employee_name'])}'),
+      content: SizedBox(
+        width: 820,
+        child: SingleChildScrollView(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            relatedSection('Safety Officer Records', records, const [
+              'safety_officer_name',
+              'certificate_number',
+              'issued_date',
+              'expiry_date',
+              'status',
+              'attachment_url'
+            ]),
+          ]),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context), child: const Text('Close'))
+      ],
+    ),
+  );
+}
+
+Map<String, dynamic> firstSafetyOfficerRecord(Map<String, dynamic>? row) {
+  final normalized = normalizeRow(row ?? {});
+  final records = normalized['safety_officer_records'];
+  if (records is List && records.isNotEmpty && records.first is Map) {
+    return normalizeRow(Map<String, dynamic>.from(records.first as Map));
+  }
+  return normalized;
+}
+
+Future<void> editSafetyOfficer(BuildContext context, Map<String, dynamic>? row,
+    VoidCallback refresh) async {
+  final isAdd = row == null;
+  final source = firstSafetyOfficerRecord(row);
+  final fields = <EditField>[
+    if (isAdd)
+      EditField('employee_id', 'Employee Name',
+          kind: FieldKind.dropdown,
+          required: true,
+          options: await employeeOptions()),
+    const EditField('safety_officer_name', 'Safety Officer',
+        kind: FieldKind.dropdown,
+        required: true,
+        options: [
+          EditOption('Safety Officer 1', 'Safety Officer 1'),
+          EditOption('Safety Officer 2', 'Safety Officer 2'),
+          EditOption('Safety Officer 3', 'Safety Officer 3'),
+          EditOption('Safety Officer 4', 'Safety Officer 4'),
+        ]),
+    const EditField('certificate_number', 'Certificate Number', required: true),
+    const EditField('issued_date', 'Issued Date', kind: FieldKind.date),
+    const EditField('expiry_date', 'Expiry Date',
+        kind: FieldKind.date, required: true),
+    const EditField('attachment_url', 'Attachment URL'),
+    const EditField('status', 'Status', kind: FieldKind.dropdown, options: [
+      EditOption('Active', 'Active'),
+      EditOption('For Renewal', 'For Renewal'),
+      EditOption('Expired', 'Expired'),
+    ]),
+  ];
+
+  final data = await showRecordDialog(
+    context,
+    isAdd ? 'Add Safety Officer' : 'Edit Safety Officer',
+    fields,
+    source,
+    readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(source),
+  );
+  if (data == null) return;
+  final computedStatus = certificateStatusFromExpiry(data['expiry_date'] ?? '');
+  if ((data['status'] == null || '${data['status']}'.trim().isEmpty) &&
+      computedStatus.isNotEmpty) {
+    data['status'] = computedStatus;
+  }
+  await saveRow(context, 'employee_safety_officers',
+      isAdd ? null : source['id'], data, refresh);
+}
+
 class AppointmentPage extends StatelessWidget {
   const AppointmentPage({super.key});
 
@@ -2624,6 +3061,8 @@ class AppointmentPage extends StatelessWidget {
           searchHint: 'Search employee, type, or appointment',
           addLabel: 'Add Appointment',
           reportTitle: 'Appointment Reference Report',
+          archiveTableName: 'employee_appointments',
+          archiveModuleName: 'Appointment',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
             GridCol('category', 'Type', flex: 2),
@@ -2829,6 +3268,8 @@ class _RankingPageState extends State<RankingPage> {
                   'Search employee, rank, salary, points, or appointment',
               addLabel: 'Add Ranking',
               reportTitle: _rankingReportTitle(),
+              archiveTableName: 'ranking_applications',
+              archiveModuleName: 'Ranking',
               columns: const [
                 GridCol('employee_name', 'Employee Name',
                     flex: 3, primary: true),
@@ -3571,6 +4012,8 @@ class CrudTable extends StatefulWidget {
   final ExtraRowActionBuilder? extraAction;
   final bool showDelete;
   final String? reportTitle;
+  final String? archiveTableName;
+  final String? archiveModuleName;
   final List<int> pageSizeOptions;
   final int initialPageSize;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
@@ -3592,7 +4035,9 @@ class CrudTable extends StatefulWidget {
       this.showDelete = true,
       this.showActions = true,
       this.reportTitle,
-      this.pageSizeOptions = const [10],
+      this.archiveTableName,
+      this.archiveModuleName,
+      this.pageSizeOptions = const [1, 10, 100],
       this.initialPageSize = 10,
       required this.onDelete});
 
@@ -3630,8 +4075,9 @@ class _CrudTableState extends State<CrudTable> {
   void initState() {
     super.initState();
     query = widget.initialSearch;
-    final options =
-        widget.pageSizeOptions.isEmpty ? const [10] : widget.pageSizeOptions;
+    final options = widget.pageSizeOptions.isEmpty
+        ? const [1, 10, 100]
+        : widget.pageSizeOptions;
     pageSize = options.contains(widget.initialPageSize)
         ? widget.initialPageSize
         : options.first;
@@ -3913,6 +4359,12 @@ class _CrudTableState extends State<CrudTable> {
     );
     if (ok != true) return;
     try {
+      await archiveDeletedRecord(
+        tableName: widget.archiveTableName,
+        moduleName: widget.archiveModuleName ??
+            archiveModuleFromTitle(widget.reportTitle, widget.addLabel),
+        row: row,
+      );
       await widget.onDelete(row);
       refresh();
       if (mounted) showSnack(context, 'Record Deleted.');
@@ -4643,6 +5095,18 @@ Widget addEmployeeSelectedCertificateCard(BuildContext context,
       ),
     );
 
+void openPdfAttachment(BuildContext context, Object? rawUrl) {
+  final url = formatValue(rawUrl).trim();
+  if (url.isEmpty || url == '-' || !url.toLowerCase().startsWith('http')) {
+    showSnack(context, 'No PDF attachment available.');
+    return;
+  }
+  final win = html.window.open(url, '_blank');
+  if (win == null) {
+    showSnack(context, 'Please allow pop-ups to open the PDF.');
+  }
+}
+
 class DialogSectionTitle extends StatelessWidget {
   final String title;
   const DialogSectionTitle(this.title, {super.key});
@@ -4692,7 +5156,7 @@ Future<void> pickDateIntoController(
     lastDate: DateTime(DateTime.now().year + 30),
   );
   if (picked == null) return;
-  controller.text = DateFormat('MMMM dd, yyyy').format(picked);
+  controller.text = DateFormat('MM/dd/yyyy').format(picked);
   afterPick?.call();
 }
 
@@ -4754,6 +5218,7 @@ String dialogSectionForField(String key) {
     'teaching_status': 'Employment Information',
     'employment_status': 'Employment Information',
     'date_hired': 'Employment Information',
+    'date_resigned': 'Employment Information',
     'starting_date': 'Employment Information',
     'current_salary': 'Employment Information',
     'license_summary': 'Employment Information',
@@ -4787,8 +5252,9 @@ List<Widget> buildDialogFieldWidgets(
   List<EditField> fields,
   Map<String, TextEditingController> controllers,
   Map<String, String?> selected,
-  StateSetter setDialogState,
-) {
+  StateSetter setDialogState, {
+  VoidCallback? onDateSubmit,
+}) {
   final widgets = <Widget>[];
   String? currentSection;
 
@@ -4838,17 +5304,18 @@ List<Widget> buildDialogFieldWidgets(
       width: width,
       child: TextFormField(
         controller: controllers[f.key],
-        readOnly: isDate,
-        onTap: isDate
-            ? () => pickDateIntoController(context, controllers[f.key]!)
-            : null,
+        readOnly: false,
         maxLines: f.kind == FieldKind.multiline ? f.lines : 1,
-        keyboardType: f.kind == FieldKind.number || f.kind == FieldKind.integer
-            ? TextInputType.number
-            : TextInputType.text,
+        keyboardType: isDate
+            ? TextInputType.datetime
+            : (f.kind == FieldKind.number || f.kind == FieldKind.integer
+                ? TextInputType.number
+                : TextInputType.text),
+        inputFormatters: isDate ? [DateSlashInputFormatter()] : null,
+        onFieldSubmitted: isDate ? (_) => onDateSubmit?.call() : null,
         decoration: InputDecoration(
           labelText: f.label,
-          hintText: isDate ? 'Select date' : null,
+          hintText: isDate ? 'MM/DD/YYYY' : null,
           suffixIcon: isDate
               ? IconButton(
                   tooltip: 'Pick date',
@@ -4890,6 +5357,17 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context,
           TextEditingController(text: formatEditValue(initial?[f.key]));
     }
   }
+  void submitDialog() {
+    if (!formKey.currentState!.validate()) return;
+    final out = <String, dynamic>{};
+    for (final f in fields) {
+      out[f.key] = f.kind == FieldKind.dropdown
+          ? emptyToNull(selected[f.key])
+          : parseFieldValue(controllers[f.key]!.text, f.kind);
+    }
+    Navigator.pop(context, out);
+  }
+
   final result = await showDialog<Map<String, dynamic>>(
     context: context,
     builder: (_) => StatefulBuilder(
@@ -4905,7 +5383,13 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context,
                   ReadOnlyEmployeeBox(readOnlyEmployeeName),
                 ...prefix,
                 ...buildDialogFieldWidgets(
-                    context, fields, controllers, selected, setDialogState),
+                  context,
+                  fields,
+                  controllers,
+                  selected,
+                  setDialogState,
+                  onDateSubmit: submitDialog,
+                ),
               ]),
             ),
           ),
@@ -4915,16 +5399,7 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context,
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),
           FilledButton(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              final out = <String, dynamic>{};
-              for (final f in fields) {
-                out[f.key] = f.kind == FieldKind.dropdown
-                    ? emptyToNull(selected[f.key])
-                    : parseFieldValue(controllers[f.key]!.text, f.kind);
-              }
-              Navigator.pop(context, out);
-            },
+            onPressed: submitDialog,
             child: const Text('Save'),
           ),
         ],
@@ -4985,6 +5460,7 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
   String contractAttachmentUrl = '';
   String contractAttachmentFileName = '';
   bool uploadingContract = false;
+  bool isPartTimeEmployee() => employeeType == 'part_time';
   final selectedLicenses = <String, SelectedLicenseInput>{};
   final selectedCertificates = <String, SelectedCertificateInput>{};
 
@@ -4993,7 +5469,7 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
     final months = int.tryParse(durationMonths.text.trim());
     if (start == null || months == null || months <= 0) return;
     final end = addContractMonths(start, months);
-    contractEnd.text = DateFormat('MMMM dd, yyyy').format(end);
+    contractEnd.text = DateFormat('MM/dd/yyyy').format(end);
     contractStatus.text = contractStatusFromEndDate(end);
   }
 
@@ -5006,6 +5482,79 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
         : null;
   }
 
+  void submitAddEmployeeDialog() {
+    recomputeContract();
+    if (!formKey.currentState!.validate()) return;
+    final employee = <String, dynamic>{
+      'full_name': fullName.text.trim(),
+      'bio_number': bioNumber.text.trim(),
+      'gender': gender,
+      'civil_status': civilStatus,
+      'birth_date': toIsoDateInput(birthDate.text),
+      'address': address.text.trim(),
+      'contact_number': contactNumber.text.trim(),
+      'email': emptyToNull(email.text.trim()),
+      'education_level': educationLevel.text.trim(),
+      'school_graduated': schoolGraduated.text.trim(),
+      'degree_course': degreeCourse.text.trim(),
+      'guardian_name': guardianName.text.trim(),
+      'guardian_relationship': guardianRelationship.text.trim(),
+      'guardian_contact': guardianContact.text.trim(),
+      'guardian_address': guardianAddress.text.trim(),
+      'designation': designation.text.trim(),
+      'employee_type': employeeType,
+      'teaching_status': teachingStatus,
+      'employment_status': employmentStatus,
+      'date_hired': toIsoDateInput(dateHired.text),
+      'starting_date': toIsoDateInput(dateHired.text),
+    }..removeWhere(
+        (_, value) => value == null || value.toString().trim().isEmpty);
+    employee['name_key'] =
+        normalizeName(employee['full_name']?.toString() ?? '');
+    final contract = <String, dynamic>{
+      'contract_type': contractType,
+      'contract_start_date': toIsoDateInput(contractStart.text),
+      'duration_months': int.tryParse(durationMonths.text.trim()),
+      'contract_end_date': toIsoDateInput(contractEnd.text),
+      'attachment_url': emptyToNull(contractAttachmentUrl),
+      'status': emptyToNull(contractStatus.text),
+    }..removeWhere(
+        (_, value) => value == null || value.toString().trim().isEmpty);
+    final licenses = selectedLicenses.values
+        .map((entry) => <String, dynamic>{
+              'license_name': entry.name,
+              'license_number': entry.number.text.trim(),
+              'expiry_date': toIsoDateInput(entry.expiry.text),
+              'attachment_url': emptyToNull(entry.attachmentUrl),
+              'status': entry.status.isEmpty
+                  ? licenseStatusFromExpiry(entry.expiry.text)
+                  : entry.status,
+            }..removeWhere(
+                (_, value) => value == null || value.toString().trim().isEmpty))
+        .toList();
+    final certificates = selectedCertificates.values
+        .map((entry) => <String, dynamic>{
+              'certificate_type': 'National Certificate',
+              'certificate_name': entry.name,
+              'certificate_number': entry.number.text.trim(),
+              'expiry_date': toIsoDateInput(entry.expiry.text),
+              'attachment_url': emptyToNull(entry.attachmentUrl),
+              'status': entry.status.isEmpty
+                  ? certificateStatusFromExpiry(entry.expiry.text)
+                  : entry.status,
+            }..removeWhere(
+                (_, value) => value == null || value.toString().trim().isEmpty))
+        .toList();
+    Navigator.pop(
+        context,
+        AddEmployeeFullResult(
+          employee: employee,
+          contract: contract,
+          licenses: licenses,
+          certificates: certificates,
+        ));
+  }
+
   Widget textBox(String label, TextEditingController controller,
       {bool required = true,
       int lines = 1,
@@ -5016,12 +5565,13 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
       child: TextFormField(
         controller: controller,
         maxLines: lines,
-        readOnly: date,
-        keyboardType: keyboardType,
-        onTap: date ? () => pickDateIntoController(context, controller) : null,
+        readOnly: false,
+        keyboardType: date ? TextInputType.datetime : keyboardType,
+        inputFormatters: date ? [DateSlashInputFormatter()] : null,
+        onFieldSubmitted: date ? (_) => submitAddEmployeeDialog() : null,
         decoration: InputDecoration(
           labelText: label,
-          hintText: date ? 'Select date' : null,
+          hintText: date ? 'MM/DD/YYYY' : null,
           suffixIcon: date
               ? IconButton(
                   tooltip: 'Pick date',
@@ -5043,7 +5593,8 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
   }
 
   Widget dropdownBox(String label, String? value,
-      List<DropdownMenuItem<String>> items, ValueChanged<String?> onChanged) {
+      List<DropdownMenuItem<String>> items, ValueChanged<String?> onChanged,
+      {bool required = true}) {
     return SizedBox(
       width: 354,
       child: DropdownButtonFormField<String>(
@@ -5051,7 +5602,8 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
         isExpanded: true,
         decoration: InputDecoration(labelText: label),
         items: items,
-        validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+        validator: (v) =>
+            required && (v == null || v.isEmpty) ? 'Required' : null,
         onChanged: onChanged,
       ),
     );
@@ -5072,8 +5624,10 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                   children: [
                     const DialogSectionTitle('Employee Information'),
                     Wrap(spacing: 14, runSpacing: 14, children: [
-                      textBox('Full Name', fullName),
-                      textBox('Bio Number', bioNumber),
+                      textBox('Full Name', fullName,
+                          required: !isPartTimeEmployee()),
+                      textBox('Bio Number', bioNumber,
+                          required: !isPartTimeEmployee()),
                       dropdownBox(
                           'Gender',
                           gender,
@@ -5098,18 +5652,29 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                                 value: 'Separated', child: Text('Separated')),
                           ],
                           (v) => setDialogState(() => civilStatus = v)),
-                      textBox('Birth Date', birthDate, date: true),
-                      textBox('Address', address, lines: 2),
-                      textBox('Contact Number', contactNumber),
+                      textBox('Birth Date', birthDate,
+                          date: true, required: !isPartTimeEmployee()),
+                      textBox('Address', address,
+                          lines: 2, required: !isPartTimeEmployee()),
+                      textBox('Contact Number', contactNumber,
+                          required: !isPartTimeEmployee()),
                       textBox('Email', email, required: false),
-                      textBox('Educational Attainment', educationLevel),
-                      textBox('School Graduated', schoolGraduated),
-                      textBox('Degree / Course', degreeCourse),
-                      textBox('Guardian Name', guardianName),
-                      textBox('Guardian Relationship', guardianRelationship),
-                      textBox('Guardian Contact', guardianContact),
-                      textBox('Guardian Address', guardianAddress, lines: 2),
-                      textBox('Designation', designation),
+                      textBox('Educational Attainment', educationLevel,
+                          required: !isPartTimeEmployee()),
+                      textBox('School Graduated', schoolGraduated,
+                          required: !isPartTimeEmployee()),
+                      textBox('Degree / Course', degreeCourse,
+                          required: !isPartTimeEmployee()),
+                      textBox('Guardian Name', guardianName,
+                          required: !isPartTimeEmployee()),
+                      textBox('Guardian Relationship', guardianRelationship,
+                          required: !isPartTimeEmployee()),
+                      textBox('Guardian Contact', guardianContact,
+                          required: !isPartTimeEmployee()),
+                      textBox('Guardian Address', guardianAddress,
+                          lines: 2, required: !isPartTimeEmployee()),
+                      textBox('Designation', designation,
+                          required: !isPartTimeEmployee()),
                       dropdownBox(
                           'Employee Type',
                           employeeType,
@@ -5153,7 +5718,8 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                                 value: 'resigned', child: Text('Resigned')),
                           ],
                           (v) => setDialogState(() => employmentStatus = v)),
-                      textBox('Date Hired', dateHired, date: true),
+                      textBox('Date Hired', dateHired,
+                          date: true, required: !isPartTimeEmployee()),
                     ]),
                     const SizedBox(height: 16),
                     const DialogSectionTitle('Contract Information'),
@@ -5170,14 +5736,13 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                         width: 354,
                         child: TextFormField(
                           controller: contractStart,
-                          readOnly: true,
-                          onTap: () => pickDateIntoController(
-                              context, contractStart,
-                              afterPick: () =>
-                                  setDialogState(recomputeContract)),
+                          readOnly: false,
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: [DateSlashInputFormatter()],
+                          onFieldSubmitted: (_) => submitAddEmployeeDialog(),
                           decoration: InputDecoration(
                             labelText: 'Contract Start Date',
-                            hintText: 'Select date',
+                            hintText: 'MM/DD/YYYY',
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.calendar_month_rounded),
                               onPressed: () => pickDateIntoController(
@@ -5186,7 +5751,8 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                                       setDialogState(recomputeContract)),
                             ),
                           ),
-                          validator: requiredDate,
+                          validator: (v) =>
+                              isPartTimeEmployee() ? null : requiredDate(v),
                         ),
                       ),
                       SizedBox(
@@ -5197,8 +5763,9 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                           decoration: const InputDecoration(
                               labelText: 'Duration in Months'),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty)
-                              return 'Required';
+                            if (v == null || v.trim().isEmpty) {
+                              return isPartTimeEmployee() ? null : 'Required';
+                            }
                             final months = int.tryParse(v.trim());
                             if (months == null || months <= 0)
                               return 'Enter valid months';
@@ -5208,7 +5775,7 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                         ),
                       ),
                       textBox('Contract End Date', contractEnd,
-                          date: true, required: true),
+                          date: true, required: !isPartTimeEmployee()),
                       SizedBox(
                         width: 354,
                         child: TextFormField(
@@ -5216,7 +5783,8 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                           readOnly: true,
                           decoration: const InputDecoration(
                               labelText: 'Contract Status'),
-                          validator: requiredText,
+                          validator: (v) =>
+                              isPartTimeEmployee() ? null : requiredText(v),
                         ),
                       ),
                       SizedBox(
@@ -5349,78 +5917,7 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cancel')),
           FilledButton(
-            onPressed: () {
-              recomputeContract();
-              if (!formKey.currentState!.validate()) return;
-              final employee = <String, dynamic>{
-                'full_name': fullName.text.trim(),
-                'bio_number': bioNumber.text.trim(),
-                'gender': gender,
-                'civil_status': civilStatus,
-                'birth_date': toIsoDateInput(birthDate.text),
-                'address': address.text.trim(),
-                'contact_number': contactNumber.text.trim(),
-                'email': emptyToNull(email.text.trim()),
-                'education_level': educationLevel.text.trim(),
-                'school_graduated': schoolGraduated.text.trim(),
-                'degree_course': degreeCourse.text.trim(),
-                'guardian_name': guardianName.text.trim(),
-                'guardian_relationship': guardianRelationship.text.trim(),
-                'guardian_contact': guardianContact.text.trim(),
-                'guardian_address': guardianAddress.text.trim(),
-                'designation': designation.text.trim(),
-                'employee_type': employeeType,
-                'teaching_status': teachingStatus,
-                'employment_status': employmentStatus,
-                'date_hired': toIsoDateInput(dateHired.text),
-                'starting_date': toIsoDateInput(dateHired.text),
-              }..removeWhere((_, value) =>
-                  value == null || value.toString().trim().isEmpty);
-              employee['name_key'] =
-                  normalizeName(employee['full_name']?.toString() ?? '');
-              final contract = <String, dynamic>{
-                'contract_type': contractType,
-                'contract_start_date': toIsoDateInput(contractStart.text),
-                'duration_months': int.tryParse(durationMonths.text.trim()),
-                'contract_end_date': toIsoDateInput(contractEnd.text),
-                'attachment_url': emptyToNull(contractAttachmentUrl),
-                'status': emptyToNull(contractStatus.text),
-              }..removeWhere((_, value) =>
-                  value == null || value.toString().trim().isEmpty);
-              final licenses = selectedLicenses.values
-                  .map((entry) => <String, dynamic>{
-                        'license_name': entry.name,
-                        'license_number': entry.number.text.trim(),
-                        'expiry_date': toIsoDateInput(entry.expiry.text),
-                        'attachment_url': emptyToNull(entry.attachmentUrl),
-                        'status': entry.status.isEmpty
-                            ? licenseStatusFromExpiry(entry.expiry.text)
-                            : entry.status,
-                      }..removeWhere((_, value) =>
-                          value == null || value.toString().trim().isEmpty))
-                  .toList();
-              final certificates = selectedCertificates.values
-                  .map((entry) => <String, dynamic>{
-                        'certificate_type': 'National Certificate',
-                        'certificate_name': entry.name,
-                        'certificate_number': entry.number.text.trim(),
-                        'expiry_date': toIsoDateInput(entry.expiry.text),
-                        'attachment_url': emptyToNull(entry.attachmentUrl),
-                        'status': entry.status.isEmpty
-                            ? certificateStatusFromExpiry(entry.expiry.text)
-                            : entry.status,
-                      }..removeWhere((_, value) =>
-                          value == null || value.toString().trim().isEmpty))
-                  .toList();
-              Navigator.pop(
-                  context,
-                  AddEmployeeFullResult(
-                    employee: employee,
-                    contract: contract,
-                    licenses: licenses,
-                    certificates: certificates,
-                  ));
-            },
+            onPressed: submitAddEmployeeDialog,
             child: const Text('Save'),
           ),
         ],
@@ -5557,6 +6054,7 @@ Future<void> viewEmployee(
                 'Employee Type': 'employee_type',
                 'Teaching Status': 'teaching_status',
                 'Date Hired': 'date_hired_display',
+                'Date Resigned': 'date_resigned_display',
                 'Employee Status': 'employment_status',
               }),
               relatedSection('Contracts', contracts, const [
@@ -5686,38 +6184,36 @@ class AttachmentPdfTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final link = formatValue(url).trim();
-    final hasPdf = link.isNotEmpty && link != '-';
+    final value = formatValue(url).trim();
+    final hasPdf = value.isNotEmpty &&
+        value != '-' &&
+        value.toLowerCase().startsWith('http');
     return SizedBox(
-      width: 245,
+      width: 354,
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _line)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11, color: _muted, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          if (!hasPdf)
-            const Text('No PDF attached',
-                style: TextStyle(
-                    fontSize: 13, color: _muted, fontWeight: FontWeight.w700))
-          else ...[
-            Text(link,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 12, color: _ink, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => html.window.open(link, '_blank'),
-              icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-              label: const Text('Open PDF'),
+          color: _surfaceSoft,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _line),
+        ),
+        child: Row(children: [
+          const Icon(Icons.picture_as_pdf_rounded, color: _danger, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              hasPdf ? label : 'No PDF attached',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w800, color: _ink),
             ),
-          ],
+          ),
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: hasPdf ? () => openPdfAttachment(context, value) : null,
+            icon: const Icon(Icons.open_in_new_rounded, size: 17),
+            label: const Text('Open'),
+          ),
         ]),
       ),
     );
@@ -5936,9 +6432,10 @@ Future<void> markEmployeeAsResigned(BuildContext context,
   );
   if (ok != true) return;
   try {
-    await db
-        .from('employees')
-        .update({'employment_status': 'resigned'}).eq('id', id);
+    await db.from('employees').update({
+      'employment_status': 'resigned',
+      'date_resigned': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    }).eq('id', id);
     await db
         .from('employee_contracts')
         .update({'status': 'Resigned'}).eq('employee_id', id);
@@ -6165,10 +6662,12 @@ Widget contractDatePickerBox(
       width: 354,
       child: TextFormField(
         controller: controller,
-        readOnly: true,
+        readOnly: false,
+        keyboardType: TextInputType.datetime,
+        inputFormatters: [DateSlashInputFormatter()],
         decoration: const InputDecoration(
           labelText: 'Start Date',
-          hintText: 'Select start date',
+          hintText: 'MM/DD/YYYY',
           suffixIcon: Icon(Icons.calendar_month_rounded),
         ),
         validator: (value) {
@@ -6176,20 +6675,7 @@ Widget contractDatePickerBox(
           if (parseFlexibleDate(value.trim()) == null) return 'Invalid date';
           return null;
         },
-        onTap: () async {
-          final current = parseFlexibleDate(controller.text) ?? DateTime.now();
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: current,
-            firstDate: DateTime(1950),
-            lastDate: DateTime(2100),
-          );
-          if (picked == null) return;
-          setDialogState(() {
-            controller.text = DateFormat('MMMM dd, yyyy').format(picked);
-            recomputeContract();
-          });
-        },
+        onFieldSubmitted: (_) => setDialogState(recomputeContract),
       ),
     );
 
@@ -6239,7 +6725,7 @@ Future<Map<String, dynamic>?> showContractDialog(
     if (start != null && months != null && months > 0) {
       final computedEnd = addContractMonths(
           DateTime(start.year, start.month, start.day), months);
-      endDate.text = DateFormat('MMMM dd, yyyy').format(computedEnd);
+      endDate.text = DateFormat('MM/dd/yyyy').format(computedEnd);
     }
     status.text = contractStatusFromEndDate(endDate.text);
   }
@@ -8283,6 +8769,7 @@ Future<void> saveRow(BuildContext context, String table, Object? id,
       await db.from(table).insert(data);
       showSnack(context, 'Record Added.');
     } else {
+      await archiveOldContractBeforeUpdate(table, id);
       await db.from(table).update(data).eq('id', id);
       showSnack(context, 'Record Updated.');
     }
@@ -8339,13 +8826,13 @@ class ResignedEmployeesPage extends StatelessWidget {
           addLabel: 'Add Employee',
           allowAdd: false,
           reportTitle: 'Resigned Employees Report',
-          showActions: false,
           columns: const [
             GridCol('full_name', 'Employee Name', flex: 3, primary: true),
             GridCol('bio_number', 'Bio Number'),
             GridCol('gender', 'Gender'),
             GridCol('employee_type', 'Type'),
             GridCol('date_hired_display', 'Date Hired'),
+            GridCol('date_resigned_display', 'Date Resigned'),
             GridCol('employment_status', 'Status', isStatus: true),
           ],
           onView: viewEmployee,
@@ -8353,6 +8840,128 @@ class ResignedEmployeesPage extends StatelessWidget {
           showDelete: false,
           onDelete: (row) async {},
         ),
+      );
+}
+
+class ArchivedPage extends StatelessWidget {
+  const ArchivedPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Archived',
+        subtitle:
+            'Preserved deleted records and old contract snapshots separated by module for easier review and retrieval.',
+        child: const DefaultTabController(
+          length: 8,
+          child: Column(children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 980,
+                child: TabBar(
+                  isScrollable: true,
+                  tabs: [
+                    Tab(text: 'All Deleted'),
+                    Tab(text: 'Employees'),
+                    Tab(text: 'Contracts'),
+                    Tab(text: 'Credentials'),
+                    Tab(text: 'Evaluations'),
+                    Tab(text: 'Appointment'),
+                    Tab(text: 'Ranking'),
+                    Tab(text: 'Old Contracts'),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            Expanded(
+              child: TabBarView(children: [
+                ArchivedRecordsTab(
+                  title: 'All Deleted Rows',
+                  oldContracts: false,
+                ),
+                ArchivedRecordsTab(
+                  title: 'Archived Employees',
+                  oldContracts: false,
+                  moduleFilters: ['Employees'],
+                ),
+                ArchivedRecordsTab(
+                  title: 'Archived Contracts',
+                  oldContracts: false,
+                  moduleFilters: ['Contracts'],
+                ),
+                ArchivedRecordsTab(
+                  title: 'Archived Credentials',
+                  oldContracts: false,
+                  moduleFilters: [
+                    'Credentials - Licenses',
+                    'Credentials - Certificates',
+                    'Credentials - Safety Officer',
+                  ],
+                ),
+                ArchivedRecordsTab(
+                  title: 'Archived Evaluations',
+                  oldContracts: false,
+                  moduleFilters: ['Evaluations'],
+                ),
+                ArchivedRecordsTab(
+                  title: 'Archived Appointments',
+                  oldContracts: false,
+                  moduleFilters: ['Appointment'],
+                ),
+                ArchivedRecordsTab(
+                  title: 'Archived Ranking',
+                  oldContracts: false,
+                  moduleFilters: ['Ranking'],
+                ),
+                ArchivedRecordsTab(
+                  title: 'Old Contracts',
+                  oldContracts: true,
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      );
+}
+
+class ArchivedRecordsTab extends StatelessWidget {
+  final String title;
+  final bool oldContracts;
+  final List<String> moduleFilters;
+
+  const ArchivedRecordsTab({
+    super.key,
+    required this.title,
+    required this.oldContracts,
+    this.moduleFilters = const <String>[],
+  });
+
+  @override
+  Widget build(BuildContext context) => CrudTable(
+        key: ValueKey('archive-$title-${oldContracts ? 'old' : 'deleted'}'),
+        load: () => loadArchivedRecords(
+          oldContracts: oldContracts,
+          moduleFilters: moduleFilters,
+        ),
+        searchHint: oldContracts
+            ? 'Search old contract, employee, type, date, or status'
+            : 'Search $title by employee, module, table, or date',
+        addLabel: oldContracts ? 'Old Contract' : 'Archived Row',
+        allowAdd: false,
+        reportTitle:
+            oldContracts ? 'Archived Old Contracts Report' : '$title Report',
+        columns: const [
+          GridCol('module_name', 'Module', flex: 2),
+          GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
+          GridCol('table_name', 'Table', flex: 2),
+          GridCol('archived_at_display', 'Archived At', flex: 2),
+          GridCol('restore_status', 'Status', isStatus: true),
+        ],
+        onView: viewArchivedRecord,
+        extraAction: oldContracts ? null : restoreArchivedRecordAction,
+        showDelete: false,
+        onDelete: (row) async {},
       );
 }
 
@@ -8761,6 +9370,7 @@ List<EditField> employeeEditFields() => const [
             EditOption('Teaching', 'Teaching'),
             EditOption('Non-Teaching', 'Non-Teaching')
           ]),
+      EditField('date_resigned', 'Date Resigned', kind: FieldKind.date),
       EditField('employment_status', 'Employee Status',
           kind: FieldKind.dropdown,
           required: true,
@@ -8861,6 +9471,7 @@ const employeeKeys = [
   'employment_status',
   'date_hired',
   'starting_date',
+  'date_resigned',
   'current_salary',
   'license_summary',
   'notes'
@@ -8996,6 +9607,7 @@ Map<String, dynamic> normalizeRow(Map<String, dynamic> row) {
   if (out['date_hired'] == null || out['date_hired'].toString().isEmpty)
     out['date_hired'] = out['starting_date'];
   out['date_hired_display'] = out['date_hired'] ?? out['starting_date'];
+  out['date_resigned_display'] = out['date_resigned'];
   if (out.containsKey('contract_end_date'))
     out['days_left'] = daysLeft(out['contract_end_date']);
   return out;
