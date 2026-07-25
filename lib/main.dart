@@ -10667,6 +10667,7 @@ String incidentReportDateEditText(dynamic value) {
 }
 
 Widget incidentReportDateBox({
+  required BuildContext context,
   required String label,
   required TextEditingController controller,
   bool readOnly = false,
@@ -10678,10 +10679,8 @@ Widget incidentReportDateBox({
       width: 354,
       child: TextFormField(
         controller: controller,
-        readOnly: readOnly,
-        keyboardType: readOnly ? null : TextInputType.datetime,
-        inputFormatters:
-            readOnly ? null : <TextInputFormatter>[DateSlashInputFormatter()],
+        readOnly: true,
+        enableInteractiveSelection: false,
         decoration: InputDecoration(
           labelText: label,
           hintText: readOnly ? null : 'MM/DD/YYYY',
@@ -10699,7 +10698,13 @@ Widget incidentReportDateBox({
                 }
                 return null;
               },
-        onChanged: onChanged,
+        onTap: readOnly
+            ? null
+            : () => pickDateIntoController(
+                  context,
+                  controller,
+                  afterPick: () => onChanged?.call(controller.text),
+                ),
       ),
     );
 
@@ -10776,16 +10781,19 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                       ),
                     ),
                     incidentReportDateBox(
+                      context: context,
                       label: 'Date Submitted',
                       controller: dateSubmitted,
                     ),
                     incidentReportDateBox(
+                      context: context,
                       label: 'NTE Date Received',
                       controller: nteDateReceived,
                       onChanged: (_) =>
                           setDialogState(recomputeExplanationDate),
                     ),
                     incidentReportDateBox(
+                      context: context,
                       label: 'Explanation Date Submitted',
                       controller: explanationDate,
                       readOnly: true,
@@ -10799,6 +10807,7 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                       ),
                     ),
                     incidentReportDateBox(
+                      context: context,
                       label: 'Date Received',
                       controller: dateReceived,
                     ),
