@@ -10666,6 +10666,43 @@ String incidentReportDateEditText(dynamic value) {
   return parsed == null ? text : DateFormat('MM/dd/yyyy').format(parsed);
 }
 
+Widget incidentReportDateBox({
+  required String label,
+  required TextEditingController controller,
+  bool readOnly = false,
+  bool required = false,
+  String? helperText,
+  ValueChanged<String>? onChanged,
+}) =>
+    SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        readOnly: readOnly,
+        keyboardType: readOnly ? null : TextInputType.datetime,
+        inputFormatters:
+            readOnly ? null : <TextInputFormatter>[DateSlashInputFormatter()],
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: readOnly ? null : 'MM/DD/YYYY',
+          helperText: helperText,
+          suffixIcon: const Icon(Icons.calendar_month_rounded),
+          fillColor: readOnly ? _surfaceSoft : null,
+        ),
+        validator: readOnly
+            ? null
+            : (value) {
+                final text = value?.trim() ?? '';
+                if (required && text.isEmpty) return 'Required';
+                if (text.isNotEmpty && parseFlexibleDate(text) == null) {
+                  return 'Invalid date';
+                }
+                return null;
+              },
+        onChanged: onChanged,
+      ),
+    );
+
 Future<Map<String, dynamic>?> showIncidentReportDialog(
     BuildContext context, Map<String, dynamic>? row) async {
   final isAdd = row == null;
@@ -10679,7 +10716,8 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
   final nteDateReceived = TextEditingController(
       text: incidentReportDateEditText(source['nte_date_received']));
   final explanationDate = TextEditingController(
-      text: formatEditValue(source['explanation_date_submitted']));
+      text: incidentReportDateEditText(
+          source['explanation_date_submitted']));
   final nod = TextEditingController(text: formatEditValue(source['nod']));
   final dateReceived = TextEditingController(
       text: incidentReportDateEditText(source['date_received']));
@@ -10737,42 +10775,21 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                                 : null,
                       ),
                     ),
-                    SizedBox(
-                      width: 354,
-                      child: TextFormField(
-                        controller: dateSubmitted,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [DateSlashInputFormatter()],
-                        decoration: const InputDecoration(
-                          labelText: 'Date Submitted',
-                          hintText: 'MM/DD/YYYY',
-                        ),
-                      ),
+                    incidentReportDateBox(
+                      label: 'Date Submitted',
+                      controller: dateSubmitted,
                     ),
-                    SizedBox(
-                      width: 354,
-                      child: TextFormField(
-                        controller: nteDateReceived,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [DateSlashInputFormatter()],
-                        decoration: const InputDecoration(
-                          labelText: 'NTE Date Received',
-                          hintText: 'MM/DD/YYYY',
-                        ),
-                        onChanged: (_) =>
-                            setDialogState(recomputeExplanationDate),
-                      ),
+                    incidentReportDateBox(
+                      label: 'NTE Date Received',
+                      controller: nteDateReceived,
+                      onChanged: (_) =>
+                          setDialogState(recomputeExplanationDate),
                     ),
-                    SizedBox(
-                      width: 354,
-                      child: TextFormField(
-                        controller: explanationDate,
-                        readOnly: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Explanation Date Submitted',
-                          helperText: 'Auto-computed: 3 days after NTE date',
-                        ),
-                      ),
+                    incidentReportDateBox(
+                      label: 'Explanation Date Submitted',
+                      controller: explanationDate,
+                      readOnly: true,
+                      helperText: 'Auto-computed: 3 days after NTE date',
                     ),
                     SizedBox(
                       width: 354,
@@ -10781,17 +10798,9 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                         decoration: const InputDecoration(labelText: 'NOD'),
                       ),
                     ),
-                    SizedBox(
-                      width: 354,
-                      child: TextFormField(
-                        controller: dateReceived,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [DateSlashInputFormatter()],
-                        decoration: const InputDecoration(
-                          labelText: 'Date Received',
-                          hintText: 'MM/DD/YYYY',
-                        ),
-                      ),
+                    incidentReportDateBox(
+                      label: 'Date Received',
+                      controller: dateReceived,
                     ),
                   ]),
                 ],
