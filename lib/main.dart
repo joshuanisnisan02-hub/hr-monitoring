@@ -10847,6 +10847,11 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
     ),
   );
 
+  // Navigator.pop completes the dialog future before the route's reverse
+  // transition has necessarily finished. Keep these controllers alive until
+  // the closing widgets have been fully removed from the tree; disposing them
+  // immediately can trigger Flutter's _dependents.isEmpty assertion on web.
+  await Future<void>.delayed(const Duration(milliseconds: 300));
   for (final controller in [
     ir,
     dateSubmitted,
