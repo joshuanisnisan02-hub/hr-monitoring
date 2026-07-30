@@ -960,29 +960,65 @@ class NavItem {
 
 String currentUserAccessRole() {
   final user = db.auth.currentUser;
-  final metadata = user?.userMetadata ?? const <String, dynamic>{};
-  final rawRole = '${metadata['role'] ?? metadata['access_role'] ?? ''}'
-      .trim()
-      .toLowerCase();
-  final email = '${user?.email ?? ''}'.trim().toLowerCase();
+  final userMetadata = user?.userMetadata ?? const <String, dynamic>{};
+  final appMetadata = user?.appMetadata ?? const <String, dynamic>{};
 
-  if (rawRole.contains('admin')) return 'admin';
-  if (rawRole == 'ir' ||
-      rawRole.contains('incident') ||
-      rawRole.contains('incident_report')) {
+  final roleCandidates = <Object?>[
+    appMetadata['role'],
+    appMetadata['access_role'],
+    appMetadata['user_role'],
+    appMetadata['account_type'],
+    userMetadata['role'],
+    userMetadata['access_role'],
+    userMetadata['user_role'],
+    userMetadata['account_type'],
+  ];
+
+  final normalizedRoles = roleCandidates
+      .where((value) => value != null)
+      .map((value) => value
+          .toString()
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]+'), '_'))
+      .where((value) => value.isNotEmpty)
+      .toList();
+
+  final isAdminFlag =
+      appMetadata['is_admin'] == true || userMetadata['is_admin'] == true;
+  if (isAdminFlag ||
+      normalizedRoles.any((role) =>
+          role == 'admin' ||
+          role == 'administrator' ||
+          role.contains('system_admin'))) {
+    return 'admin';
+  }
+
+  if (normalizedRoles.any((role) =>
+      role == 'ir' ||
+      role.contains('incident_report') ||
+      role.contains('incident_only'))) {
     return 'ir';
   }
-  if (rawRole.contains('hr')) return 'hr';
 
+  if (normalizedRoles.any((role) => role.contains('hr'))) return 'hr';
+
+  final email = '${user?.email ?? ''}'.trim().toLowerCase();
   if (email.contains('admin')) return 'admin';
   if (email.contains('incident') || email.contains('ir.')) return 'ir';
+
+  // Existing full-system accounts were created before role metadata was
+  // standardized. Keep them in the normal HR workspace instead of hiding
+  // modules because a metadata key is absent.
   return 'hr';
 }
 
 bool get currentUserIsAdmin => currentUserAccessRole() == 'admin';
 bool get currentUserIsIncidentOnly => currentUserAccessRole() == 'ir';
 bool get currentUserCanSeeIncidentReport =>
-    currentUserIsAdmin || currentUserIsIncidentOnly;
+    currentUserIsAdmin ||
+    currentUserIsIncidentOnly ||
+    currentUserAccessRole() == 'hr';
 
 Future<void> logoutUser(BuildContext context) async {
   final ok = await showDialog<bool>(
@@ -1707,14 +1743,14 @@ class DashboardPage extends StatelessWidget {
                   targetIndex: 6),
               Metric('Reports', data.totalGender, Icons.summarize_rounded,
                   const Color(0xFFFFF7ED), const Color(0xFFC2410C),
-                  targetIndex: 7),
+                  targetIndex: 8),
               Metric(
                   'Resigned Employees',
                   data.resignedEmployees,
                   Icons.person_off_rounded,
                   const Color(0xFFFEF2F2),
                   const Color(0xFFB91C1C),
-                  targetIndex: 8),
+                  targetIndex: 9),
             ];
 
             final attentionCards = <Metric>[
@@ -1754,26 +1790,26 @@ class DashboardPage extends StatelessWidget {
             final reportCards = <Metric>[
               Metric('Total Female', data.totalFemale, Icons.female_rounded,
                   const Color(0xFFFDF2F8), const Color(0xFFDB2777),
-                  targetIndex: 7),
+                  targetIndex: 8),
               Metric('Total Male', data.totalMale, Icons.male_rounded,
                   const Color(0xFFEFF6FF), const Color(0xFF2563EB),
-                  targetIndex: 7),
+                  targetIndex: 8),
               Metric('Total Gender', data.totalGender, Icons.wc_rounded,
                   const Color(0xFFF8FAFC), _ink,
-                  targetIndex: 7),
+                  targetIndex: 8),
               Metric('Active Faculty', data.activeFaculty, Icons.school_rounded,
                   const Color(0xFFF0FDF4), const Color(0xFF15803D),
                   targetIndex: 1),
               Metric('License Summary', data.licensesTotal, Icons.badge_rounded,
                   const Color(0xFFFFF7ED), const Color(0xFFC2410C),
-                  targetIndex: 7),
+                  targetIndex: 8),
               Metric(
                   'NC/TM Summary',
                   data.certificatesTotal,
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
                   const Color(0xFF0E7490),
-                  targetIndex: 7),
+                  targetIndex: 8),
             ];
 
             return RefreshIndicator(
@@ -1833,7 +1869,7 @@ class DashboardPage extends StatelessWidget {
                         QuickCard('Manage Credentials', Icons.badge_rounded,
                             () => onNavigate(3)),
                         QuickCard('Open Reports', Icons.summarize_rounded,
-                            () => onNavigate(7)),
+                            () => onNavigate(8)),
                       ]),
                     ]),
               ),
