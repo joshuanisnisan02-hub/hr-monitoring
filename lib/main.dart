@@ -4361,6 +4361,8 @@ typedef ViewHandler = Future<void> Function(
     BuildContext context, Map<String, dynamic> row);
 typedef ExtraRowActionBuilder = Widget? Function(
     BuildContext context, Map<String, dynamic> row, VoidCallback refresh);
+typedef CrudCellBuilder = Widget? Function(BuildContext context,
+    Map<String, dynamic> row, GridCol column, VoidCallback refresh);
 
 class CrudTable extends StatefulWidget {
   final Future<List<dynamic>> Function() load;
@@ -4374,6 +4376,7 @@ class CrudTable extends StatefulWidget {
   final ViewHandler? onView;
   final EditHandler? onApprove;
   final ExtraRowActionBuilder? extraAction;
+  final CrudCellBuilder? cellBuilder;
   final bool showDelete;
   final String? reportTitle;
   final String? archiveTableName;
@@ -4396,6 +4399,7 @@ class CrudTable extends StatefulWidget {
       this.onView,
       this.onApprove,
       this.extraAction,
+      this.cellBuilder,
       this.showDelete = true,
       this.showActions = true,
       this.reportTitle,
@@ -4693,6 +4697,10 @@ class _CrudTableState extends State<CrudTable> {
                   extraAction: widget.extraAction == null
                       ? null
                       : widget.extraAction!(context, rows[i], refresh),
+                  cellBuilder: widget.cellBuilder == null
+                      ? null
+                      : (cellContext, row, column) => widget.cellBuilder!(
+                          cellContext, row, column, refresh),
                   onDelete: widget.showActions && widget.showDelete
                       ? () => confirmDelete(context, rows[i])
                       : null,
@@ -4930,6 +4938,8 @@ class TableRowItem extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onApprove;
   final Widget? extraAction;
+  final Widget? Function(BuildContext context, Map<String, dynamic> row,
+      GridCol column)? cellBuilder;
   final VoidCallback? onDelete;
 
   const TableRowItem(
@@ -4942,6 +4952,7 @@ class TableRowItem extends StatelessWidget {
       this.onEdit,
       this.onApprove,
       this.extraAction,
+      this.cellBuilder,
       this.onDelete});
 
   @override
@@ -4955,7 +4966,8 @@ class TableRowItem extends StatelessWidget {
                 flex: col.flex,
                 child: Padding(
                     padding: const EdgeInsets.only(right: 10),
-                    child: tableCell(col, valueFor(row, col.key)))),
+                    child: cellBuilder?.call(context, row, col) ??
+                        tableCell(col, valueFor(row, col.key)))),
           SizedBox(
             width: actionWidth,
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -5072,14 +5084,30 @@ class StatusChip extends StatelessWidget {
       bg = const Color(0xFFDCFCE7);
       fg = const Color(0xFF166534);
     }
-    if (v.contains('renewal') || v.contains('due')) {
+    if (v.contains('renewal') ||
+        v.contains('due') ||
+        v.contains('waiting') ||
+        v == 'pending' ||
+        v.contains('conference')) {
       bg = const Color(0xFFFEF3C7);
       fg = const Color(0xFF92400E);
+    }
+    if (v.contains('responded on time') || v == 'resolved') {
+      bg = const Color(0xFFDCFCE7);
+      fg = const Color(0xFF166534);
+    }
+    if (v.contains('responded late') ||
+        v.contains('warning') ||
+        v.contains('waive')) {
+      bg = const Color(0xFFFFEDD5);
+      fg = const Color(0xFF9A3412);
     }
     if (v.contains('expired') ||
         v.contains('inactive') ||
         v.contains('separated') ||
-        v.contains('resigned')) {
+        v.contains('resigned') ||
+        v.contains('non-renewal') ||
+        v.contains('dismissal')) {
       bg = const Color(0xFFFEE2E2);
       fg = const Color(0xFF991B1B);
     }
@@ -10612,10 +10640,75 @@ void showSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
 
+const incidentResponseStatuses = <String>[
+  'Waiting for Response',
+  'Responded On Time',
+  'Responded Late',
+  'Waive the Right',
+];
+
+const incidentNodStatuses = <String>[
+  'Pending',
+  'Resolved',
+  '1st Warning',
+  '2nd Warning',
+  '3rd Warning',
+  'For Conference',
+  'Non-Renewal',
+  'Dismissal',
+];
+
+String incidentStatusValue(Object? raw, List<String> options, String fallback) {
+  final value = '${raw ?? ''}'.trim();
+  return options.contains(value) ? value : fallback;
+}
+
+Widget incidentStatusDropdown({
+  required BuildContext context,
+  required Map<String, dynamic> row,
+  required String field,
+  required List<String> options,
+  required String fallback,
+  required VoidCallback refresh,
+}) {
+  final value = incidentStatusValue(row[field], options, fallback);
+  return DropdownButtonHideUnderline(
+    child: DropdownButton<String>(
+      value: value,
+      isExpanded: true,
+      icon: const Icon(Icons.arrow_drop_down_rounded, size: 18),
+      borderRadius: BorderRadius.circular(14),
+      selectedItemBuilder: (_) => [
+        for (final option in options)
+          Align(alignment: Alignment.centerLeft, child: StatusChip(option)),
+      ],
+      items: [
+        for (final option in options)
+          DropdownMenuItem<String>(
+            value: option,
+            child: Text(option,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12.5)),
+          ),
+      ],
+      onChanged: (next) async {
+        if (next == null || next == value) return;
+        try {
+          await db.from('incident_reports').update({field: next}).eq('id', row['id']);
+          refresh();
+          if (context.mounted) showSnack(context, '${titleCase(field)} Updated.');
+        } catch (e) {
+          if (context.mounted) showSnack(context, 'Update Failed: $e');
+        }
+      },
+    ),
+  );
+}
+
 Future<List<dynamic>> loadIncidentReports({int limit = 1500}) => db
     .from('incident_reports')
     .select(
-        'id, employee_id, ir, date_submitted, nte_date_received, explanation_date_submitted, nod, date_received, employees(full_name)')
+        'id, employee_id, ir, date_submitted, nte_date_received, explanation_date_submitted, response_status, nod, date_received, employees(full_name)')
     .order('date_submitted', ascending: false)
     .limit(limit);
 
@@ -10641,10 +10734,35 @@ class IncidentReportPage extends StatelessWidget {
             GridCol('nte_date_received', 'NTE Date Received', flex: 2),
             GridCol('explanation_date_submitted', 'Explanation Date Submitted',
                 flex: 2),
-            GridCol('nod', 'NOD', flex: 2),
+            GridCol('response_status', 'Response Status',
+                flex: 2, isStatus: true),
+            GridCol('nod', 'NOD', flex: 2, isStatus: true),
             GridCol('date_received', 'Date Received', flex: 2),
           ],
           onAdd: (ctx, refresh) => editIncidentReport(ctx, null, refresh),
+          cellBuilder: (ctx, row, column, refresh) {
+            if (column.key == 'response_status') {
+              return incidentStatusDropdown(
+                context: ctx,
+                row: row,
+                field: 'response_status',
+                options: incidentResponseStatuses,
+                fallback: 'Waiting for Response',
+                refresh: refresh,
+              );
+            }
+            if (column.key == 'nod') {
+              return incidentStatusDropdown(
+                context: ctx,
+                row: row,
+                field: 'nod',
+                options: incidentNodStatuses,
+                fallback: 'Pending',
+                refresh: refresh,
+              );
+            }
+            return null;
+          },
           onView: viewIncidentReport,
           onEdit: editIncidentReport,
           onDelete: (row) =>
@@ -10723,7 +10841,6 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
   final explanationDate = TextEditingController(
       text: incidentReportDateEditText(
           source['explanation_date_submitted']));
-  final nod = TextEditingController(text: formatEditValue(source['nod']));
   final dateReceived = TextEditingController(
       text: incidentReportDateEditText(source['date_received']));
 
@@ -10773,7 +10890,7 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                       width: 354,
                       child: TextFormField(
                         controller: ir,
-                        decoration: const InputDecoration(labelText: 'IR'),
+                        decoration: const InputDecoration(labelText: 'Incident Report'),
                         validator: (value) =>
                             value == null || value.trim().isEmpty
                                 ? 'Required'
@@ -10792,25 +10909,20 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                       onChanged: (_) =>
                           setDialogState(recomputeExplanationDate),
                     ),
-                    incidentReportDateBox(
-                      context: context,
-                      label: 'Explanation Date Submitted',
-                      controller: explanationDate,
-                      readOnly: true,
-                      helperText: 'Auto-computed: 3 days after NTE date',
-                    ),
-                    SizedBox(
-                      width: 354,
-                      child: TextFormField(
-                        controller: nod,
-                        decoration: const InputDecoration(labelText: 'NOD'),
+                    if (!isAdd)
+                      incidentReportDateBox(
+                        context: context,
+                        label: 'Explanation Date Submitted',
+                        controller: explanationDate,
+                        readOnly: true,
+                        helperText: 'Auto-computed: 3 days after NTE date',
                       ),
-                    ),
-                    incidentReportDateBox(
-                      context: context,
-                      label: 'Date Received',
-                      controller: dateReceived,
-                    ),
+                    if (!isAdd)
+                      incidentReportDateBox(
+                        context: context,
+                        label: 'Date Received',
+                        controller: dateReceived,
+                      ),
                   ]),
                 ],
               ),
@@ -10835,7 +10947,8 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                     'explanation_date_submitted':
                         incidentReportComputedExplanationDate(
                             nteDateReceived.text),
-                    'nod': nod.text.trim(),
+                    if (isAdd) 'response_status': 'Waiting for Response',
+                    if (isAdd) 'nod': 'Pending',
                     'date_received': toIsoDateInput(dateReceived.text),
                   }..removeWhere((_, value) =>
                       value == null || value.toString().trim().isEmpty));
@@ -10857,7 +10970,6 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
     dateSubmitted,
     nteDateReceived,
     explanationDate,
-    nod,
     dateReceived,
   ]) {
     controller.dispose();
@@ -10893,6 +11005,7 @@ Future<void> viewIncidentReport(
               'Date Submitted': 'date_submitted',
               'NTE Date Received': 'nte_date_received',
               'Explanation Date Submitted': 'explanation_date_submitted',
+              'Response Status': 'response_status',
               'NOD': 'nod',
               'Date Received': 'date_received',
             }),
