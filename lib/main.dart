@@ -32,27 +32,64 @@ const _pageSize = 10;
 
 SupabaseClient get db => Supabase.instance.client;
 
-void safeRefresh(VoidCallback refresh) {
-  WidgetsBinding.instance.addPostFrameCallback((_) => refresh());
-}
-
 class DateSlashInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
     var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     if (digits.length > 8) digits = digits.substring(0, 8);
-    final buffer = StringBuffer();
+    final out = StringBuffer();
     for (var i = 0; i < digits.length; i++) {
-      if (i == 2 || i == 4) buffer.write('/');
-      buffer.write(digits[i]);
+      if (i == 2 || i == 4) out.write('/');
+      out.write(digits[i]);
     }
-    final out = buffer.toString();
+    final value = out.toString();
     return TextEditingValue(
-      text: out,
-      selection: TextSelection.collapsed(offset: out.length),
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
     );
   }
+}
+
+void safeRefresh(VoidCallback refresh) {
+  WidgetsBinding.instance.addPostFrameCallback((_) => refresh());
+}
+
+bool shouldUpperCaseDataKey(String key) {
+  final k = key.toLowerCase();
+  if (k == 'id' || k == 'created_at' || k == 'updated_at') return false;
+  if (k.endsWith('_id') || k == 'employee_id' || k == 'cycle_id') return false;
+  if (k.contains('url') || k.contains('email')) return false;
+  if (k.contains('date') || k == 'expiry_date' || k == 'issued_date')
+    return false;
+  return true;
+}
+
+dynamic upperCaseDataValue(String key, dynamic value) {
+  if (value is String) {
+    final clean = value.trim();
+    if (clean.isEmpty) return clean;
+    return shouldUpperCaseDataKey(key) ? clean.toUpperCase() : clean;
+  }
+  if (value is Map) {
+    return upperCaseDataMap(Map<String, dynamic>.from(value));
+  }
+  if (value is List) {
+    return value
+        .map((item) => item is Map
+            ? upperCaseDataMap(Map<String, dynamic>.from(item))
+            : item)
+        .toList();
+  }
+  return value;
+}
+
+Map<String, dynamic> upperCaseDataMap(Map<String, dynamic> data) {
+  final out = <String, dynamic>{};
+  data.forEach((key, value) {
+    out[key] = upperCaseDataValue(key, value);
+  });
+  return out;
 }
 
 final Map<String, List<dynamic>> _crudTableDataCache =
@@ -66,7 +103,7 @@ const List<String> officialActiveEmployeeNames = <String>[
   'Alegato, Mark Lhister',
   'Amlato, Jeroboam C.',
   'Andang, Abdulgani T., MSCRIM, RCRIM',
-  'Aniñon, Clotilde P., LPT',
+  'AniÃƒÆ’Ã‚Â±on, Clotilde P., LPT',
   'Avenido, Restituto Jr., E., MBM, LPT',
   'Ballista, Beverly Joy, LPT',
   'Bangcong, Charyn P., LPT',
@@ -154,7 +191,7 @@ const List<String> officialActiveEmployeeNames = <String>[
   'Mina, Cathrena Jane A., LPT',
   'Mission, Erlinda., DM, CPA',
   'Momo, Marjorie G., MSCJ, RCRIM',
-  'Montaño, Quencyfaith C., MBM, LPT',
+  'MontaÃƒÆ’Ã‚Â±o, Quencyfaith C., MBM, LPT',
   'Nacilla, Maria Fe MBA',
   'Nisnisan, Joshua',
   'Nocete,Fretch H.., PHD, MSHRM, LPT',
@@ -194,7 +231,7 @@ const List<String> officialActiveEmployeeNames = <String>[
   'Saulong, Ronelo A., RSW',
   'Sayson, Adams Jay, LPT',
   'Sebastian, Kristal Kae',
-  'Señires, Normie E., REB',
+  'SeÃƒÆ’Ã‚Â±ires, Normie E., REB',
   'Serrano, Alvin Jay C., MAED, LPT',
   'Suhayon, Sylvester, LPT',
   'Suyao, Jethroel Hervey S., LPT',
@@ -225,12 +262,12 @@ const List<String> officialActiveEmployeeNames = <String>[
 String officialEmployeeClean(String value) {
   var out = value
       .toLowerCase()
-      .replaceAll('ñ', 'n')
-      .replaceAll('á', 'a')
-      .replaceAll('é', 'e')
-      .replaceAll('í', 'i')
-      .replaceAll('ó', 'o')
-      .replaceAll('ú', 'u')
+      .replaceAll('ÃƒÆ’Ã‚Â±', 'n')
+      .replaceAll('ÃƒÆ’Ã‚Â¡', 'a')
+      .replaceAll('ÃƒÆ’Ã‚Â©', 'e')
+      .replaceAll('ÃƒÆ’Ã‚Â­', 'i')
+      .replaceAll('ÃƒÆ’Ã‚Â³', 'o')
+      .replaceAll('ÃƒÆ’Ã‚Âº', 'u')
       .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
@@ -880,18 +917,21 @@ class _ShellPageState extends State<ShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      DashboardPage(onNavigate: selectPage),
-      const EmployeesPage(),
-      const ContractsPage(),
-      const CredentialsPage(),
-      const EvaluationsPage(),
-      const AppointmentPage(),
-      const RankingPage(),
-      const ReportsPage(),
-      const ResignedEmployeesPage(),
-      const ArchivedPage(),
-    ];
+    final pages = currentUserIsIncidentOnly
+        ? <Widget>[IncidentReportPage()]
+        : <Widget>[
+            DashboardPage(onNavigate: selectPage),
+            const EmployeesPage(),
+            const ContractsPage(),
+            const CredentialsPage(),
+            const EvaluationsPage(),
+            const AppointmentPage(),
+            const RankingPage(),
+            if (currentUserCanSeeIncidentReport) IncidentReportPage(),
+            const ReportsPage(),
+            const ResignedEmployeesPage(),
+            const ArchivedPage(),
+          ];
     final safeIndex = index.clamp(0, pages.length - 1).toInt();
     visitedPages.add(safeIndex);
     return Scaffold(
@@ -917,6 +957,32 @@ class NavItem {
   final IconData icon;
   const NavItem(this.label, this.icon);
 }
+
+String currentUserAccessRole() {
+  final user = db.auth.currentUser;
+  final metadata = user?.userMetadata ?? const <String, dynamic>{};
+  final rawRole = '${metadata['role'] ?? metadata['access_role'] ?? ''}'
+      .trim()
+      .toLowerCase();
+  final email = '${user?.email ?? ''}'.trim().toLowerCase();
+
+  if (rawRole.contains('admin')) return 'admin';
+  if (rawRole == 'ir' ||
+      rawRole.contains('incident') ||
+      rawRole.contains('incident_report')) {
+    return 'ir';
+  }
+  if (rawRole.contains('hr')) return 'hr';
+
+  if (email.contains('admin')) return 'admin';
+  if (email.contains('incident') || email.contains('ir.')) return 'ir';
+  return 'hr';
+}
+
+bool get currentUserIsAdmin => currentUserAccessRole() == 'admin';
+bool get currentUserIsIncidentOnly => currentUserAccessRole() == 'ir';
+bool get currentUserCanSeeIncidentReport =>
+    currentUserIsAdmin || currentUserIsIncidentOnly;
 
 Future<void> logoutUser(BuildContext context) async {
   final ok = await showDialog<bool>(
@@ -961,18 +1027,24 @@ class AppSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      NavItem('Dashboard', Icons.dashboard_rounded),
-      NavItem('Employees', Icons.groups_rounded),
-      NavItem('Contracts', Icons.assignment_rounded),
-      NavItem('Credentials', Icons.badge_rounded),
-      NavItem('Evaluations', Icons.rate_review_rounded),
-      NavItem('Appointment', Icons.work_outline_rounded),
-      NavItem('Ranking', Icons.leaderboard_rounded),
-      NavItem('Reports', Icons.summarize_rounded),
-      NavItem('Resigned Employees', Icons.person_off_rounded),
-      NavItem('Archived', Icons.archive_rounded),
-    ];
+    final items = currentUserIsIncidentOnly
+        ? const [
+            NavItem('Incident Report', Icons.report_problem_rounded),
+          ]
+        : <NavItem>[
+            const NavItem('Dashboard', Icons.dashboard_rounded),
+            const NavItem('Employees', Icons.groups_rounded),
+            const NavItem('Contracts', Icons.assignment_rounded),
+            const NavItem('Credentials', Icons.badge_rounded),
+            const NavItem('Evaluations', Icons.rate_review_rounded),
+            const NavItem('Appointment', Icons.work_outline_rounded),
+            const NavItem('Ranking', Icons.leaderboard_rounded),
+            if (currentUserCanSeeIncidentReport)
+              const NavItem('Incident Report', Icons.report_problem_rounded),
+            const NavItem('Reports', Icons.summarize_rounded),
+            const NavItem('Resigned Employees', Icons.person_off_rounded),
+            const NavItem('Archived', Icons.archive_rounded),
+          ];
 
     return Container(
       width: 252,
@@ -1164,9 +1236,9 @@ Future<List<dynamic>> loadLicenses({int limit = 1500}) => db
 
 String credentialListValue(Object? value) {
   final text = formatValue(value)
-      .replaceAll('â€¢', '')
+      .replaceAll('ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢', '')
       .replaceAll('\u2022', '')
-      .replaceAll('•', '')
+      .replaceAll('ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢', '')
       .trim();
   return text.isEmpty || text == '-' ? '-' : text;
 }
@@ -1282,12 +1354,80 @@ Future<List<dynamic>> loadSafetyOfficersGrouped({int limit = 5000}) async {
   return out;
 }
 
-Future<List<dynamic>> loadEvaluations({int limit = 1500}) => db
-    .from('evaluation_records')
-    .select(
-        'id, employee_id, academic_year, semester, superior_rating, superior_description, peer_rating, peer_description, self_rating, self_description, student_rating, student_description, total_rating, total_description, employees(full_name)')
-    .order('academic_year')
-    .limit(limit);
+Future<List<dynamic>> loadEvaluations({int limit = 1500}) async {
+  final rows = await db
+      .from('evaluation_records')
+      .select(
+          'id, employee_id, academic_year, semester, superior_rating, superior_description, peer_rating, peer_description, self_rating, self_description, student_rating, student_description, total_rating, total_description, employees(full_name)')
+      .order('academic_year')
+      .limit(limit);
+
+  final contractByEmployee = <String, Map<String, dynamic>>{};
+  try {
+    final contracts = await db
+        .from('employee_contracts')
+        .select('employee_id, contract_type, contract_start_date, id')
+        .order('contract_start_date', ascending: false)
+        .limit(5000);
+    for (final item in contracts) {
+      final contract = Map<String, dynamic>.from(item as Map);
+      final employeeId = '${contract['employee_id'] ?? ''}'.trim();
+      if (employeeId.isEmpty || contractByEmployee.containsKey(employeeId))
+        continue;
+      contractByEmployee[employeeId] = contract;
+    }
+  } catch (_) {}
+
+  return rows.map((item) {
+    final row = Map<String, dynamic>.from(item as Map);
+    if (row['employees'] is Map) {
+      row['employee_name'] =
+          formatValue((row['employees'] as Map)['full_name']).toUpperCase();
+    }
+    final employeeId = '${row['employee_id'] ?? ''}'.trim();
+    final contract = contractByEmployee[employeeId];
+    if (contract != null) {
+      row['contract_type'] = contract['contract_type'];
+      row['latest_contract_type'] = contract['contract_type'];
+    }
+    return row;
+  }).toList();
+}
+
+Future<Set<String>> loadLatestPartTimeEmployeeIds() async {
+  final ids = <String>{};
+  try {
+    final contracts = await db
+        .from('employee_contracts')
+        .select('employee_id, contract_type, contract_start_date, id')
+        .order('contract_start_date', ascending: false)
+        .limit(5000);
+    final seen = <String>{};
+    for (final item in contracts) {
+      final contract = Map<String, dynamic>.from(item as Map);
+      final employeeId = '${contract['employee_id'] ?? ''}'.trim();
+      if (employeeId.isEmpty || !seen.add(employeeId)) continue;
+      if (isPartTimeContractType(contract['contract_type']))
+        ids.add(employeeId);
+    }
+  } catch (_) {}
+  return ids;
+}
+
+bool isPartTimeContractType(Object? value) {
+  final text = formatValue(value)
+      .toLowerCase()
+      .replaceAll('_', '-')
+      .replaceAll(RegExp(r'\s+'), '-');
+  return text.contains('part-time') || text.contains('parttime');
+}
+
+bool isPartTimeEvaluationRow(Map<String, dynamic> row) {
+  return isPartTimeContractType(row['contract_type']) ||
+      isPartTimeContractType(row['latest_contract_type']) ||
+      isPartTimeContractType(row['employee_type']);
+}
+
 Future<List<dynamic>> loadRankings({int limit = 1500}) => db
     .from('ranking_applications')
     .select(
@@ -1361,7 +1501,7 @@ Future<List<dynamic>> loadActiveEmployees({int limit = 5000}) =>
 Future<List<dynamic>> loadAppointments({int limit = 5000}) => db
     .from('employee_appointments')
     .select(
-        'id, employee_id, category, appointment_title, employees(full_name)')
+        'id, employee_id, category, appointment_title, appointment_type, other_duties, attachment_url, employees(full_name)')
     .order('category')
     .limit(limit);
 
@@ -2358,6 +2498,12 @@ class EvaluationTab extends StatelessWidget {
       row['evaluation_description'] =
           evaluationDescription(row, kind, ratingKey, descriptionKey);
       return row;
+    }).where((row) {
+      if ((kind == EvaluationKind.superior || kind == EvaluationKind.peer) &&
+          isPartTimeEvaluationRow(row)) {
+        return false;
+      }
+      return true;
     }).toList();
 
     normalized.sort((a, b) => formatValue(a['employee_name'])
@@ -2518,14 +2664,23 @@ String evaluationScoreDisplay(Object? value) {
 
 Map<String, dynamic> recomputeEvaluationTotals(Map<String, dynamic> row) {
   final data = Map<String, dynamic>.from(row);
+  final isPartTime = isPartTimeEvaluationRow(data);
+  if (isPartTime) {
+    data['superior_rating'] = null;
+    data['superior_description'] = null;
+    data['peer_rating'] = null;
+    data['peer_description'] = null;
+  }
   final parts = <double>[];
   void addPart(String key, double max) {
     final score = evaluationScoreAsDouble(data[key]);
     if (score != null) parts.add((score / max) * 100);
   }
 
-  addPart('superior_rating', 100);
-  addPart('peer_rating', 100);
+  if (!isPartTime) {
+    addPart('superior_rating', 100);
+    addPart('peer_rating', 100);
+  }
   addPart('self_rating', 5);
   addPart('student_rating', 5);
 
@@ -2590,6 +2745,9 @@ Future<Map<String, dynamic>?> showFullEvaluationDialog(BuildContext context,
   final initial = normalizeRow(row ?? {});
   final formKey = GlobalKey<FormState>();
   String? employeeId = isAdd ? null : initial['employee_id']?.toString();
+  final partTimeEmployeeIds = await loadLatestPartTimeEmployeeIds();
+  bool selectedEmployeeIsPartTime() =>
+      employeeId != null && partTimeEmployeeIds.contains(employeeId);
   final superior =
       TextEditingController(text: formatEditValue(initial['superior_rating']));
   final superiorDesc = TextEditingController(
@@ -2612,14 +2770,24 @@ Future<Map<String, dynamic>?> showFullEvaluationDialog(BuildContext context,
       text: formatEditValue(initial['total_description']));
 
   void recomputeAll() {
-    superiorDesc.text =
-        evaluationScoreDescription(EvaluationKind.superior, superior.text);
-    peerDesc.text = evaluationScoreDescription(EvaluationKind.peer, peer.text);
+    final isPartTimeEmployee = selectedEmployeeIsPartTime();
+    if (isPartTimeEmployee) {
+      superior.clear();
+      superiorDesc.clear();
+      peer.clear();
+      peerDesc.clear();
+    } else {
+      superiorDesc.text =
+          evaluationScoreDescription(EvaluationKind.superior, superior.text);
+      peerDesc.text =
+          evaluationScoreDescription(EvaluationKind.peer, peer.text);
+    }
     selfDesc.text =
         evaluationScoreDescription(EvaluationKind.self, selfRating.text);
     studentDesc.text =
         evaluationScoreDescription(EvaluationKind.student, student.text);
     final computed = recomputeEvaluationTotals({
+      'contract_type': isPartTimeEmployee ? 'PART-TIME' : '',
       'superior_rating': superior.text,
       'peer_rating': peer.text,
       'self_rating': selfRating.text,
@@ -2650,20 +2818,40 @@ Future<Map<String, dynamic>?> showFullEvaluationDialog(BuildContext context,
                         employees: employees,
                         employeeId: employeeId,
                         width: 728,
-                        onEmployeeChanged: (value) =>
-                            setDialogState(() => employeeId = value),
+                        onEmployeeChanged: (value) => setDialogState(() {
+                          employeeId = value;
+                          recomputeAll();
+                        }),
                       )
                     else
                       ReadOnlyEmployeeBox(linkedEmployeeName(initial)),
                     const SizedBox(height: 16),
-                    const DialogSectionTitle('Superior Evaluation'),
-                    evaluationRatingBox(EvaluationKind.superior, superior,
-                        superiorDesc, recomputeAll, setDialogState),
-                    const SizedBox(height: 16),
-                    const DialogSectionTitle('Peer-to-Peer Evaluation'),
-                    evaluationRatingBox(EvaluationKind.peer, peer, peerDesc,
-                        recomputeAll, setDialogState),
-                    const SizedBox(height: 16),
+                    if (selectedEmployeeIsPartTime())
+                      Container(
+                        width: 728,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Color(0xFFBFDBFE)),
+                        ),
+                        child: const Text(
+                          'PART-TIME EMPLOYEES USE SELF AND STUDENT EVALUATIONS ONLY.',
+                          style: TextStyle(
+                              color: Color(0xFF1E3A8A),
+                              fontWeight: FontWeight.w900),
+                        ),
+                      )
+                    else ...[
+                      const DialogSectionTitle('Superior Evaluation'),
+                      evaluationRatingBox(EvaluationKind.superior, superior,
+                          superiorDesc, recomputeAll, setDialogState),
+                      const SizedBox(height: 16),
+                      const DialogSectionTitle('Peer-to-Peer Evaluation'),
+                      evaluationRatingBox(EvaluationKind.peer, peer, peerDesc,
+                          recomputeAll, setDialogState),
+                      const SizedBox(height: 16),
+                    ],
                     const DialogSectionTitle('Self Evaluation'),
                     evaluationRatingBox(EvaluationKind.self, selfRating,
                         selfDesc, recomputeAll, setDialogState),
@@ -2705,12 +2893,20 @@ Future<Map<String, dynamic>?> showFullEvaluationDialog(BuildContext context,
             onPressed: () {
               recomputeAll();
               if (!formKey.currentState!.validate()) return;
+              final isPartTimeEmployee = selectedEmployeeIsPartTime();
               final out = <String, dynamic>{
                 if (isAdd) 'employee_id': employeeId,
-                'superior_rating': double.tryParse(superior.text.trim()),
-                'superior_description': superiorDesc.text.trim(),
-                'peer_rating': double.tryParse(peer.text.trim()),
-                'peer_description': peerDesc.text.trim(),
+                'contract_type': isPartTimeEmployee ? 'PART-TIME' : null,
+                'superior_rating': isPartTimeEmployee
+                    ? null
+                    : double.tryParse(superior.text.trim()),
+                'superior_description':
+                    isPartTimeEmployee ? null : superiorDesc.text.trim(),
+                'peer_rating': isPartTimeEmployee
+                    ? null
+                    : double.tryParse(peer.text.trim()),
+                'peer_description':
+                    isPartTimeEmployee ? null : peerDesc.text.trim(),
                 'self_rating': double.tryParse(selfRating.text.trim()),
                 'self_description': selfDesc.text.trim(),
                 'student_rating': double.tryParse(student.text.trim()),
@@ -2718,7 +2914,7 @@ Future<Map<String, dynamic>?> showFullEvaluationDialog(BuildContext context,
                 'total_rating': double.tryParse(total.text.trim()),
                 'total_description': overall.text.trim(),
               }..removeWhere((_, value) =>
-                  value == null || value.toString().trim().isEmpty);
+                  value != null && value.toString().trim().isEmpty);
               Navigator.pop(context, out);
             },
             child: const Text('Save'),
@@ -2900,11 +3096,18 @@ Future<void> viewEvaluation(
 
 Future<void> editEvaluationForKind(BuildContext context,
     Map<String, dynamic> row, VoidCallback refresh, EvaluationKind kind) async {
+  if ((kind == EvaluationKind.superior || kind == EvaluationKind.peer) &&
+      isPartTimeEvaluationRow(normalizeRow(row))) {
+    showSnack(context,
+        'PART-TIME EMPLOYEES DO NOT HAVE SUPERIOR OR PEER-TO-PEER EVALUATION.');
+    return;
+  }
   final data = await showEvaluationKindOnlyDialog(context, row, kind);
   if (data == null) return;
 
   try {
-    final merged = recomputeEvaluationTotals({...normalizeRow(row), ...data});
+    final merged = upperCaseDataMap(
+        recomputeEvaluationTotals({...normalizeRow(row), ...data}));
     merged.remove('id');
     await db.from('evaluation_records').update(merged).eq('id', row['id']);
     refresh();
@@ -2933,7 +3136,8 @@ Future<void> editFullEvaluation(BuildContext context, Map<String, dynamic>? row,
       if (existingRows is List && existingRows.isNotEmpty) {
         final existing =
             normalizeRow(Map<String, dynamic>.from(existingRows.first as Map));
-        final merged = recomputeEvaluationTotals({...existing, ...data});
+        final merged =
+            upperCaseDataMap(recomputeEvaluationTotals({...existing, ...data}));
         merged.remove('id');
         await db
             .from('evaluation_records')
@@ -2942,10 +3146,11 @@ Future<void> editFullEvaluation(BuildContext context, Map<String, dynamic>? row,
       } else {
         await db
             .from('evaluation_records')
-            .insert(recomputeEvaluationTotals(data));
+            .insert(upperCaseDataMap(recomputeEvaluationTotals(data)));
       }
     } else {
-      final merged = recomputeEvaluationTotals({...normalizeRow(row), ...data});
+      final merged = upperCaseDataMap(
+          recomputeEvaluationTotals({...normalizeRow(row), ...data}));
       merged.remove('id');
       await db.from('evaluation_records').update(merged).eq('id', row['id']);
     }
@@ -3058,15 +3263,18 @@ class AppointmentPage extends StatelessWidget {
             'View employee appointment classifications and assigned appointment/designation from the ranking Excel list.',
         child: CrudTable(
           load: () => activeOnlyRows(loadAppointments()),
-          searchHint: 'Search employee, type, or appointment',
+          searchHint:
+              'Search employee, appointment type, appointment, other duties, type, or PDF',
           addLabel: 'Add Appointment',
           reportTitle: 'Appointment Reference Report',
           archiveTableName: 'employee_appointments',
           archiveModuleName: 'Appointment',
           columns: const [
             GridCol('employee_name', 'Employee Name', flex: 3, primary: true),
-            GridCol('category', 'Type', flex: 2),
-            GridCol('appointment_title', 'Appointment', flex: 4),
+            GridCol('category', 'Appointment Type', flex: 2),
+            GridCol('appointment_title', 'Appointment', flex: 3),
+            GridCol('other_duties', 'Other Duties', flex: 3),
+            GridCol('appointment_type', 'Type', flex: 2),
           ],
           onAdd: (ctx, refresh) => editAppointment(ctx, null, refresh),
           onView: viewAppointment,
@@ -3079,20 +3287,48 @@ class AppointmentPage extends StatelessWidget {
 
 Future<void> viewAppointment(
     BuildContext context, Map<String, dynamic> row) async {
+  final normalized = normalizeRow(row);
+  final titleName = formatValue(normalized['employee_name']).trim().isEmpty ||
+          formatValue(normalized['employee_name']) == '-'
+      ? linkedEmployeeName(normalized)
+      : formatValue(normalized['employee_name']);
+
   await showDialog<void>(
     context: context,
     builder: (_) => AlertDialog(
-      title: Text(formatValue(row['employee_name'])),
+      title: Text(titleName),
       content: SizedBox(
-        width: 620,
-        child: Wrap(spacing: 10, runSpacing: 10, children: [
-          DetailTile('Type', formatValue(row['category'])),
-          DetailTile('Appointment', formatValue(row['appointment_title'])),
-        ]),
+        width: 850,
+        child: SingleChildScrollView(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const DialogSectionTitle('Appointment Information'),
+            Wrap(spacing: 10, runSpacing: 10, children: [
+              DetailTile('Employee Name', titleName),
+              DetailTile('Appointment Type',
+                  formatDetailValue(normalized['category'], 'category')),
+              DetailTile(
+                  'Appointment',
+                  formatDetailValue(
+                      normalized['appointment_title'], 'appointment_title')),
+              DetailTile(
+                  'Other Duties',
+                  formatDetailValue(
+                      normalized['other_duties'], 'other_duties')),
+              DetailTile(
+                  'Type',
+                  formatDetailValue(
+                      normalized['appointment_type'], 'appointment_type')),
+              AttachmentPdfTile(
+                  'Appointment PDF', normalized['attachment_url']),
+            ]),
+          ]),
+        ),
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context), child: const Text('Close'))
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close')),
       ],
     ),
   );
@@ -3101,39 +3337,167 @@ Future<void> viewAppointment(
 Future<void> editAppointment(BuildContext context, Map<String, dynamic>? row,
     VoidCallback refresh) async {
   final isAdd = row == null;
-  final fields = <EditField>[
-    if (isAdd)
-      EditField('employee_id', 'Employee Name',
-          kind: FieldKind.dropdown,
-          required: true,
-          options: await employeeOptions()),
-    const EditField('category', 'Type',
-        kind: FieldKind.dropdown,
-        required: true,
-        options: [
-          EditOption('Full-time', 'Full-time'),
-          EditOption('Full-time-Probationary', 'Full-time-Probationary'),
-          EditOption('Part-time', 'Part-time'),
-          EditOption('Probationary', 'Probationary'),
-          EditOption('Compliance', 'Compliance')
-        ]),
-    const EditField('appointment_title', 'Appointment', required: true),
-  ];
+  final source = normalizeRow(row ?? {});
+  final employees = await employeeOptions();
+  String? employeeId = isAdd ? null : source['employee_id']?.toString();
+  final category =
+      TextEditingController(text: formatEditValue(source['category']));
+  final appointmentTitle =
+      TextEditingController(text: formatEditValue(source['appointment_title']));
+  final otherDuties =
+      TextEditingController(text: formatEditValue(source['other_duties']));
+  final appointmentType =
+      TextEditingController(text: formatEditValue(source['appointment_type']));
+  String attachmentUrl = formatEditValue(source['attachment_url']);
+  String attachmentFileName = attachmentUrl.isEmpty || attachmentUrl == '-'
+      ? ''
+      : Uri.decodeFull(attachmentUrl.split('/').last.split('?').first);
+  bool uploading = false;
+  final formKey = GlobalKey<FormState>();
 
-  final data = await showRecordDialog(
-    context,
-    isAdd ? 'Add Appointment' : 'Edit Appointment',
-    fields,
-    normalizeRow(row ?? {}),
-    readOnlyEmployeeName: isAdd ? null : linkedEmployeeName(row),
+  final result = await showDialog<Map<String, dynamic>>(
+    context: context,
+    builder: (_) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: Text(isAdd ? 'Add Appointment' : 'Edit Appointment'),
+        content: SizedBox(
+          width: 790,
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Wrap(spacing: 14, runSpacing: 14, children: [
+                const DialogSectionTitle('Employee Information'),
+                if (isAdd)
+                  employeeAutocompleteField(
+                    employees: employees,
+                    employeeId: employeeId,
+                    width: 728,
+                    onEmployeeChanged: (v) =>
+                        setDialogState(() => employeeId = v),
+                  )
+                else
+                  ReadOnlyEmployeeBox(linkedEmployeeName(source)),
+                const DialogSectionTitle('Appointment Information'),
+                searchableOptionBox(
+                    'Appointment Type', category, appointmentCategoryOptions),
+                SizedBox(
+                    width: 354,
+                    child: TextFormField(
+                        controller: appointmentTitle,
+                        decoration:
+                            const InputDecoration(labelText: 'Appointment'),
+                        validator: (v) =>
+                            v == null || v.trim().isEmpty ? 'Required' : null)),
+                SizedBox(
+                    width: 728,
+                    child: TextFormField(
+                        controller: otherDuties,
+                        minLines: 2,
+                        maxLines: 4,
+                        decoration:
+                            const InputDecoration(labelText: 'Other Duties'))),
+                searchableOptionBox(
+                    'Type', appointmentType, appointmentTypeOptions),
+                SizedBox(
+                  width: 354,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: _line)),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: uploading
+                                ? null
+                                : () async {
+                                    setDialogState(() => uploading = true);
+                                    final uploaded =
+                                        await pickAndUploadAppointmentPdf(
+                                            context);
+                                    if (!context.mounted) return;
+                                    setDialogState(() {
+                                      if (uploaded != null) {
+                                        attachmentUrl = uploaded.url;
+                                        attachmentFileName = uploaded.fileName;
+                                      }
+                                      uploading = false;
+                                    });
+                                  },
+                            icon: uploading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Icon(Icons.picture_as_pdf_rounded),
+                            label: Text(uploading
+                                ? 'Uploading...'
+                                : (attachmentFileName.isEmpty
+                                    ? 'Attach PDF'
+                                    : 'Change PDF')),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                              attachmentFileName.isEmpty
+                                  ? 'No PDF attached'
+                                  : attachmentFileName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: attachmentFileName.isEmpty
+                                      ? _muted
+                                      : _ink,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12)),
+                          if (attachmentUrl.trim().isNotEmpty &&
+                              attachmentUrl != '-')
+                            TextButton.icon(
+                                onPressed: () =>
+                                    openPdfAttachment(context, attachmentUrl),
+                                icon: const Icon(Icons.open_in_new_rounded),
+                                label: const Text('Open PDF')),
+                        ]),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.pop(
+                    context,
+                    <String, dynamic>{
+                      'employee_id': isAdd
+                          ? emptyToNull(employeeId)
+                          : source['employee_id'],
+                      'category': category.text.trim(),
+                      'appointment_title': appointmentTitle.text.trim(),
+                      'other_duties': otherDuties.text.trim(),
+                      'appointment_type': appointmentType.text.trim(),
+                      'attachment_url': emptyToNull(attachmentUrl),
+                    }..removeWhere((_, value) =>
+                        value == null || value.toString().trim().isEmpty));
+              },
+              child: const Text('Save')),
+        ],
+      ),
+    ),
   );
-  if (data == null) return;
-  if (isAdd &&
-      !await ensureNoEmployeeDuplicate(context, 'employee_appointments',
-          data['employee_id'], 'appointment')) {
-    return;
+  for (final c in [category, appointmentTitle, otherDuties, appointmentType]) {
+    c.dispose();
   }
-  await saveRow(context, 'employee_appointments', row?['id'], data, refresh);
+  if (result == null) return;
+  await saveRow(context, 'employee_appointments', isAdd ? null : source['id'],
+      result, refresh);
 }
 
 class RankingPage extends StatefulWidget {
@@ -3569,7 +3933,7 @@ List<Map<String, dynamic>> employeeImportFindMatches(
 }
 
 String employeeImportNormalizeName(String value) {
-  var v = value.toUpperCase().replaceAll('Ã‘', 'N');
+  var v = value.toUpperCase().replaceAll('ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“', 'N');
   for (final token in const [
     'ATTY',
     'MR',
@@ -3997,6 +4361,8 @@ typedef ViewHandler = Future<void> Function(
     BuildContext context, Map<String, dynamic> row);
 typedef ExtraRowActionBuilder = Widget? Function(
     BuildContext context, Map<String, dynamic> row, VoidCallback refresh);
+typedef CrudCellBuilder = Widget? Function(BuildContext context,
+    Map<String, dynamic> row, GridCol column, VoidCallback refresh);
 
 class CrudTable extends StatefulWidget {
   final Future<List<dynamic>> Function() load;
@@ -4010,6 +4376,7 @@ class CrudTable extends StatefulWidget {
   final ViewHandler? onView;
   final EditHandler? onApprove;
   final ExtraRowActionBuilder? extraAction;
+  final CrudCellBuilder? cellBuilder;
   final bool showDelete;
   final String? reportTitle;
   final String? archiveTableName;
@@ -4032,6 +4399,7 @@ class CrudTable extends StatefulWidget {
       this.onView,
       this.onApprove,
       this.extraAction,
+      this.cellBuilder,
       this.showDelete = true,
       this.showActions = true,
       this.reportTitle,
@@ -4329,6 +4697,10 @@ class _CrudTableState extends State<CrudTable> {
                   extraAction: widget.extraAction == null
                       ? null
                       : widget.extraAction!(context, rows[i], refresh),
+                  cellBuilder: widget.cellBuilder == null
+                      ? null
+                      : (cellContext, row, column) => widget.cellBuilder!(
+                          cellContext, row, column, refresh),
                   onDelete: widget.showActions && widget.showDelete
                       ? () => confirmDelete(context, rows[i])
                       : null,
@@ -4566,6 +4938,8 @@ class TableRowItem extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onApprove;
   final Widget? extraAction;
+  final Widget? Function(BuildContext context, Map<String, dynamic> row,
+      GridCol column)? cellBuilder;
   final VoidCallback? onDelete;
 
   const TableRowItem(
@@ -4578,6 +4952,7 @@ class TableRowItem extends StatelessWidget {
       this.onEdit,
       this.onApprove,
       this.extraAction,
+      this.cellBuilder,
       this.onDelete});
 
   @override
@@ -4591,7 +4966,8 @@ class TableRowItem extends StatelessWidget {
                 flex: col.flex,
                 child: Padding(
                     padding: const EdgeInsets.only(right: 10),
-                    child: tableCell(col, valueFor(row, col.key)))),
+                    child: cellBuilder?.call(context, row, col) ??
+                        tableCell(col, valueFor(row, col.key)))),
           SizedBox(
             width: actionWidth,
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -4708,14 +5084,30 @@ class StatusChip extends StatelessWidget {
       bg = const Color(0xFFDCFCE7);
       fg = const Color(0xFF166534);
     }
-    if (v.contains('renewal') || v.contains('due')) {
+    if (v.contains('renewal') ||
+        v.contains('due') ||
+        v.contains('waiting') ||
+        v == 'pending' ||
+        v.contains('conference')) {
       bg = const Color(0xFFFEF3C7);
       fg = const Color(0xFF92400E);
+    }
+    if (v.contains('responded on time') || v == 'resolved') {
+      bg = const Color(0xFFDCFCE7);
+      fg = const Color(0xFF166534);
+    }
+    if (v.contains('responded late') ||
+        v.contains('warning') ||
+        v.contains('waive')) {
+      bg = const Color(0xFFFFEDD5);
+      fg = const Color(0xFF9A3412);
     }
     if (v.contains('expired') ||
         v.contains('inactive') ||
         v.contains('separated') ||
-        v.contains('resigned')) {
+        v.contains('resigned') ||
+        v.contains('non-renewal') ||
+        v.contains('dismissal')) {
       bg = const Color(0xFFFEE2E2);
       fg = const Color(0xFF991B1B);
     }
@@ -5150,6 +5542,7 @@ Future<void> pickDateIntoController(
     {VoidCallback? afterPick}) async {
   final initial = parseFlexibleDate(controller.text) ?? DateTime.now();
   final picked = await showDatePicker(
+    initialEntryMode: DatePickerEntryMode.calendarOnly,
     context: context,
     initialDate: initial,
     firstDate: DateTime(1900),
@@ -5412,16 +5805,200 @@ Future<Map<String, dynamic>?> showRecordDialog(BuildContext context,
   return result;
 }
 
+const educationBackgroundStatusOptions = [
+  'Completed',
+  'On-going',
+  'Undergraduate'
+];
+
+class EducationBackgroundInput {
+  final TextEditingController educationLevel = TextEditingController();
+  final TextEditingController schoolGraduated = TextEditingController();
+  final TextEditingController degreeCourse = TextEditingController();
+  final TextEditingController yearGraduated = TextEditingController();
+  final TextEditingController status = TextEditingController(text: 'Completed');
+  final TextEditingController attachment = TextEditingController();
+  String attachmentUrl = '';
+  String attachmentFileName = '';
+  bool uploadingAttachment = false;
+
+  void dispose() {
+    educationLevel.dispose();
+    schoolGraduated.dispose();
+    degreeCourse.dispose();
+    yearGraduated.dispose();
+    status.dispose();
+    attachment.dispose();
+  }
+
+  bool get hasInput =>
+      educationLevel.text.trim().isNotEmpty ||
+      schoolGraduated.text.trim().isNotEmpty ||
+      degreeCourse.text.trim().isNotEmpty ||
+      yearGraduated.text.trim().isNotEmpty ||
+      status.text.trim().isNotEmpty ||
+      attachmentUrl.trim().isNotEmpty;
+
+  Map<String, dynamic> toMap() => <String, dynamic>{
+        'education_level': educationLevel.text.trim(),
+        'school_graduated': schoolGraduated.text.trim(),
+        'degree_course': degreeCourse.text.trim(),
+        'year_graduated': yearGraduated.text.trim(),
+        'status': status.text.trim(),
+        'attachment_url': attachmentUrl.trim(),
+      }..removeWhere(
+          (_, value) => value == null || value.toString().trim().isEmpty);
+}
+
+Widget educationBackgroundInputCard(
+  BuildContext context,
+  EducationBackgroundInput entry,
+  StateSetter setDialogState,
+  VoidCallback onRemove,
+) =>
+    Container(
+      width: 728,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _line),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.school_rounded, color: _primary, size: 20),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text('Educational Background',
+                style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+          ),
+          IconButton(
+            tooltip: 'Remove educational background',
+            onPressed: onRemove,
+            icon: const Icon(Icons.close_rounded, color: _danger),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        Wrap(spacing: 10, runSpacing: 10, children: [
+          SizedBox(
+            width: 342,
+            child: TextFormField(
+              controller: entry.educationLevel,
+              decoration:
+                  const InputDecoration(labelText: 'Educational Attainment'),
+            ),
+          ),
+          SizedBox(
+            width: 342,
+            child: TextFormField(
+              controller: entry.schoolGraduated,
+              decoration: const InputDecoration(labelText: 'School Graduated'),
+            ),
+          ),
+          SizedBox(
+            width: 342,
+            child: TextFormField(
+              controller: entry.degreeCourse,
+              decoration: const InputDecoration(labelText: 'Degree / Course'),
+            ),
+          ),
+          SizedBox(
+            width: 140,
+            child: TextFormField(
+              controller: entry.yearGraduated,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Year Graduated'),
+            ),
+          ),
+          SizedBox(
+            width: 190,
+            child: DropdownButtonFormField<String>(
+              isExpanded: true,
+              value:
+                  educationBackgroundStatusOptions.contains(entry.status.text)
+                      ? entry.status.text
+                      : 'Completed',
+              decoration: const InputDecoration(labelText: 'Status'),
+              items: educationBackgroundStatusOptions
+                  .map((status) => DropdownMenuItem<String>(
+                        value: status,
+                        child: Text(status,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13)),
+                      ))
+                  .toList(),
+              onChanged: (value) => setDialogState(
+                  () => entry.status.text = value ?? 'Completed'),
+            ),
+          ),
+          SizedBox(
+            width: 342,
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              OutlinedButton.icon(
+                onPressed: entry.uploadingAttachment
+                    ? null
+                    : () async {
+                        setDialogState(() => entry.uploadingAttachment = true);
+                        final uploaded =
+                            await pickAndUploadEducationPdf(context);
+                        if (!context.mounted) return;
+                        setDialogState(() {
+                          if (uploaded != null) {
+                            entry.attachmentUrl = uploaded.url;
+                            entry.attachmentFileName = uploaded.fileName;
+                            entry.attachment.text = uploaded.url;
+                          }
+                          entry.uploadingAttachment = false;
+                        });
+                      },
+                icon: entry.uploadingAttachment
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.picture_as_pdf_rounded),
+                label: Text(entry.uploadingAttachment
+                    ? 'Uploading...'
+                    : (entry.attachmentFileName.isEmpty
+                        ? 'Attach PDF'
+                        : 'Change PDF')),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                entry.attachmentFileName.isEmpty
+                    ? 'No PDF attached'
+                    : entry.attachmentFileName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: entry.attachmentFileName.isEmpty ? _muted : _ink,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12),
+              ),
+            ]),
+          ),
+        ]),
+      ]),
+    );
+
 class AddEmployeeFullResult {
   final Map<String, dynamic> employee;
   final Map<String, dynamic> contract;
   final List<Map<String, dynamic>> licenses;
   final List<Map<String, dynamic>> certificates;
-  const AddEmployeeFullResult(
-      {required this.employee,
-      required this.contract,
-      required this.licenses,
-      required this.certificates});
+  final List<Map<String, dynamic>> educationBackgrounds;
+  final Map<String, dynamic> appointment;
+
+  const AddEmployeeFullResult({
+    required this.employee,
+    required this.contract,
+    required this.licenses,
+    required this.certificates,
+    required this.educationBackgrounds,
+    required this.appointment,
+  });
 }
 
 Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
@@ -5449,6 +6026,13 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
   final durationMonths = TextEditingController();
   final contractEnd = TextEditingController();
   final contractStatus = TextEditingController();
+  final employeeAppointmentCategory = TextEditingController();
+  final employeeAppointmentTitle = TextEditingController();
+  final employeeAppointmentOtherDuties = TextEditingController();
+  final employeeAppointmentType = TextEditingController();
+  String employeeAppointmentAttachmentUrl = '';
+  String employeeAppointmentAttachmentFileName = '';
+  bool uploadingEmployeeAppointmentAttachment = false;
 
   String? gender = 'Male';
   String? civilStatus = 'Single';
@@ -5463,6 +6047,9 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
   bool isPartTimeEmployee() => employeeType == 'part_time';
   final selectedLicenses = <String, SelectedLicenseInput>{};
   final selectedCertificates = <String, SelectedCertificateInput>{};
+  final educationBackgrounds = <EducationBackgroundInput>[
+    EducationBackgroundInput(),
+  ];
 
   void recomputeContract() {
     final start = parseFlexibleDate(contractStart.text);
@@ -5545,6 +6132,19 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
             }..removeWhere(
                 (_, value) => value == null || value.toString().trim().isEmpty))
         .toList();
+    final educationRecords = educationBackgrounds
+        .where((entry) => entry.hasInput)
+        .map((entry) => entry.toMap())
+        .where((record) => record.isNotEmpty)
+        .toList();
+    final appointmentRecord = <String, dynamic>{
+      'category': employeeAppointmentCategory.text.trim(),
+      'appointment_title': employeeAppointmentTitle.text.trim(),
+      'other_duties': employeeAppointmentOtherDuties.text.trim(),
+      'appointment_type': employeeAppointmentType.text.trim(),
+      'attachment_url': employeeAppointmentAttachmentUrl.trim(),
+    }..removeWhere(
+        (_, value) => value == null || value.toString().trim().isEmpty);
     Navigator.pop(
         context,
         AddEmployeeFullResult(
@@ -5552,6 +6152,8 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
           contract: contract,
           licenses: licenses,
           certificates: certificates,
+          educationBackgrounds: educationRecords,
+          appointment: appointmentRecord,
         ));
   }
 
@@ -5721,6 +6323,40 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
                       textBox('Date Hired', dateHired,
                           date: true, required: !isPartTimeEmployee()),
                     ]),
+                    const SizedBox(height: 16),
+                    const DialogSectionTitle('Educational Background Records'),
+                    Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final entry in educationBackgrounds)
+                            educationBackgroundInputCard(
+                              context,
+                              entry,
+                              setDialogState,
+                              () => setDialogState(() {
+                                if (educationBackgrounds.length > 1) {
+                                  educationBackgrounds.remove(entry);
+                                  entry.dispose();
+                                } else {
+                                  entry.educationLevel.clear();
+                                  entry.schoolGraduated.clear();
+                                  entry.degreeCourse.clear();
+                                  entry.yearGraduated.clear();
+                                  entry.status.text = 'Completed';
+                                  entry.attachment.clear();
+                                  entry.attachmentUrl = '';
+                                  entry.attachmentFileName = '';
+                                }
+                              }),
+                            ),
+                          OutlinedButton.icon(
+                            onPressed: () => setDialogState(() =>
+                                educationBackgrounds
+                                    .add(EducationBackgroundInput())),
+                            icon: const Icon(Icons.add_rounded),
+                            label: const Text('Add Educational Background'),
+                          ),
+                        ]),
                     const SizedBox(height: 16),
                     const DialogSectionTitle('Contract Information'),
                     Wrap(spacing: 14, runSpacing: 14, children: [
@@ -5944,7 +6580,11 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
     contractStart,
     durationMonths,
     contractEnd,
-    contractStatus
+    contractStatus,
+    employeeAppointmentCategory,
+    employeeAppointmentTitle,
+    employeeAppointmentOtherDuties,
+    employeeAppointmentType
   ]) {
     c.dispose();
   }
@@ -5952,6 +6592,9 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
     entry.dispose();
   }
   for (final entry in selectedCertificates.values) {
+    entry.dispose();
+  }
+  for (final entry in educationBackgrounds) {
     entry.dispose();
   }
   return result;
@@ -5969,27 +6612,39 @@ Future<void> addEmployeeFull(BuildContext context, VoidCallback refresh) async {
   try {
     final inserted = await db
         .from('employees')
-        .insert(result.employee)
+        .insert(upperCaseDataMap(result.employee))
         .select('id')
         .single();
     final employeeId = inserted['id'];
 
-    if (result.contract.isNotEmpty) {
-      await db.from('employee_contracts').insert({
-        ...result.contract,
+    if (result.appointment.isNotEmpty) {
+      await db.from('employee_appointments').insert({
+        ...upperCaseDataMap(result.appointment),
         'employee_id': employeeId,
       });
+    }
+    if (result.contract.isNotEmpty) {
+      await db.from('employee_contracts').insert({
+        ...upperCaseDataMap(result.contract),
+        'employee_id': employeeId,
+      });
+    }
+    if (result.educationBackgrounds.isNotEmpty) {
+      await db.from('employee_educational_backgrounds').insert([
+        for (final education in result.educationBackgrounds)
+          {...upperCaseDataMap(education), 'employee_id': employeeId}
+      ]);
     }
     if (result.licenses.isNotEmpty) {
       await db.from('employee_licenses').insert([
         for (final license in result.licenses)
-          {...license, 'employee_id': employeeId}
+          {...upperCaseDataMap(license), 'employee_id': employeeId}
       ]);
     }
     if (result.certificates.isNotEmpty) {
       await db.from('employee_certificates').insert([
         for (final certificate in result.certificates)
-          {...certificate, 'employee_id': employeeId}
+          {...upperCaseDataMap(certificate), 'employee_id': employeeId}
       ]);
     }
 
@@ -6009,6 +6664,11 @@ Future<void> viewEmployee(
         .select()
         .eq('employee_id', row['id'])
         .order('contract_start_date', ascending: false);
+    final educationBackgrounds = await db
+        .from('employee_educational_backgrounds')
+        .select()
+        .eq('employee_id', row['id'])
+        .order('year_graduated', ascending: false);
     final licenses = await db
         .from('employee_licenses')
         .select()
@@ -6043,6 +6703,15 @@ Future<void> viewEmployee(
                 'School Graduated': 'school_graduated',
                 'Degree / Course': 'degree_course',
               }),
+              relatedSection('Educational Background Records',
+                  educationBackgrounds, const [
+                'education_level',
+                'school_graduated',
+                'degree_course',
+                'year_graduated',
+                'status',
+                'attachment_url'
+              ]),
               detailSection('Guardian Information', row, const {
                 'Guardian Name': 'guardian_name',
                 'Relationship': 'guardian_relationship',
@@ -6539,6 +7208,85 @@ String contractStatusFromEndDate(Object? value) {
   return 'On-going';
 }
 
+const appointmentCategoryOptions = <EditOption>[
+  EditOption('FULL-TIME', 'FULL-TIME'),
+  EditOption('PART-TIME', 'PART-TIME'),
+  EditOption('PROBATIONARY', 'PROBATIONARY'),
+  EditOption('COMPLIANCE', 'COMPLIANCE'),
+];
+
+const appointmentTypeOptions = <EditOption>[
+  EditOption('PACUCOA', 'PACUCOA'),
+  EditOption('RQUAT (CHED)', 'RQUAT (CHED)'),
+  EditOption('INSTITUTION', 'INSTITUTION'),
+  EditOption('BASIC ED', 'BASIC ED'),
+  EditOption('ESC', 'ESC'),
+  EditOption('DEPED', 'DEPED'),
+  EditOption('PEAC', 'PEAC'),
+];
+
+Widget searchableOptionBox(String label, TextEditingController controller,
+        List<EditOption> options,
+        {double width = 354}) =>
+    SizedBox(
+      width: width,
+      child: Autocomplete<EditOption>(
+        initialValue: TextEditingValue(text: controller.text),
+        displayStringForOption: (option) => option.label,
+        optionsBuilder: (value) {
+          final q = value.text.trim().toLowerCase();
+          final list = uniqueOptions(options).toList()
+            ..sort((a, b) => a.label.compareTo(b.label));
+          if (q.isEmpty) return list;
+          return list.where((x) =>
+              x.label.toLowerCase().contains(q) ||
+              x.value.toLowerCase().contains(q));
+        },
+        onSelected: (option) => controller.text = option.value,
+        fieldViewBuilder: (context, textController, focusNode, _) =>
+            TextFormField(
+          controller: textController,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+              labelText: label,
+              hintText: 'Select or type $label',
+              suffixIcon: const Icon(Icons.search_rounded)),
+          validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+          onChanged: (v) => controller.text = v,
+        ),
+      ),
+    );
+
+Future<UploadedAttachment?> pickAndUploadAppointmentPdf(
+    BuildContext context) async {
+  final file = await pickPdfFileOrNull();
+  if (file == null) return null;
+  if (!file.name.toLowerCase().endsWith('.pdf') &&
+      file.type != 'application/pdf') {
+    showSnack(context, 'Only PDF files are allowed.');
+    return null;
+  }
+  try {
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(file);
+    await reader.onLoad.first;
+    final result = reader.result;
+    final bytes =
+        result is ByteBuffer ? Uint8List.view(result) : result as Uint8List;
+    final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+    final uploadPath =
+        'appointments/${DateTime.now().millisecondsSinceEpoch}_$safeName';
+    await db.storage.from('hr-attachments').uploadBinary(uploadPath, bytes,
+        fileOptions:
+            const FileOptions(contentType: 'application/pdf', upsert: true));
+    return UploadedAttachment(
+        db.storage.from('hr-attachments').getPublicUrl(uploadPath), file.name);
+  } catch (e) {
+    showSnack(context, 'Appointment PDF upload failed: $e');
+    return null;
+  }
+}
+
 Future<html.File?> pickPdfFileOrNull() async {
   final input = html.FileUploadInputElement()
     ..accept = 'application/pdf,.pdf'
@@ -6586,6 +7334,45 @@ Future<UploadedAttachment?> pickAndUploadContractPdf(
     return UploadedAttachment(url, file.name);
   } catch (e) {
     showSnack(context, 'PDF upload failed: $e');
+    return null;
+  }
+}
+
+Future<UploadedAttachment?> pickAndUploadEducationPdf(
+    BuildContext context) async {
+  final file = await pickPdfFileOrNull();
+  if (file == null) return null;
+
+  final lowerName = file.name.toLowerCase();
+  if (!lowerName.endsWith('.pdf') && file.type != 'application/pdf') {
+    showSnack(context, 'Only PDF files are allowed.');
+    return null;
+  }
+
+  try {
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(file);
+    await reader.onLoad.first;
+    final result = reader.result;
+    late final Uint8List bytes;
+    if (result is ByteBuffer) {
+      bytes = Uint8List.view(result);
+    } else if (result is Uint8List) {
+      bytes = result;
+    } else {
+      throw Exception('Unable to read selected PDF file.');
+    }
+
+    final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+    final uploadPath =
+        'education/${DateTime.now().millisecondsSinceEpoch}_$safeName';
+    await db.storage.from('hr-attachments').uploadBinary(uploadPath, bytes,
+        fileOptions:
+            const FileOptions(contentType: 'application/pdf', upsert: true));
+    final url = db.storage.from('hr-attachments').getPublicUrl(uploadPath);
+    return UploadedAttachment(url, file.name);
+  } catch (e) {
+    showSnack(context, 'Education PDF upload failed: $e');
     return null;
   }
 }
@@ -7265,7 +8052,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                                         controller: entry.expiry,
                                         decoration: const InputDecoration(
                                             labelText: 'Expiry Date',
-                                            hintText: 'January 02, 2026'),
+                                            hintText: 'MM/DD/YYYY'),
                                         validator: (v) {
                                           if (v == null || v.trim().isEmpty)
                                             return 'Required';
@@ -7714,7 +8501,7 @@ Future<void> saveCredentialRecords(
     String label) async {
   try {
     for (final record in records) {
-      final data = Map<String, dynamic>.from(record);
+      final data = upperCaseDataMap(Map<String, dynamic>.from(record));
       final id = data.remove('id');
       if (id == null) {
         await db.from(tableName).insert(data);
@@ -8054,7 +8841,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                                         controller: entry.expiry,
                                         decoration: const InputDecoration(
                                             labelText: 'Expiry Date',
-                                            hintText: 'January 02, 2026'),
+                                            hintText: 'MM/DD/YYYY'),
                                         validator: (v) {
                                           if (v == null || v.trim().isEmpty)
                                             return 'Required';
@@ -8291,40 +9078,117 @@ Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row,
 
 Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
     VoidCallback refresh) async {
-  final appliedRank = emptyToNull(row['applied_rank_text']);
-  final appliedSalary = row['applied_salary'];
-  if (appliedRank == null && appliedSalary == null) {
-    showSnack(context, 'No applied rank to approve.');
-    return;
-  }
-  final ok = await showDialog<bool>(
+  final normalized = normalizeRow(row);
+  final formKey = GlobalKey<FormState>();
+  final todayText = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+  final dateController = TextEditingController(
+      text: formatEditValue(normalized['approved_date']).isEmpty
+          ? todayText
+          : formatEditValue(normalized['approved_date']));
+  bool useToday = formatEditValue(normalized['approved_date']).isEmpty;
+
+  final approvedDate = await showDialog<String>(
     context: context,
-    builder: (_) => AlertDialog(
-      title: const Text('Approve Applied Rank?'),
-      content: Text(
-          'This will approve ${formatValue(row['applied_rank_text'])} for ${formatValue(valueFor(row, 'employee_name'))}.'),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel')),
-        FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Approve')),
-      ],
+    builder: (_) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('Approve Ranking'),
+        content: SizedBox(
+          width: 520,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ReadOnlyEmployeeBox(formatValue(normalized['employee_name'])),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: dateController,
+                  readOnly: useToday,
+                  decoration: const InputDecoration(
+                    labelText: 'Approved Date',
+                    hintText: 'MM/DD/YYYY',
+                    suffixIcon: Icon(Icons.calendar_month_rounded),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Approved date is required';
+                    }
+                    if (parseFlexibleDate(value.trim()) == null) {
+                      return 'Use January 02, 2026 or MM/DD/YYYY';
+                    }
+                    return null;
+                  },
+                  onTap: useToday
+                      ? null
+                      : () async {
+                          final selected = await showDatePicker(
+                            context: context,
+                            initialEntryMode: DatePickerEntryMode.calendarOnly,
+                            initialDate:
+                                parseFlexibleDate(dateController.text) ??
+                                    DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (selected != null) {
+                            setDialogState(() => dateController.text =
+                                DateFormat('MMMM dd, yyyy').format(selected));
+                          }
+                        },
+                ),
+                const SizedBox(height: 10),
+                CheckboxListTile(
+                  value: useToday,
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: const Text('Today'),
+                  subtitle: const Text(
+                      'Check this to automatically use today as the approved date.'),
+                  onChanged: (value) => setDialogState(() {
+                    useToday = value == true;
+                    if (useToday) dateController.text = todayText;
+                  }),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton.icon(
+            onPressed: () {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.pop(context, dateController.text.trim());
+            },
+            icon: const Icon(Icons.check_circle_rounded),
+            label: const Text('Approve'),
+          ),
+        ],
+      ),
     ),
   );
-  if (ok != true) return;
+
+  dateController.dispose();
+  if (approvedDate == null) return;
+
   try {
-    await db.from('ranking_applications').update({
-      'approved_rank_text': row['applied_rank_text'],
-      'approved_salary': row['applied_salary'],
-      'approved_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', row['id']);
-    showSnack(context, 'Applied rank approved.');
+    await db
+        .from('ranking_applications')
+        .update(upperCaseDataMap({
+          'approved_rank_text': normalized['applied_rank_text'],
+          'approved_salary': normalized['applied_salary'],
+          'approved_date': toIsoDateInput(approvedDate),
+          'updated_at': DateTime.now().toIso8601String(),
+        }))
+        .eq('id', row['id']);
     refresh();
+    if (context.mounted) showSnack(context, 'Ranking approved.');
   } catch (e) {
-    showSnack(context, 'Approval failed: $e');
+    if (context.mounted) showSnack(context, 'Approve Ranking Failed: $e');
   }
 }
 
@@ -8763,14 +9627,15 @@ void applyRankSalaryForEmployee(
 Future<void> saveRow(BuildContext context, String table, Object? id,
     Map<String, dynamic> data, VoidCallback refresh) async {
   try {
-    data.removeWhere((key, value) => key == 'id');
-    data['updated_at'] = DateTime.now().toIso8601String();
+    final cleanData = upperCaseDataMap(data);
+    cleanData.removeWhere((key, value) => key == 'id');
+    cleanData['updated_at'] = DateTime.now().toIso8601String();
     if (id == null) {
-      await db.from(table).insert(data);
+      await db.from(table).insert(cleanData);
       showSnack(context, 'Record Added.');
     } else {
       await archiveOldContractBeforeUpdate(table, id);
-      await db.from(table).update(data).eq('id', id);
+      await db.from(table).update(cleanData).eq('id', id);
       showSnack(context, 'Record Updated.');
     }
     refresh();
@@ -9649,18 +10514,28 @@ DateTime? parseFlexibleDate(Object? value) {
   if (value == null) return null;
   final text = value.toString().trim();
   if (text.isEmpty || text == '-') return null;
+
+  final compact = RegExp(r'^(\d{2})(\d{2})(\d{4})$').firstMatch(text);
+  if (compact != null) {
+    try {
+      return DateFormat('MM/dd/yyyy').parseStrict(
+          '${compact.group(1)!}/${compact.group(2)!}/${compact.group(3)!}');
+    } catch (_) {}
+  }
+
   final iso = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(text);
-  if (iso != null)
+  if (iso != null) {
     return DateTime.tryParse('${iso.group(1)}-${iso.group(2)}-${iso.group(3)}');
+  }
   for (final pattern in const [
+    'MM/dd/yyyy',
+    'M/d/yyyy',
+    'MM-dd-yyyy',
+    'M-d-yyyy',
     'MMMM dd, yyyy',
     'MMMM d, yyyy',
     'MMM dd, yyyy',
     'MMM d, yyyy',
-    'MM-dd-yyyy',
-    'M-d-yyyy',
-    'MM/dd/yyyy',
-    'M/d/yyyy'
   ]) {
     try {
       return DateFormat(pattern).parseStrict(text);
@@ -9763,4 +10638,385 @@ String escapeHtml(String input) => input
 
 void showSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
+
+const incidentResponseStatuses = <String>[
+  'Waiting for Response',
+  'Responded On Time',
+  'Responded Late',
+  'Waive the Right',
+];
+
+const incidentNodStatuses = <String>[
+  'Pending',
+  'Resolved',
+  '1st Warning',
+  '2nd Warning',
+  '3rd Warning',
+  'For Conference',
+  'Non-Renewal',
+  'Dismissal',
+];
+
+String incidentStatusValue(Object? raw, List<String> options, String fallback) {
+  final value = '${raw ?? ''}'.trim();
+  return options.contains(value) ? value : fallback;
+}
+
+Widget incidentStatusDropdown({
+  required BuildContext context,
+  required Map<String, dynamic> row,
+  required String field,
+  required List<String> options,
+  required String fallback,
+  required VoidCallback refresh,
+}) {
+  final value = incidentStatusValue(row[field], options, fallback);
+  return DropdownButtonHideUnderline(
+    child: DropdownButton<String>(
+      value: value,
+      isExpanded: true,
+      icon: const Icon(Icons.arrow_drop_down_rounded, size: 18),
+      borderRadius: BorderRadius.circular(14),
+      selectedItemBuilder: (_) => [
+        for (final option in options)
+          Align(alignment: Alignment.centerLeft, child: StatusChip(option)),
+      ],
+      items: [
+        for (final option in options)
+          DropdownMenuItem<String>(
+            value: option,
+            child: Text(option,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12.5)),
+          ),
+      ],
+      onChanged: (next) async {
+        if (next == null || next == value) return;
+        try {
+          await db.from('incident_reports').update({field: next}).eq('id', row['id']);
+          refresh();
+          if (context.mounted) showSnack(context, '${titleCase(field)} Updated.');
+        } catch (e) {
+          if (context.mounted) showSnack(context, 'Update Failed: $e');
+        }
+      },
+    ),
+  );
+}
+
+Future<List<dynamic>> loadIncidentReports({int limit = 1500}) => db
+    .from('incident_reports')
+    .select(
+        'id, employee_id, ir, date_submitted, nte_date_received, explanation_date_submitted, response_status, nod, date_received, employees(full_name)')
+    .order('date_submitted', ascending: false)
+    .limit(limit);
+
+class IncidentReportPage extends StatelessWidget {
+  const IncidentReportPage({super.key});
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Incident Report',
+        subtitle:
+            'Track employee IR, NTE, explanation deadline, NOD, and received dates.',
+        child: CrudTable(
+          load: () => activeOnlyRows(loadIncidentReports()),
+          searchHint: 'Search employee, IR, NTE, explanation, or NOD',
+          addLabel: 'Add Incident Report',
+          reportTitle: 'Incident Report',
+          archiveTableName: 'incident_reports',
+          archiveModuleName: 'Incident Report',
+          columns: const [
+            GridCol('employee_name', 'Employee', flex: 3, primary: true),
+            GridCol('ir', 'IR', flex: 2),
+            GridCol('date_submitted', 'Date Submitted', flex: 2),
+            GridCol('nte_date_received', 'NTE Date Received', flex: 2),
+            GridCol('explanation_date_submitted', 'Explanation Date Submitted',
+                flex: 2),
+            GridCol('response_status', 'Response Status',
+                flex: 2, isStatus: true),
+            GridCol('nod', 'NOD', flex: 2, isStatus: true),
+            GridCol('date_received', 'Date Received', flex: 2),
+          ],
+          onAdd: (ctx, refresh) => editIncidentReport(ctx, null, refresh),
+          cellBuilder: (ctx, row, column, refresh) {
+            if (column.key == 'response_status') {
+              return incidentStatusDropdown(
+                context: ctx,
+                row: row,
+                field: 'response_status',
+                options: incidentResponseStatuses,
+                fallback: 'Waiting for Response',
+                refresh: refresh,
+              );
+            }
+            if (column.key == 'nod') {
+              return incidentStatusDropdown(
+                context: ctx,
+                row: row,
+                field: 'nod',
+                options: incidentNodStatuses,
+                fallback: 'Pending',
+                refresh: refresh,
+              );
+            }
+            return null;
+          },
+          onView: viewIncidentReport,
+          onEdit: editIncidentReport,
+          onDelete: (row) =>
+              db.from('incident_reports').delete().eq('id', row['id']),
+        ),
+      );
+}
+
+String? incidentReportComputedExplanationDate(String nteText) {
+  final parsed = parseFlexibleDate(nteText);
+  if (parsed == null) return null;
+  return DateFormat('yyyy-MM-dd').format(parsed.add(const Duration(days: 3)));
+}
+
+String incidentReportDateEditText(dynamic value) {
+  final text = formatEditValue(value);
+  if (text.trim().isEmpty) return '';
+  final parsed = parseFlexibleDate(text);
+  return parsed == null ? text : DateFormat('MM/dd/yyyy').format(parsed);
+}
+
+Widget incidentReportDateBox({
+  required BuildContext context,
+  required String label,
+  required TextEditingController controller,
+  bool readOnly = false,
+  bool required = false,
+  String? helperText,
+  ValueChanged<String>? onChanged,
+}) =>
+    SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        enableInteractiveSelection: false,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: readOnly ? null : 'MM/DD/YYYY',
+          helperText: helperText,
+          suffixIcon: const Icon(Icons.calendar_month_rounded),
+          fillColor: readOnly ? _surfaceSoft : null,
+        ),
+        validator: readOnly
+            ? null
+            : (value) {
+                final text = value?.trim() ?? '';
+                if (required && text.isEmpty) return 'Required';
+                if (text.isNotEmpty && parseFlexibleDate(text) == null) {
+                  return 'Invalid date';
+                }
+                return null;
+              },
+        onTap: readOnly
+            ? null
+            : () => pickDateIntoController(
+                  context,
+                  controller,
+                  afterPick: () => onChanged?.call(controller.text),
+                ),
+      ),
+    );
+
+Future<Map<String, dynamic>?> showIncidentReportDialog(
+    BuildContext context, Map<String, dynamic>? row) async {
+  final isAdd = row == null;
+  final source = normalizeRow(row ?? {});
+  final employees = await employeeOptions();
+  String? employeeId = isAdd ? null : source['employee_id']?.toString();
+
+  final ir = TextEditingController(text: formatEditValue(source['ir']));
+  final dateSubmitted = TextEditingController(
+      text: incidentReportDateEditText(source['date_submitted']));
+  final nteDateReceived = TextEditingController(
+      text: incidentReportDateEditText(source['nte_date_received']));
+  final explanationDate = TextEditingController(
+      text: incidentReportDateEditText(
+          source['explanation_date_submitted']));
+  final dateReceived = TextEditingController(
+      text: incidentReportDateEditText(source['date_received']));
+
+  final formKey = GlobalKey<FormState>();
+
+  void recomputeExplanationDate() {
+    final computed =
+        incidentReportComputedExplanationDate(nteDateReceived.text);
+    explanationDate.text = computed == null
+        ? ''
+        : DateFormat('MM/dd/yyyy').format(parseFlexibleDate(computed)!);
+  }
+
+  if (explanationDate.text.trim().isEmpty &&
+      nteDateReceived.text.trim().isNotEmpty) {
+    recomputeExplanationDate();
+  }
+
+  final result = await showDialog<Map<String, dynamic>>(
+    context: context,
+    builder: (_) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: Text(isAdd ? 'Add Incident Report' : 'Edit Incident Report'),
+        content: SizedBox(
+          width: 820,
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const DialogSectionTitle('Employee Information'),
+                  if (isAdd)
+                    employeeAutocompleteField(
+                      employees: employees,
+                      employeeId: employeeId,
+                      width: 728,
+                      onEmployeeChanged: (value) =>
+                          setDialogState(() => employeeId = value),
+                    )
+                  else
+                    ReadOnlyEmployeeBox(linkedEmployeeName(source)),
+                  const SizedBox(height: 16),
+                  const DialogSectionTitle('Incident Report Information'),
+                  Wrap(spacing: 14, runSpacing: 14, children: [
+                    SizedBox(
+                      width: 354,
+                      child: TextFormField(
+                        controller: ir,
+                        decoration: const InputDecoration(labelText: 'Incident Report'),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                                ? 'Required'
+                                : null,
+                      ),
+                    ),
+                    incidentReportDateBox(
+                      context: context,
+                      label: 'Date Submitted',
+                      controller: dateSubmitted,
+                    ),
+                    incidentReportDateBox(
+                      context: context,
+                      label: 'NTE Date Received',
+                      controller: nteDateReceived,
+                      onChanged: (_) =>
+                          setDialogState(recomputeExplanationDate),
+                    ),
+                    if (!isAdd)
+                      incidentReportDateBox(
+                        context: context,
+                        label: 'Explanation Date Submitted',
+                        controller: explanationDate,
+                        readOnly: true,
+                        helperText: 'Auto-computed: 3 days after NTE date',
+                      ),
+                    if (!isAdd)
+                      incidentReportDateBox(
+                        context: context,
+                        label: 'Date Received',
+                        controller: dateReceived,
+                      ),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              recomputeExplanationDate();
+              if (!formKey.currentState!.validate()) return;
+              Navigator.pop(
+                  context,
+                  <String, dynamic>{
+                    if (isAdd) 'employee_id': employeeId,
+                    'ir': ir.text.trim(),
+                    'date_submitted': toIsoDateInput(dateSubmitted.text),
+                    'nte_date_received': toIsoDateInput(nteDateReceived.text),
+                    'explanation_date_submitted':
+                        incidentReportComputedExplanationDate(
+                            nteDateReceived.text),
+                    if (isAdd) 'response_status': 'Waiting for Response',
+                    if (isAdd) 'nod': 'Pending',
+                    'date_received': toIsoDateInput(dateReceived.text),
+                  }..removeWhere((_, value) =>
+                      value == null || value.toString().trim().isEmpty));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  // Navigator.pop completes the dialog future before the route's reverse
+  // transition has necessarily finished. Keep these controllers alive until
+  // the closing widgets have been fully removed from the tree; disposing them
+  // immediately can trigger Flutter's _dependents.isEmpty assertion on web.
+  await Future<void>.delayed(const Duration(milliseconds: 300));
+  for (final controller in [
+    ir,
+    dateSubmitted,
+    nteDateReceived,
+    explanationDate,
+    dateReceived,
+  ]) {
+    controller.dispose();
+  }
+
+  return result;
+}
+
+Future<void> editIncidentReport(BuildContext context, Map<String, dynamic>? row,
+    VoidCallback refresh) async {
+  final data = await showIncidentReportDialog(context, row);
+  if (data == null) return;
+  await saveRow(context, 'incident_reports', row == null ? null : row['id'],
+      data, refresh);
+}
+
+Future<void> viewIncidentReport(
+    BuildContext context, Map<String, dynamic> row) async {
+  final normalized = normalizeRow(row);
+  await showDialog<void>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title:
+          Text('Incident Report - ${formatValue(normalized['employee_name'])}'),
+      content: SizedBox(
+        width: 820,
+        child: SingleChildScrollView(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            detailSection('Incident Report Information', normalized, const {
+              'Employee': 'employee_name',
+              'IR': 'ir',
+              'Date Submitted': 'date_submitted',
+              'NTE Date Received': 'nte_date_received',
+              'Explanation Date Submitted': 'explanation_date_submitted',
+              'Response Status': 'response_status',
+              'NOD': 'nod',
+              'Date Received': 'date_received',
+            }),
+          ]),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close')),
+      ],
+    ),
+  );
 }
