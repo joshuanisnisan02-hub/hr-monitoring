@@ -10890,7 +10890,7 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                       width: 354,
                       child: TextFormField(
                         controller: ir,
-                        decoration: const InputDecoration(labelText: 'IR'),
+                        decoration: const InputDecoration(labelText: 'Incident Report'),
                         validator: (value) =>
                             value == null || value.trim().isEmpty
                                 ? 'Required'
@@ -10909,18 +10909,20 @@ Future<Map<String, dynamic>?> showIncidentReportDialog(
                       onChanged: (_) =>
                           setDialogState(recomputeExplanationDate),
                     ),
-                    incidentReportDateBox(
-                      context: context,
-                      label: 'Explanation Date Submitted',
-                      controller: explanationDate,
-                      readOnly: true,
-                      helperText: 'Auto-computed: 3 days after NTE date',
-                    ),
-                    incidentReportDateBox(
-                      context: context,
-                      label: 'Date Received',
-                      controller: dateReceived,
-                    ),
+                    if (!isAdd)
+                      incidentReportDateBox(
+                        context: context,
+                        label: 'Explanation Date Submitted',
+                        controller: explanationDate,
+                        readOnly: true,
+                        helperText: 'Auto-computed: 3 days after NTE date',
+                      ),
+                    if (!isAdd)
+                      incidentReportDateBox(
+                        context: context,
+                        label: 'Date Received',
+                        controller: dateReceived,
+                      ),
                   ]),
                 ],
               ),
