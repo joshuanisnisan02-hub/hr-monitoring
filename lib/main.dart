@@ -3674,19 +3674,19 @@ class _RankingPageState extends State<RankingPage> {
               showColumnDividers: true,
               columns: const [
                 GridCol('employee_name', 'Employee Name',
-                    flex: 4, primary: true),
-                GridCol('appointment_title', 'Appointment', flex: 3),
+                    flex: 5, primary: true),
+                GridCol('appointment_title', 'Appointment', flex: 4),
                 GridCol('previous_rank_text', 'Previous Rank', flex: 3),
                 GridCol('previous_salary', 'Basic Salary',
-                    flex: 2, isMoney: true),
+                    flex: 3, isMoney: true),
                 GridCol('applied_rank_text', 'Rank Applied', flex: 3),
                 GridCol('applied_salary', 'Basic Salary Adjustment',
-                    flex: 3, isMoney: true),
+                    flex: 4, isMoney: true),
                 GridCol('points_earned', 'Points Earned',
-                    flex: 2, isNumber: true),
+                    flex: 3, isNumber: true),
                 GridCol('approved_rank_text', 'Approved Rank', flex: 3),
-                GridCol('approved_date', 'Approved Date', flex: 2),
-                GridCol('effective_date', 'Effective Date', flex: 2),
+                GridCol('approved_date', 'Approved Date', flex: 3),
+                GridCol('effective_date', 'Effective Date', flex: 3),
               ],
               onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
               onView: viewRanking,
@@ -4978,7 +4978,8 @@ class TableHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => onSort(col.key),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: showColumnDividers ? 5 : 12),
                     child: Row(children: [
                       Expanded(
                           child: Text(col.label,
@@ -4990,7 +4991,7 @@ class TableHeader extends StatelessWidget {
                               style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   color: _ink,
-                                  fontSize: 13.5,
+                                  fontSize: showColumnDividers ? 11.5 : 13.5,
                                   height: 1.15))),
                       if (sortKey == col.key)
                         Icon(
@@ -5065,7 +5066,8 @@ class TableRowItem extends StatelessWidget {
                                 right: BorderSide(
                                     color: Color(0xFFE2E8F0), width: 1)))
                         : null,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: showColumnDividers ? 5 : 12),
                     child: cellBuilder?.call(context, row, col) ??
                         tableCell(
                           col,
@@ -5132,7 +5134,7 @@ Widget tableCell(GridCol col, Object? raw, {bool wrapText = false}) {
           style: TextStyle(
               fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500,
               color: _ink,
-              fontSize: 12.5,
+              fontSize: wrapText ? 11.5 : 12.5,
               height: 1.15)));
 }
 
