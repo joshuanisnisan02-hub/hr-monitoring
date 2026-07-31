@@ -9330,129 +9330,45 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
     builder: (dialogContext) => AlertDialog(
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 6),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 22),
-      title: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.how_to_reg_rounded,
-              color: Color(0xFF16A34A),
-              size: 27,
-            ),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Approve Faculty Ranking?',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Please confirm this action',
-                  style: TextStyle(
-                    color: _muted,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 14, 24, 10),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 4, 24, 18),
+      title: const Text(
+        'Approve Faculty Ranking?',
+        style: TextStyle(
+          color: _ink,
+          fontSize: 19,
+          fontWeight: FontWeight.w700,
+        ),
       ),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 450),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: _surfaceSoft,
-            border: Border.all(color: _line),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.lock_outline_rounded,
-                color: Color(0xFFEA580C),
-                size: 19,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 13,
-                      height: 1.35,
-                    ),
-                    children: [
-                      const TextSpan(text: 'Approve ranking for '),
-                      TextSpan(
-                        text: employeeName,
-                        style: const TextStyle(
-                          color: _ink,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const TextSpan(
-                        text: '? Ranking details will be locked.',
-                        style: TextStyle(
-                          color: Color(0xFF9A3412),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+      content: SizedBox(
+        width: 390,
+        child: Text(
+          'Are you sure you want to approve the ranking for $employeeName? Ranking details will be locked.',
+          style: const TextStyle(
+            color: _muted,
+            fontSize: 14,
+            height: 1.45,
           ),
         ),
       ),
       actions: [
-        OutlinedButton(
+        TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _muted,
-            side: const BorderSide(color: _line),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
           child: const Text('Cancel'),
         ),
-        FilledButton.icon(
+        FilledButton(
           onPressed: () => Navigator.pop(dialogContext, true),
-          icon: const Icon(Icons.check_rounded, size: 18),
-          label: const Text('Approve'),
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF16A34A),
+            backgroundColor: _primary,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
+          child: const Text('Approve'),
         ),
       ],
     ),
