@@ -745,8 +745,14 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      session == null ? const LoginPage() : const ShellPage();
+  Widget build(BuildContext context) {
+    final current = session;
+    if (current == null) return const LoginPage();
+    if (current.user.appMetadata['must_change_password'] == true) {
+      return const ForcePasswordChangePage();
+    }
+    return const ShellPage();
+  }
 }
 
 class LoginPage extends StatefulWidget {
@@ -757,23 +763,33 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final emailController = TextEditingController();
+  final usernameController = TextEditingController();
   final passwordController = TextEditingController();
   bool loading = false;
   bool obscurePassword = true;
 
   @override
   void dispose() {
-    emailController.dispose();
+    usernameController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
   Future<void> login() async {
-    final email = emailController.text.trim();
+    final username = usernameController.text.trim().toLowerCase();
     final password = passwordController.text;
-    if (email.isEmpty || password.isEmpty) {
-      showSnack(context, 'Please enter email and password.');
+    const accounts = <String, String>{
+      'admin': 'admin@hr-monitoring.local',
+      'humres': 'hr@hr-monitoring.local',
+      'increp': 'ir@hr-monitoring.local',
+    };
+    final email = accounts[username];
+    if (username.isEmpty || password.isEmpty) {
+      showSnack(context, 'Please enter username and password.');
+      return;
+    }
+    if (email == null) {
+      showSnack(context, 'Login failed. Please check your credentials.');
       return;
     }
     setState(() => loading = true);
@@ -783,7 +799,8 @@ class _LoginPageState extends State<LoginPage> {
       if (result.session == null && mounted)
         showSnack(context, 'Login failed. Please check your credentials.');
     } catch (e) {
-      if (mounted) showSnack(context, 'Login failed: $e');
+      if (mounted)
+        showSnack(context, 'Login failed. Please check your credentials.');
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -836,11 +853,13 @@ class _LoginPageState extends State<LoginPage> {
                               color: _muted, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 28),
                       TextField(
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
+                        controller: usernameController,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        autofillHints: const [AutofillHints.username],
                         decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.email_outlined)),
+                            labelText: 'Username',
+                            prefixIcon: Icon(Icons.person_outline_rounded)),
                         onSubmitted: (_) => login(),
                       ),
                       const SizedBox(height: 14),
@@ -873,6 +892,151 @@ class _LoginPageState extends State<LoginPage> {
                         label: Text(loading ? 'Signing in...' : 'Login'),
                       ),
                     ]),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class ForcePasswordChangePage extends StatefulWidget {
+  const ForcePasswordChangePage({super.key});
+
+  @override
+  State<ForcePasswordChangePage> createState() =>
+      _ForcePasswordChangePageState();
+}
+
+class _ForcePasswordChangePageState extends State<ForcePasswordChangePage> {
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+  bool loading = false;
+  bool obscureNewPassword = true;
+  bool obscureConfirmPassword = true;
+
+  @override
+  void dispose() {
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> changePassword() async {
+    final newPassword = newPasswordController.text;
+    final confirmation = confirmPasswordController.text;
+    if (newPassword.length < 10) {
+      showSnack(context, 'Use at least 10 characters for your new password.');
+      return;
+    }
+    if (newPassword != confirmation) {
+      showSnack(context, 'The passwords do not match.');
+      return;
+    }
+
+    setState(() => loading = true);
+    try {
+      await db.auth.updateUser(UserAttributes(password: newPassword));
+      await db.auth.refreshSession();
+      if (mounted) {
+        showSnack(context, 'Password changed successfully.');
+        setState(() {});
+      }
+    } catch (_) {
+      if (mounted)
+        showSnack(context, 'Password change failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 520,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Icon(Icons.password_rounded,
+                        size: 48, color: _primary),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Change Your Password',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: _ink),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'For security, create a new password before continuing.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: _muted),
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: newPasswordController,
+                      obscureText: obscureNewPassword,
+                      enabled: !loading,
+                      decoration: InputDecoration(
+                        labelText: 'New Password',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: IconButton(
+                          onPressed: loading
+                              ? null
+                              : () => setState(() => obscureNewPassword =
+                                  !obscureNewPassword),
+                          icon: Icon(obscureNewPassword
+                              ? Icons.visibility_rounded
+                              : Icons.visibility_off_rounded),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: obscureConfirmPassword,
+                      enabled: !loading,
+                      onSubmitted: (_) => changePassword(),
+                      decoration: InputDecoration(
+                        labelText: 'Confirm New Password',
+                        prefixIcon: const Icon(Icons.lock_reset_rounded),
+                        suffixIcon: IconButton(
+                          onPressed: loading
+                              ? null
+                              : () => setState(() => obscureConfirmPassword =
+                                  !obscureConfirmPassword),
+                          icon: Icon(obscureConfirmPassword
+                              ? Icons.visibility_rounded
+                              : Icons.visibility_off_rounded),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    FilledButton.icon(
+                      onPressed: loading ? null : changePassword,
+                      icon: loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.check_circle_outline_rounded),
+                      label:
+                          Text(loading ? 'Changing...' : 'Change Password'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: loading ? null : () => db.auth.signOut(),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
