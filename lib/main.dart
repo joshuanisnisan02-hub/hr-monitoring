@@ -5067,8 +5067,13 @@ class TableRowItem extends StatelessWidget {
                         : null,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: cellBuilder?.call(context, row, col) ??
-                        tableCell(col, valueFor(row, col.key),
-                            wrapText: showColumnDividers)))),
+                        tableCell(
+                          col,
+                          valueFor(row, col.key),
+                          wrapText: showColumnDividers,
+                        ),
+                  ),
+                ),
           SizedBox(
             width: actionWidth,
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
