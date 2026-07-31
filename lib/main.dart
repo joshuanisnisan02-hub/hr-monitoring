@@ -7056,27 +7056,70 @@ Future<List<String>> licenseNameOptions() async {
   return out;
 }
 
+const certificateCategories = <String>[
+  'National Certificate I',
+  'National Certificate II',
+  'National Certificate III',
+  'National Certificate IV',
+  'Trainer Methodology Certificate I',
+  'Trainer Methodology Certificate II',
+  'Other Certificates',
+];
+
+String certificateCategoryForName(String name) {
+  final value = name.trim().toUpperCase();
+  if (value.isEmpty) return 'Other Certificates';
+
+  final isTrainerMethodology =
+      value.contains('TRAINER METHODOLOGY') ||
+      RegExp(r'(^|\\s)TM(\\s|$)').hasMatch(value);
+
+  if (isTrainerMethodology) {
+    if (RegExp(r'(TM\\s*II|METHODOLOGY CERTIFICATE\\s*II)(?:\\s|\\)|$)')
+        .hasMatch(value)) {
+      return 'Trainer Methodology Certificate II';
+    }
+    return 'Trainer Methodology Certificate I';
+  }
+
+  if (RegExp(r'NC\\s*IV(?:\\s|\\)|$)').hasMatch(value)) {
+    return 'National Certificate IV';
+  }
+  if (RegExp(r'NC\\s*III(?:\\s|\\)|$)').hasMatch(value)) {
+    return 'National Certificate III';
+  }
+  if (RegExp(r'NC\\s*II(?:\\s|\\)|$)').hasMatch(value)) {
+    return 'National Certificate II';
+  }
+  if (RegExp(r'NC\\s*I(?:\\s|\\)|$)').hasMatch(value)) {
+    return 'National Certificate I';
+  }
+  return 'Other Certificates';
+}
+
+bool isCertificateCategoryLabel(String name) {
+  final value = name.trim().toUpperCase();
+  return const <String>{
+    'NATIONAL CERTIFICATE I (NC I)',
+    'NATIONAL CERTIFICATE II (NC II)',
+    'NATIONAL CERTIFICATE III (NC III)',
+    'NATIONAL CERTIFICATE IV (NC IV)',
+    'TRAINER METHODOLOGY CERTIFICATE I (TM I)',
+    'TRAINER METHODOLOGY CERTIFICATE II (TM II)',
+  }.contains(value);
+}
+
 Future<List<String>> certificateNameOptions() async {
-  const defaults = <String>[
-    'National Certificate I (NC I)',
-    'National Certificate II (NC II)',
-    'National Certificate III (NC III)',
-    'National Certificate IV (NC IV)',
-    'Trainer Methodology Certificate I (TM I)',
-    'Trainer Methodology Certificate II (TM II)',
-  ];
   final seen = <String>{};
   final out = <String>[];
+
   void addName(String name) {
     final clean = name.trim();
-    if (clean.isEmpty) return;
+    if (clean.isEmpty || isCertificateCategoryLabel(clean)) return;
     final key = clean.toLowerCase();
     if (seen.add(key)) out.add(clean);
   }
 
-  for (final item in defaults) {
-    addName(item);
-  }
   try {
     final rows = await db
         .from('employee_certificates')
@@ -7087,6 +7130,15 @@ Future<List<String>> certificateNameOptions() async {
       addName('${r['certificate_name'] ?? ''}');
     }
   } catch (_) {}
+
+  out.sort((a, b) {
+    final categoryCompare = certificateCategories
+        .indexOf(certificateCategoryForName(a))
+        .compareTo(certificateCategories.indexOf(certificateCategoryForName(b)));
+    return categoryCompare != 0
+        ? categoryCompare
+        : a.toLowerCase().compareTo(b.toLowerCase());
+  });
   return out;
 }
 
@@ -8772,6 +8824,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
     List<String> certificates) async {
   final formKey = GlobalKey<FormState>();
   String? employeeId;
+  String selectedCategory = certificateCategories.first;
   final selected = <String, SelectedCertificateInput>{};
 
   final result = await showDialog<List<Map<String, dynamic>>>(
@@ -8796,38 +8849,94 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                           setDialogState(() => employeeId = value),
                     ),
                     const SizedBox(height: 16),
-                    const DialogSectionTitle('Certificate Checklist'),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 8,
-                      children: [
-                        for (final cert in certificates)
-                          SizedBox(
-                            width: 278,
-                            child: CheckboxListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              title: Text(cert,
+                    const DialogSectionTitle('Certificate Category'),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Select Certificate Category',
+                        prefixIcon: Icon(Icons.workspace_premium_rounded),
+                      ),
+                      items: [
+                        for (final category in certificateCategories)
+                          DropdownMenuItem<String>(
+                            value: category,
+                            child: Text(category),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() => selectedCategory = value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DialogSectionTitle(
+                      '$selectedCategory Options',
+                    ),
+                    Builder(builder: (context) {
+                      final visibleCertificates = certificates
+                          .where((certificate) =>
+                              certificateCategoryForName(certificate) ==
+                              selectedCategory)
+                          .toList();
+                      if (visibleCertificates.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: _line),
+                          ),
+                          child: Text(
+                            'No certificate options are available under $selectedCategory yet.',
+                            style: const TextStyle(
+                              color: _muted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        );
+                      }
+                      return Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: [
+                          for (final cert in visibleCertificates)
+                            SizedBox(
+                              width: 278,
+                              child: CheckboxListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                title: Text(
+                                  cert,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: _ink)),
-                              value: selected.containsKey(cert),
-                              onChanged: (checked) => setDialogState(() {
-                                if (checked == true) {
-                                  selected.putIfAbsent(cert,
-                                      () => SelectedCertificateInput(cert));
-                                } else {
-                                  selected.remove(cert)?.dispose();
-                                }
-                              }),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: _ink,
+                                  ),
+                                ),
+                                value: selected.containsKey(cert),
+                                onChanged: (checked) =>
+                                    setDialogState(() {
+                                  if (checked == true) {
+                                    selected.putIfAbsent(
+                                      cert,
+                                      () => SelectedCertificateInput(cert),
+                                    );
+                                  } else {
+                                    selected.remove(cert)?.dispose();
+                                  }
+                                }),
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
+                        ],
+                      );
+                    }),
                     const SizedBox(height: 16),
                     const DialogSectionTitle('Selected Certificates'),
                     if (selected.isEmpty)
