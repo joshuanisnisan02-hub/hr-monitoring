@@ -3670,7 +3670,7 @@ class _RankingPageState extends State<RankingPage> {
               reportTitle: _rankingReportTitle(),
               archiveTableName: 'ranking_applications',
               archiveModuleName: 'Ranking',
-              minTableWidth: 1800,
+              minTableWidth: 0,
               showColumnDividers: true,
               columns: const [
                 GridCol('employee_name', 'Employee Name',
@@ -4982,8 +4982,11 @@ class TableHeader extends StatelessWidget {
                     child: Row(children: [
                       Expanded(
                           child: Text(col.label,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              maxLines: showColumnDividers ? 4 : 2,
+                              softWrap: true,
+                              overflow: showColumnDividers
+                                  ? TextOverflow.visible
+                                  : TextOverflow.ellipsis,
                               style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   color: _ink,
@@ -5064,7 +5067,8 @@ class TableRowItem extends StatelessWidget {
                         : null,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: cellBuilder?.call(context, row, col) ??
-                        tableCell(col, valueFor(row, col.key)))),
+                        tableCell(col, valueFor(row, col.key),
+                            wrapText: showColumnDividers)))),
           SizedBox(
             width: actionWidth,
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -5104,7 +5108,7 @@ class TableRowItem extends StatelessWidget {
       );
 }
 
-Widget tableCell(GridCol col, Object? raw) {
+Widget tableCell(GridCol col, Object? raw, {bool wrapText = false}) {
   if (col.isStatus)
     return Align(
         alignment: Alignment.centerLeft, child: StatusChip(formatValue(raw)));
@@ -5117,8 +5121,9 @@ Widget tableCell(GridCol col, Object? raw) {
       message: text,
       waitDuration: const Duration(milliseconds: 600),
       child: Text(text,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          maxLines: wrapText ? null : 2,
+          softWrap: true,
+          overflow: wrapText ? TextOverflow.visible : TextOverflow.ellipsis,
           style: TextStyle(
               fontWeight: col.primary ? FontWeight.w800 : FontWeight.w500,
               color: _ink,
