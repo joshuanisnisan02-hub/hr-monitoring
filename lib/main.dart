@@ -9380,60 +9380,48 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 450),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: _surfaceSoft,
             border: Border.all(color: _line),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              const Text(
-                'You are about to approve the ranking for:',
-                style: TextStyle(color: _muted, fontSize: 13),
+              const Icon(
+                Icons.lock_outline_rounded,
+                color: Color(0xFFEA580C),
+                size: 19,
               ),
-              const SizedBox(height: 7),
-              Text(
-                employeeName,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7ED),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.lock_outline_rounded,
-                      color: Color(0xFFEA580C),
-                      size: 18,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 13,
+                      height: 1.35,
                     ),
-                    SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        'After approval, the ranking details will be locked.',
-                        style: TextStyle(
-                          color: Color(0xFF9A3412),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
+                    children: [
+                      const TextSpan(text: 'Approve ranking for '),
+                      TextSpan(
+                        text: employeeName,
+                        style: const TextStyle(
+                          color: _ink,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    ),
-                  ],
+                      const TextSpan(
+                        text: '? Ranking details will be locked.',
+                        style: TextStyle(
+                          color: Color(0xFF9A3412),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
