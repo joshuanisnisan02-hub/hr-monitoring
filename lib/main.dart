@@ -8832,8 +8832,11 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
     builder: (_) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
         title: const Text('Add Certificate'),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
         content: SizedBox(
           width: 1040,
+          height: MediaQuery.sizeOf(context).height * 0.76,
           child: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -8844,7 +8847,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                     employeeAutocompleteField(
                       employees: employees,
                       employeeId: employeeId,
-                      width: 430,
+                      width: 1016,
                       onEmployeeChanged: (value) =>
                           setDialogState(() => employeeId = value),
                     ),
@@ -8898,43 +8901,60 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                           ),
                         );
                       }
-                      return Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        children: [
-                          for (final cert in visibleCertificates)
-                            SizedBox(
-                              width: 278,
-                              child: CheckboxListTile(
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _line),
+                        ),
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final cert in visibleCertificates)
+                              Container(
+                                width: 320,
+                                constraints: const BoxConstraints(minHeight: 68),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: _line),
+                                ),
+                                child: CheckboxListTile(
+                                  dense: false,
+                                  contentPadding: EdgeInsets.zero,
                                 controlAffinity:
                                     ListTileControlAffinity.leading,
-                                title: Text(
-                                  cert,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                                  title: Text(
+                                    cert,
+                                    maxLines: 3,
+                                    softWrap: true,
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: _ink,
                                   ),
                                 ),
-                                value: selected.containsKey(cert),
-                                onChanged: (checked) =>
-                                    setDialogState(() {
-                                  if (checked == true) {
-                                    selected.putIfAbsent(
-                                      cert,
-                                      () => SelectedCertificateInput(cert),
-                                    );
-                                  } else {
-                                    selected.remove(cert)?.dispose();
-                                  }
-                                }),
+                                  value: selected.containsKey(cert),
+                                  onChanged: (checked) =>
+                                      setDialogState(() {
+                                    if (checked == true) {
+                                      selected.putIfAbsent(
+                                        cert,
+                                        () => SelectedCertificateInput(cert),
+                                      );
+                                    } else {
+                                      selected.remove(cert)?.dispose();
+                                    }
+                                  }),
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       );
                     }),
                     const SizedBox(height: 16),
@@ -8953,9 +8973,11 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                                 color: _muted, fontWeight: FontWeight.w700)),
                       )
                     else
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Container(
+                          width: 1016,
+                          decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: _line)),
@@ -9117,7 +9139,8 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                                                     : entry.status))),
                                   ]),
                             ),
-                        ]),
+                          ]),
+                        ),
                       ),
                   ]),
             ),
