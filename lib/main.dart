@@ -1467,7 +1467,7 @@ bool isPartTimeEvaluationRow(Map<String, dynamic> row) {
 Future<List<dynamic>> loadRankings({int limit = 1500}) => db
     .from('ranking_applications')
     .select(
-        'id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, approved_date, employees(full_name), ranking_cycles(name)')
+        'id, employee_id, cycle_id, appointment, previous_rank_text, previous_salary, applied_rank_text, applied_salary, points_earned, approved_rank_text, approved_salary, approved_date, effective_date, employees(full_name), ranking_cycles(name)')
     .order('points_earned', ascending: false)
     .limit(limit);
 
@@ -3682,6 +3682,7 @@ class _RankingPageState extends State<RankingPage> {
                 GridCol('points_earned', 'Points Earned', isNumber: true),
                 GridCol('approved_rank_text', 'Approved Rank', flex: 2),
                 GridCol('approved_date', 'Approved Date'),
+                GridCol('effective_date', 'Effective Date'),
               ],
               onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
               onView: viewRanking,
@@ -6194,7 +6195,33 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
         ));
   }
 
-  Widget textBox(String label, TextEditingController controller,
+  Widget rankingDatePickerBox(BuildContext context, String label,
+        TextEditingController controller) =>
+    SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.datetime,
+        inputFormatters: [DateSlashInputFormatter()],
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: 'MM/DD/YYYY',
+          suffixIcon: IconButton(
+            tooltip: 'Pick date',
+            icon: const Icon(Icons.calendar_month_rounded),
+            onPressed: () => pickDateIntoController(context, controller),
+          ),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) return 'Required';
+          if (parseFlexibleDate(value.trim()) == null) return 'Invalid date';
+          return null;
+        },
+        onTap: () => pickDateIntoController(context, controller),
+      ),
+    );
+
+Widget textBox(String label, TextEditingController controller,
       {bool required = true,
       int lines = 1,
       bool date = false,
@@ -9306,99 +9333,65 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
   final normalized = normalizeRow(row);
   final formKey = GlobalKey<FormState>();
   final todayText = DateFormat('MMMM dd, yyyy').format(DateTime.now());
-  final dateController = TextEditingController(
+  final approvedDateController = TextEditingController(
       text: formatEditValue(normalized['approved_date']).isEmpty
           ? todayText
           : formatEditValue(normalized['approved_date']));
-  bool useToday = formatEditValue(normalized['approved_date']).isEmpty;
+  final effectiveDateController = TextEditingController(
+      text: formatEditValue(normalized['effective_date']).isEmpty
+          ? todayText
+          : formatEditValue(normalized['effective_date']));
 
-  final approvedDate = await showDialog<String>(
+  final dates = await showDialog<Map<String, String>>(
     context: context,
-    builder: (_) => StatefulBuilder(
-      builder: (context, setDialogState) => AlertDialog(
-        title: const Text('Approve Ranking'),
-        content: SizedBox(
-          width: 520,
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ReadOnlyEmployeeBox(formatValue(normalized['employee_name'])),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: dateController,
-                  readOnly: useToday,
-                  decoration: const InputDecoration(
-                    labelText: 'Approved Date',
-                    hintText: 'MM/DD/YYYY',
-                    suffixIcon: Icon(Icons.calendar_month_rounded),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Approved date is required';
-                    }
-                    if (parseFlexibleDate(value.trim()) == null) {
-                      return 'Use January 02, 2026 or MM/DD/YYYY';
-                    }
-                    return null;
-                  },
-                  onTap: useToday
-                      ? null
-                      : () async {
-                          final selected = await showDatePicker(
-                            context: context,
-                            initialEntryMode: DatePickerEntryMode.calendarOnly,
-                            initialDate:
-                                parseFlexibleDate(dateController.text) ??
-                                    DateTime.now(),
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                          );
-                          if (selected != null) {
-                            setDialogState(() => dateController.text =
-                                DateFormat('MMMM dd, yyyy').format(selected));
-                          }
-                        },
-                ),
-                const SizedBox(height: 10),
-                CheckboxListTile(
-                  value: useToday,
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Today'),
-                  subtitle: const Text(
-                      'Check this to automatically use today as the approved date.'),
-                  onChanged: (value) => setDialogState(() {
-                    useToday = value == true;
-                    if (useToday) dateController.text = todayText;
-                  }),
-                ),
-              ],
-            ),
+    builder: (_) => AlertDialog(
+      title: const Text('Approve Ranking'),
+      content: SizedBox(
+        width: 520,
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ReadOnlyEmployeeBox(formatValue(normalized['employee_name'])),
+              const SizedBox(height: 16),
+              rankingDatePickerBox(
+                  context, 'Approved Date', approvedDateController),
+              const SizedBox(height: 14),
+              rankingDatePickerBox(
+                  context, 'Effective Date', effectiveDateController),
+              const SizedBox(height: 10),
+              const Text(
+                'After approval, the ranking details will be locked. Approved Date and Effective Date can still be corrected through Edit.',
+                style: TextStyle(color: _muted, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          FilledButton.icon(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context, dateController.text.trim());
-            },
-            icon: const Icon(Icons.check_circle_rounded),
-            label: const Text('Approve'),
-          ),
-        ],
       ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+        FilledButton.icon(
+          onPressed: () {
+            if (!formKey.currentState!.validate()) return;
+            Navigator.pop(context, {
+              'approved_date': approvedDateController.text.trim(),
+              'effective_date': effectiveDateController.text.trim(),
+            });
+          },
+          icon: const Icon(Icons.check_circle_rounded),
+          label: const Text('Approve'),
+        ),
+      ],
     ),
   );
 
-  dateController.dispose();
-  if (approvedDate == null) return;
+  approvedDateController.dispose();
+  effectiveDateController.dispose();
+  if (dates == null) return;
 
   try {
     await db
@@ -9406,7 +9399,8 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
         .update(upperCaseDataMap({
           'approved_rank_text': normalized['applied_rank_text'],
           'approved_salary': normalized['applied_salary'],
-          'approved_date': toIsoDateInput(approvedDate),
+          'approved_date': toIsoDateInput(dates['approved_date']),
+          'effective_date': toIsoDateInput(dates['effective_date']),
           'updated_at': DateTime.now().toIso8601String(),
         }))
         .eq('id', row['id']);
@@ -9456,6 +9450,9 @@ Future<Map<String, dynamic>?> showRankingDialog(
     Map<String, dynamic>? initial,
     Map<String, String> appointmentByEmployee) async {
   final isAdd = initial == null;
+  final isApproved = !isAdd &&
+      (formatEditValue(initial?['approved_date']).isNotEmpty ||
+          formatEditValue(initial?['approved_rank_text']).isNotEmpty);
   final formKey = GlobalKey<FormState>();
   String? employeeId = isAdd ? null : initial?['employee_id']?.toString();
   String selectedEmployeeName = isAdd ? '' : linkedEmployeeName(initial);
@@ -9473,6 +9470,10 @@ Future<Map<String, dynamic>?> showRankingDialog(
       TextEditingController(text: formatMoneyEdit(initial?['applied_salary']));
   final points =
       TextEditingController(text: formatEditValue(initial?['points_earned']));
+  final approvedDate = TextEditingController(
+      text: formatEditValue(initial?['approved_date']));
+  final effectiveDate = TextEditingController(
+      text: formatEditValue(initial?['effective_date']));
 
   Future<void> pickRank(
       TextEditingController rank, TextEditingController salary) async {
@@ -9624,13 +9625,23 @@ Future<Map<String, dynamic>?> showRankingDialog(
                 else
                   textBox('Previous Rank', previousRank, readOnly: true),
                 textBox('Previous Salary', previousSalary,
-                    kind: FieldKind.number),
+                    kind: FieldKind.number, readOnly: isApproved),
                 if (!isAdd) ...[
-                  textBox('Points Earned', points, kind: FieldKind.number),
-                  rankAutocompleteBox('Applied Rank', appliedRank,
-                      appliedSalary, ranks, selectedEmployeeName),
+                  textBox('Points Earned', points,
+                      kind: FieldKind.number, readOnly: isApproved),
+                  if (isApproved)
+                    textBox('Applied Rank', appliedRank, readOnly: true)
+                  else
+                    rankAutocompleteBox('Applied Rank', appliedRank,
+                        appliedSalary, ranks, selectedEmployeeName),
                   textBox('Applied Salary', appliedSalary,
-                      kind: FieldKind.number),
+                      kind: FieldKind.number, readOnly: isApproved),
+                  if (isApproved) ...[
+                    rankingDatePickerBox(
+                        context, 'Approved Date', approvedDate),
+                    rankingDatePickerBox(
+                        context, 'Effective Date', effectiveDate),
+                  ],
                 ],
                 SizedBox(
                     width: 728,
@@ -9643,7 +9654,9 @@ Future<Map<String, dynamic>?> showRankingDialog(
                         child: Text(
                             isAdd
                                 ? 'Select Employee, then pick the Previous Rank to auto-fill Previous Salary. You can still manually edit the Previous Salary before saving. Applied rank and points can be updated later using Edit.'
-                                : 'Employee name is locked here. Use the table Approve button to approve the applied rank.',
+                                : isApproved
+                                    ? 'This ranking is approved. Ranking details are locked; only Approved Date and Effective Date remain editable.'
+                                    : 'Employee name is locked here. Use the table Approve button to approve the applied rank.',
                             style: const TextStyle(
                                 color: Color(0xFF1E3A8A),
                                 fontWeight: FontWeight.w600)))),
@@ -9673,6 +9686,12 @@ Future<Map<String, dynamic>?> showRankingDialog(
                   'applied_salary': parseMoneyInput(appliedSalary.text),
                   'points_earned': num.tryParse(points.text.trim()),
                 });
+                if (isApproved) {
+                  out.addAll({
+                    'approved_date': toIsoDateInput(approvedDate.text),
+                    'effective_date': toIsoDateInput(effectiveDate.text),
+                  });
+                }
               }
               Navigator.of(context, rootNavigator: true).pop(out);
             },
@@ -9689,7 +9708,9 @@ Future<Map<String, dynamic>?> showRankingDialog(
     previousSalary,
     appliedRank,
     appliedSalary,
-    points
+    points,
+    approvedDate,
+    effectiveDate
   ]) {
     c.dispose();
   }
