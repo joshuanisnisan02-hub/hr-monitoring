@@ -3670,20 +3670,21 @@ class _RankingPageState extends State<RankingPage> {
               reportTitle: _rankingReportTitle(),
               archiveTableName: 'ranking_applications',
               archiveModuleName: 'Ranking',
-              minTableWidth: 1500,
+              minTableWidth: 1800,
+              showColumnDividers: true,
               columns: const [
                 GridCol('employee_name', 'Employee Name',
-                    flex: 3, primary: true),
+                    flex: 4, primary: true),
                 GridCol('appointment_title', 'Appointment', flex: 3),
-                GridCol('previous_rank_text', 'Previous Rank', flex: 2),
+                GridCol('previous_rank_text', 'Previous Rank', flex: 3),
                 GridCol('previous_salary', 'Basic Salary',
                     flex: 2, isMoney: true),
-                GridCol('applied_rank_text', 'Rank Applied', flex: 2),
+                GridCol('applied_rank_text', 'Rank Applied', flex: 3),
                 GridCol('applied_salary', 'Basic Salary Adjustment',
-                    flex: 2, isMoney: true),
+                    flex: 3, isMoney: true),
                 GridCol('points_earned', 'Points Earned',
                     flex: 2, isNumber: true),
-                GridCol('approved_rank_text', 'Approved Rank', flex: 2),
+                GridCol('approved_rank_text', 'Approved Rank', flex: 3),
                 GridCol('approved_date', 'Approved Date', flex: 2),
                 GridCol('effective_date', 'Effective Date', flex: 2),
               ],
@@ -4424,6 +4425,7 @@ class CrudTable extends StatefulWidget {
   final List<int> pageSizeOptions;
   final int initialPageSize;
   final double minTableWidth;
+  final bool showColumnDividers;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
   final bool showActions;
@@ -4449,6 +4451,7 @@ class CrudTable extends StatefulWidget {
       this.pageSizeOptions = const [1, 10, 100],
       this.initialPageSize = 10,
       this.minTableWidth = 0,
+      this.showColumnDividers = false,
       required this.onDelete});
 
   @override
@@ -4720,6 +4723,7 @@ class _CrudTableState extends State<CrudTable> {
                           sortAscending: sortAscending,
                           showActions: widget.showActions,
                           actionWidth: actionWidth,
+                          showColumnDividers: widget.showColumnDividers,
                           onSort: (key) {
                             setState(() {
                               if (sortKey == key) {
@@ -4743,6 +4747,7 @@ class _CrudTableState extends State<CrudTable> {
                   columns: widget.columns,
                   index: i,
                   actionWidth: actionWidth,
+                  showColumnDividers: widget.showColumnDividers,
                   onView: !widget.showActions || widget.onView == null
                       ? null
                       : () => widget.onView!(context, rows[i]),
@@ -4941,6 +4946,7 @@ class TableHeader extends StatelessWidget {
   final bool sortAscending;
   final bool showActions;
   final double actionWidth;
+  final bool showColumnDividers;
   final ValueChanged<String> onSort;
 
   const TableHeader(
@@ -4950,6 +4956,7 @@ class TableHeader extends StatelessWidget {
       required this.sortAscending,
       required this.showActions,
       required this.actionWidth,
+      this.showColumnDividers = false,
       required this.onSort});
 
   @override
@@ -4960,28 +4967,37 @@ class TableHeader extends StatelessWidget {
           for (final col in columns)
             Expanded(
               flex: col.flex,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => onSort(col.key),
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Row(children: [
-                    Expanded(
-                        child: Text(col.label,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: _ink,
-                                fontSize: 13))),
-                    if (sortKey == col.key)
-                      Icon(
-                          sortAscending
-                              ? Icons.arrow_upward_rounded
-                              : Icons.arrow_downward_rounded,
-                          size: 15,
-                          color: _primary),
-                  ]),
+              child: Container(
+                decoration: showColumnDividers
+                    ? const BoxDecoration(
+                        border: Border(
+                            right: BorderSide(
+                                color: Color(0xFFD8E0EC), width: 1)))
+                    : null,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => onSort(col.key),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(children: [
+                      Expanded(
+                          child: Text(col.label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: _ink,
+                                  fontSize: 13.5,
+                                  height: 1.15))),
+                      if (sortKey == col.key)
+                        Icon(
+                            sortAscending
+                                ? Icons.arrow_upward_rounded
+                                : Icons.arrow_downward_rounded,
+                            size: 15,
+                            color: _primary),
+                    ]),
+                  ),
                 ),
               ),
             ),
@@ -5003,6 +5019,7 @@ class TableRowItem extends StatelessWidget {
   final List<GridCol> columns;
   final int index;
   final double actionWidth;
+  final bool showColumnDividers;
   final VoidCallback? onView;
   final VoidCallback? onEdit;
   final VoidCallback? onApprove;
@@ -5018,6 +5035,7 @@ class TableRowItem extends StatelessWidget {
       required this.columns,
       required this.index,
       required this.actionWidth,
+      this.showColumnDividers = false,
       this.onView,
       this.onEdit,
       this.onApprove,
@@ -5035,8 +5053,16 @@ class TableRowItem extends StatelessWidget {
           for (final col in columns)
             Expanded(
                 flex: col.flex,
-                child: Padding(
-                    padding: const EdgeInsets.only(right: 10),
+                child: Container(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    alignment: Alignment.centerLeft,
+                    decoration: showColumnDividers
+                        ? const BoxDecoration(
+                            border: Border(
+                                right: BorderSide(
+                                    color: Color(0xFFE2E8F0), width: 1)))
+                        : null,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: cellBuilder?.call(context, row, col) ??
                         tableCell(col, valueFor(row, col.key)))),
           SizedBox(
