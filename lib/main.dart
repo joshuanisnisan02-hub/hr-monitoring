@@ -6967,20 +6967,74 @@ Future<List<EditOption>> employeeOptions() async {
   return uniqueOptions(options);
 }
 
+String licenseFullDescription(Object? value) {
+  final raw = '${value ?? ''}'.trim();
+  if (raw.isEmpty) return '';
+  final key = raw
+      .toUpperCase()
+      .replaceAll(RegExp(r'[^A-Z0-9]+'), ' ')
+      .replaceAll(RegExp(r'\\s+'), ' ')
+      .trim();
+  const descriptions = <String, String>{
+    'LPT': 'Licensed Professional Teacher',
+    'LICENSED PROFESSIONAL TEACHER LPT': 'Licensed Professional Teacher',
+    'LICENSED PROFESSIONAL TEACHER': 'Licensed Professional Teacher',
+    'RCRIM': 'Registered Criminologist',
+    'REGISTERED CRIMINOLOGIST RCRIM': 'Registered Criminologist',
+    'REGISTERED CRIMINOLOGIST': 'Registered Criminologist',
+    'RN': 'Registered Nurse',
+    'REGISTERED NURSE RN': 'Registered Nurse',
+    'REGISTERED NURSE': 'Registered Nurse',
+    'RSW': 'Registered Social Worker',
+    'REGISTERED SOCIAL WORKER RSW': 'Registered Social Worker',
+    'REGISTERED SOCIAL WORKER': 'Registered Social Worker',
+    'RL': 'Registered Librarian',
+    'REGISTERED LIBRARIAN RL': 'Registered Librarian',
+    'REGISTERED LIBRARIAN': 'Registered Librarian',
+    'REB': 'Real Estate Broker',
+    'REAL ESTATE BROKER REB': 'Real Estate Broker',
+    'REAL ESTATE BROKER': 'Real Estate Broker',
+    'REA': 'Real Estate Appraiser',
+    'REAL ESTATE APPRAISER REA': 'Real Estate Appraiser',
+    'REAL ESTATE APPRAISER': 'Real Estate Appraiser',
+    'RPM': 'Registered Psychometrician',
+    'REGISTERED PSYCHOMETRICIAN RPM': 'Registered Psychometrician',
+    'REGISTERED PSYCHOMETRICIAN': 'Registered Psychometrician',
+    'RGC': 'Registered Guidance Counselor',
+    'RCG': 'Registered Guidance Counselor',
+    'REGISTERED GUIDANCE COUNSELOR RGC': 'Registered Guidance Counselor',
+    'REGISTERED GUIDANCE COUNSELOR': 'Registered Guidance Counselor',
+    'CPA': 'Certified Public Accountant',
+    'CERTIFIED PUBLIC ACCOUNTANT CPA': 'Certified Public Accountant',
+    'CERTIFIED PUBLIC ACCOUNTANT': 'Certified Public Accountant',
+    'PRC': 'Professional Regulation Commission License',
+    'PRC LICENSE': 'Professional Regulation Commission License',
+    'PROFESSIONAL REGULATION COMMISSION PRC LICENSE':
+        'Professional Regulation Commission License',
+    'PROFESSIONAL REGULATION COMMISSION LICENSE':
+        'Professional Regulation Commission License',
+  };
+  return descriptions[key] ?? raw;
+}
+
 Future<List<String>> licenseNameOptions() async {
   const defaults = <String>[
-    'Licensed Professional Teacher (LPT)',
-    'Registered Criminologist (RCRIM)',
-    'Registered Nurse (RN)',
-    'Registered Social Worker (RSW)',
-    'Registered Librarian (RL)',
-    'Real Estate Broker (REB)',
-    'Professional Regulation Commission (PRC) License',
+    'Licensed Professional Teacher',
+    'Registered Criminologist',
+    'Registered Nurse',
+    'Registered Social Worker',
+    'Registered Librarian',
+    'Real Estate Broker',
+    'Real Estate Appraiser',
+    'Registered Psychometrician',
+    'Registered Guidance Counselor',
+    'Certified Public Accountant',
+    'Professional Regulation Commission License',
   ];
   final seen = <String>{};
   final out = <String>[];
   void addName(String name) {
-    final clean = name.trim();
+    final clean = licenseFullDescription(name);
     if (clean.isEmpty) return;
     final key = clean.toLowerCase();
     if (seen.add(key)) out.add(clean);
@@ -7948,7 +8002,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                     employeeAutocompleteField(
                       employees: employees,
                       employeeId: employeeId,
-                      width: 430,
+                      width: 1016,
                       onEmployeeChanged: (value) =>
                           setDialogState(() => employeeId = value),
                     ),
@@ -7959,17 +8013,27 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                       runSpacing: 8,
                       children: [
                         for (final license in licenses)
-                          SizedBox(
-                            width: 278,
+                          Container(
+                            width: 328,
+                            constraints: const BoxConstraints(minHeight: 64),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _surfaceSoft,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: _line),
+                            ),
                             child: CheckboxListTile(
-                              dense: true,
+                              dense: false,
                               contentPadding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
                               controlAffinity: ListTileControlAffinity.leading,
-                              title: Text(license,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                              title: Text(licenseFullDescription(license),
+                                  maxLines: 3,
+                                  softWrap: true,
                                   style: const TextStyle(
                                       fontSize: 13,
+                                      height: 1.25,
                                       fontWeight: FontWeight.w700,
                                       color: _ink)),
                               value: selected.containsKey(license),
@@ -8152,16 +8216,6 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                                                   fontWeight: FontWeight.w700),
                                             ),
                                           ]),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      flex: 2,
-                                      child: TextFormField(
-                                        controller: entry.attachment,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Attachment (PDF)',
-                                            hintText: 'PDF URL'),
-                                      ),
                                     ),
                                     const SizedBox(width: 10),
                                     SizedBox(
