@@ -6195,33 +6195,7 @@ Future<AddEmployeeFullResult?> showAddEmployeeFullDialog(
         ));
   }
 
-  Widget rankingDatePickerBox(BuildContext context, String label,
-        TextEditingController controller) =>
-    SizedBox(
-      width: 354,
-      child: TextFormField(
-        controller: controller,
-        keyboardType: TextInputType.datetime,
-        inputFormatters: [DateSlashInputFormatter()],
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: 'MM/DD/YYYY',
-          suffixIcon: IconButton(
-            tooltip: 'Pick date',
-            icon: const Icon(Icons.calendar_month_rounded),
-            onPressed: () => pickDateIntoController(context, controller),
-          ),
-        ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) return 'Required';
-          if (parseFlexibleDate(value.trim()) == null) return 'Invalid date';
-          return null;
-        },
-        onTap: () => pickDateIntoController(context, controller),
-      ),
-    );
-
-Widget textBox(String label, TextEditingController controller,
+  Widget textBox(String label, TextEditingController controller,
       {bool required = true,
       int lines = 1,
       bool date = false,
@@ -9716,6 +9690,32 @@ Future<Map<String, dynamic>?> showRankingDialog(
   }
   return result;
 }
+
+Widget rankingDatePickerBox(BuildContext context, String label,
+        TextEditingController controller) =>
+    SizedBox(
+      width: 354,
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.datetime,
+        inputFormatters: [DateSlashInputFormatter()],
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: 'MM/DD/YYYY',
+          suffixIcon: IconButton(
+            tooltip: 'Pick date',
+            icon: const Icon(Icons.calendar_month_rounded),
+            onPressed: () => pickDateIntoController(context, controller),
+          ),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) return 'Required';
+          if (parseFlexibleDate(value.trim()) == null) return 'Invalid date';
+          return null;
+        },
+        onTap: () => pickDateIntoController(context, controller),
+      ),
+    );
 
 Widget textBox(String label, TextEditingController controller,
         {FieldKind kind = FieldKind.text, bool readOnly = false}) =>
