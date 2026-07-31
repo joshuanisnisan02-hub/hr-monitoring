@@ -5537,11 +5537,12 @@ void openPdfAttachment(BuildContext context, Object? rawUrl) {
 
 class DialogSectionTitle extends StatelessWidget {
   final String title;
-  const DialogSectionTitle(this.title, {super.key});
+  final double width;
+  const DialogSectionTitle(this.title, {super.key, this.width = 728});
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 728,
+        width: width,
         child: Container(
           margin: const EdgeInsets.only(top: 14, bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -8050,7 +8051,7 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const DialogSectionTitle('Employee Information'),
+                    const DialogSectionTitle('Employee Information', width: double.infinity),
                     employeeAutocompleteField(
                       employees: employees,
                       employeeId: employeeId,
@@ -8058,18 +8059,18 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                       onEmployeeChanged: (value) =>
                           setDialogState(() => employeeId = value),
                     ),
-                    const SizedBox(height: 16),
-                    const DialogSectionTitle('License Checklist'),
+                    const SizedBox(height: 20),
+                    const DialogSectionTitle('License Checklist', width: double.infinity),
                     Wrap(
                       spacing: 10,
-                      runSpacing: 8,
+                      runSpacing: 10,
                       children: [
                         for (final license in licenses)
                           Container(
                             width: 328,
-                            constraints: const BoxConstraints(minHeight: 64),
+                            constraints: const BoxConstraints(minHeight: 72),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 4),
+                                horizontal: 8, vertical: 6),
                             decoration: BoxDecoration(
                               color: _surfaceSoft,
                               borderRadius: BorderRadius.circular(14),
@@ -8077,7 +8078,8 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                             ),
                             child: CheckboxListTile(
                               dense: false,
-                              contentPadding: EdgeInsets.zero,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
                               visualDensity: VisualDensity.compact,
                               controlAffinity: ListTileControlAffinity.leading,
                               title: Text(licenseFullDescription(license),
@@ -8101,8 +8103,8 @@ Future<List<Map<String, dynamic>>?> showAddLicenseDialog(BuildContext context,
                           ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    const DialogSectionTitle('Selected Licenses'),
+                    const SizedBox(height: 20),
+                    const DialogSectionTitle('Selected Licenses', width: double.infinity),
                     if (selected.isEmpty)
                       Container(
                         width: double.infinity,
