@@ -8845,7 +8845,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const DialogSectionTitle('Employee Information'),
+                    const DialogSectionTitle('Employee Information', width: 1016),
                     employeeAutocompleteField(
                       employees: employees,
                       employeeId: employeeId,
@@ -8854,7 +8854,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                           setDialogState(() => employeeId = value),
                     ),
                     const SizedBox(height: 16),
-                    const DialogSectionTitle('Certificate Category'),
+                    const DialogSectionTitle('Certificate Category', width: 1016),
                     DropdownButtonFormField<String>(
                       value: selectedCategory,
                       isExpanded: true,
@@ -8878,6 +8878,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                     const SizedBox(height: 16),
                     DialogSectionTitle(
                       '$selectedCategory Options',
+                      width: 1016,
                     ),
                     Builder(builder: (context) {
                       final visibleCertificates = certificates
@@ -8960,7 +8961,7 @@ Future<List<Map<String, dynamic>>?> showAddCertificateDialog(
                       );
                     }),
                     const SizedBox(height: 16),
-                    const DialogSectionTitle('Selected Certificates'),
+                    const DialogSectionTitle('Selected Certificates', width: 1016),
                     if (selected.isEmpty)
                       Container(
                         width: double.infinity,
