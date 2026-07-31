@@ -7072,26 +7072,26 @@ String certificateCategoryForName(String name) {
 
   final isTrainerMethodology =
       value.contains('TRAINER METHODOLOGY') ||
-      RegExp(r'(^|\\s)TM(\\s|$)').hasMatch(value);
+      RegExp(r'(^|\s)TM(\s|$)').hasMatch(value);
 
   if (isTrainerMethodology) {
-    if (RegExp(r'(TM\\s*II|METHODOLOGY CERTIFICATE\\s*II)(?:\\s|\\)|$)')
+    if (RegExp(r'(TM\s*II|METHODOLOGY CERTIFICATE\s*II)(?:\s|\)|$)')
         .hasMatch(value)) {
       return 'Trainer Methodology Certificate II';
     }
     return 'Trainer Methodology Certificate I';
   }
 
-  if (RegExp(r'NC\\s*IV(?:\\s|\\)|$)').hasMatch(value)) {
+  if (RegExp(r'NC\s*IV(?:\s|\)|$)').hasMatch(value)) {
     return 'National Certificate IV';
   }
-  if (RegExp(r'NC\\s*III(?:\\s|\\)|$)').hasMatch(value)) {
+  if (RegExp(r'NC\s*III(?:\s|\)|$)').hasMatch(value)) {
     return 'National Certificate III';
   }
-  if (RegExp(r'NC\\s*II(?:\\s|\\)|$)').hasMatch(value)) {
+  if (RegExp(r'NC\s*II(?:\s|\)|$)').hasMatch(value)) {
     return 'National Certificate II';
   }
-  if (RegExp(r'NC\\s*I(?:\\s|\\)|$)').hasMatch(value)) {
+  if (RegExp(r'NC\s*I(?:\s|\)|$)').hasMatch(value)) {
     return 'National Certificate I';
   }
   return 'Other Certificates';
