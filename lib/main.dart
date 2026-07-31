@@ -9328,23 +9328,129 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => AlertDialog(
-      title: const Row(children: [
-        Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A)),
-        SizedBox(width: 10),
-        Expanded(child: Text('Approve Faculty Ranking?')),
-      ]),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 18, 24, 6),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 12, 24, 22),
+      title: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.how_to_reg_rounded,
+              color: Color(0xFF16A34A),
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Approve Faculty Ranking?',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Please confirm this action',
+                  style: TextStyle(
+                    color: _muted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 430),
-        child: Text(
-          'Do you want to approve the ranking for $employeeName? '
-          'After approval, the ranking details will be locked while the '
-          'Approved Date and Effective Date remain editable.',
-          style: const TextStyle(height: 1.45),
+        constraints: const BoxConstraints(maxWidth: 450),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _surfaceSoft,
+            border: Border.all(color: _line),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'You are about to approve the ranking for:',
+                style: TextStyle(color: _muted, fontSize: 13),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                employeeName,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      color: Color(0xFFEA580C),
+                      size: 18,
+                    ),
+                    SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'After approval, the ranking details will be locked.',
+                        style: TextStyle(
+                          color: Color(0xFF9A3412),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: () => Navigator.pop(dialogContext, false),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _muted,
+            side: const BorderSide(color: _line),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
           child: const Text('Cancel'),
         ),
         FilledButton.icon(
@@ -9353,6 +9459,11 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
           label: const Text('Approve'),
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFF16A34A),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
       ],
