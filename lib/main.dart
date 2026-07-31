@@ -4731,6 +4731,12 @@ class _CrudTableState extends State<CrudTable> {
                   onApprove: widget.onApprove == null
                       ? null
                       : () => widget.onApprove!(context, rows[i], refresh),
+                  approveDisabled: widget.onApprove != null &&
+                      (formatEditValue(normalizeRow(rows[i])['approved_date'])
+                              .isNotEmpty ||
+                          formatEditValue(
+                                  normalizeRow(rows[i])['approved_rank_text'])
+                              .isNotEmpty),
                   extraAction: widget.extraAction == null
                       ? null
                       : widget.extraAction!(context, rows[i], refresh),
@@ -4974,6 +4980,7 @@ class TableRowItem extends StatelessWidget {
   final VoidCallback? onView;
   final VoidCallback? onEdit;
   final VoidCallback? onApprove;
+  final bool approveDisabled;
   final Widget? extraAction;
   final Widget? Function(BuildContext context, Map<String, dynamic> row,
       GridCol column)? cellBuilder;
@@ -4988,6 +4995,7 @@ class TableRowItem extends StatelessWidget {
       this.onView,
       this.onEdit,
       this.onApprove,
+      this.approveDisabled = false,
       this.extraAction,
       this.cellBuilder,
       this.onDelete});
@@ -5022,10 +5030,15 @@ class TableRowItem extends StatelessWidget {
                         color: _primary, size: 19)),
               if (onApprove != null)
                 IconButton(
-                    tooltip: 'Approve Applied Rank',
-                    onPressed: onApprove,
-                    icon: const Icon(Icons.check_circle_rounded,
-                        color: Color(0xFF16A34A), size: 19)),
+                    tooltip: approveDisabled
+                        ? 'Ranking already approved'
+                        : 'Approve Applied Rank',
+                    onPressed: approveDisabled ? null : onApprove,
+                    icon: Icon(Icons.check_circle_rounded,
+                        color: approveDisabled
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF16A34A),
+                        size: 19)),
               if (extraAction != null) extraAction!,
               if (onDelete != null)
                 IconButton(
@@ -9306,48 +9319,69 @@ Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
     VoidCallback refresh) async {
   final normalized = normalizeRow(row);
   final employeeName = formatValue(normalized['employee_name']);
-  final messenger = ScaffoldMessenger.of(context);
+  final isAlreadyApproved =
+      formatEditValue(normalized['approved_date']).isNotEmpty ||
+          formatEditValue(normalized['approved_rank_text']).isNotEmpty;
+  if (isAlreadyApproved) return;
 
-  messenger.hideCurrentSnackBar();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text(
-        'Do you want to approve the ranking for $employeeName?',
-        style: const TextStyle(fontWeight: FontWeight.w700),
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => AlertDialog(
+      title: const Row(children: [
+        Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A)),
+        SizedBox(width: 10),
+        Expanded(child: Text('Approve Faculty Ranking?')),
+      ]),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 430),
+        child: Text(
+          'Do you want to approve the ranking for $employeeName? '
+          'After approval, the ranking details will be locked while the '
+          'Approved Date and Effective Date remain editable.',
+          style: const TextStyle(height: 1.45),
+        ),
       ),
-      duration: const Duration(seconds: 8),
-      behavior: SnackBarBehavior.floating,
-      action: SnackBarAction(
-        label: 'APPROVE',
-        onPressed: () {
-          () async {
-            final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-            try {
-              await db
-                  .from('ranking_applications')
-                  .update(upperCaseDataMap({
-                    'approved_rank_text': normalized['applied_rank_text'],
-                    'approved_salary': normalized['applied_salary'],
-                    'approved_date': today,
-                    'effective_date': today,
-                    'updated_at': DateTime.now().toIso8601String(),
-                  }))
-                  .eq('id', row['id']);
-              refresh();
-              if (context.mounted) {
-                showSnack(context,
-                    'Ranking approved. You may edit the approval dates if needed.');
-              }
-            } catch (e) {
-              if (context.mounted) {
-                showSnack(context, 'Approve Ranking Failed: $e');
-              }
-            }
-          }();
-        },
-      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          icon: const Icon(Icons.check_rounded, size: 18),
+          label: const Text('Approve'),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF16A34A),
+          ),
+        ),
+      ],
     ),
   );
+  if (confirmed != true || !context.mounted) return;
+
+  final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  try {
+    await db
+        .from('ranking_applications')
+        .update(upperCaseDataMap({
+          'approved_rank_text': normalized['applied_rank_text'],
+          'approved_salary': normalized['applied_salary'],
+          'approved_date': today,
+          'effective_date': today,
+          'updated_at': DateTime.now().toIso8601String(),
+        }))
+        .eq('id', row['id']);
+    refresh();
+    if (context.mounted) {
+      showSnack(context,
+          'Ranking approved. You may edit the approval dates if needed.');
+    }
+  } catch (e) {
+    if (context.mounted) {
+      showSnack(context, 'Approve Ranking Failed: $e');
+    }
+  }
 }
 
 Future<void> editRanking(BuildContext context, Map<String, dynamic>? row,
