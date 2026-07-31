@@ -4988,7 +4988,7 @@ class TableHeader extends StatelessWidget {
                               overflow: showColumnDividers
                                   ? TextOverflow.visible
                                   : TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   color: _ink,
                                   fontSize: showColumnDividers ? 11.5 : 13.5,
