@@ -9305,84 +9305,49 @@ Future<void> editCertificate(BuildContext context, Map<String, dynamic>? row,
 Future<void> approveRanking(BuildContext context, Map<String, dynamic> row,
     VoidCallback refresh) async {
   final normalized = normalizeRow(row);
-  final formKey = GlobalKey<FormState>();
-  final todayText = DateFormat('MMMM dd, yyyy').format(DateTime.now());
-  final approvedDateController = TextEditingController(
-      text: formatEditValue(normalized['approved_date']).isEmpty
-          ? todayText
-          : formatEditValue(normalized['approved_date']));
-  final effectiveDateController = TextEditingController(
-      text: formatEditValue(normalized['effective_date']).isEmpty
-          ? todayText
-          : formatEditValue(normalized['effective_date']));
+  final employeeName = formatValue(normalized['employee_name']);
+  final messenger = ScaffoldMessenger.of(context);
 
-  final dates = await showDialog<Map<String, String>>(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: const Text('Approve Ranking'),
-      content: SizedBox(
-        width: 520,
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ReadOnlyEmployeeBox(formatValue(normalized['employee_name'])),
-              const SizedBox(height: 16),
-              rankingDatePickerBox(
-                  context, 'Approved Date', approvedDateController),
-              const SizedBox(height: 14),
-              rankingDatePickerBox(
-                  context, 'Effective Date', effectiveDateController),
-              const SizedBox(height: 10),
-              const Text(
-                'After approval, the ranking details will be locked. Approved Date and Effective Date can still be corrected through Edit.',
-                style: TextStyle(color: _muted, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(
+        'Do you want to approve the ranking for $employeeName?',
+        style: const TextStyle(fontWeight: FontWeight.w700),
       ),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
-        FilledButton.icon(
-          onPressed: () {
-            if (!formKey.currentState!.validate()) return;
-            Navigator.pop(context, {
-              'approved_date': approvedDateController.text.trim(),
-              'effective_date': effectiveDateController.text.trim(),
-            });
-          },
-          icon: const Icon(Icons.check_circle_rounded),
-          label: const Text('Approve'),
-        ),
-      ],
+      duration: const Duration(seconds: 8),
+      behavior: SnackBarBehavior.floating,
+      action: SnackBarAction(
+        label: 'APPROVE',
+        onPressed: () {
+          () async {
+            final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+            try {
+              await db
+                  .from('ranking_applications')
+                  .update(upperCaseDataMap({
+                    'approved_rank_text': normalized['applied_rank_text'],
+                    'approved_salary': normalized['applied_salary'],
+                    'approved_date': today,
+                    'effective_date': today,
+                    'updated_at': DateTime.now().toIso8601String(),
+                  }))
+                  .eq('id', row['id']);
+              refresh();
+              if (context.mounted) {
+                showSnack(context,
+                    'Ranking approved. You may edit the approval dates if needed.');
+              }
+            } catch (e) {
+              if (context.mounted) {
+                showSnack(context, 'Approve Ranking Failed: $e');
+              }
+            }
+          }();
+        },
+      ),
     ),
   );
-
-  approvedDateController.dispose();
-  effectiveDateController.dispose();
-  if (dates == null) return;
-
-  try {
-    await db
-        .from('ranking_applications')
-        .update(upperCaseDataMap({
-          'approved_rank_text': normalized['applied_rank_text'],
-          'approved_salary': normalized['applied_salary'],
-          'approved_date': toIsoDateInput(dates['approved_date']),
-          'effective_date': toIsoDateInput(dates['effective_date']),
-          'updated_at': DateTime.now().toIso8601String(),
-        }))
-        .eq('id', row['id']);
-    refresh();
-    if (context.mounted) showSnack(context, 'Ranking approved.');
-  } catch (e) {
-    if (context.mounted) showSnack(context, 'Approve Ranking Failed: $e');
-  }
 }
 
 Future<void> editRanking(BuildContext context, Map<String, dynamic>? row,
