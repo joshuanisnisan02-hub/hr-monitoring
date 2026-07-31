@@ -3670,19 +3670,22 @@ class _RankingPageState extends State<RankingPage> {
               reportTitle: _rankingReportTitle(),
               archiveTableName: 'ranking_applications',
               archiveModuleName: 'Ranking',
+              minTableWidth: 1500,
               columns: const [
                 GridCol('employee_name', 'Employee Name',
                     flex: 3, primary: true),
                 GridCol('appointment_title', 'Appointment', flex: 3),
                 GridCol('previous_rank_text', 'Previous Rank', flex: 2),
-                GridCol('previous_salary', 'Basic Salary', isMoney: true),
+                GridCol('previous_salary', 'Basic Salary',
+                    flex: 2, isMoney: true),
                 GridCol('applied_rank_text', 'Rank Applied', flex: 2),
                 GridCol('applied_salary', 'Basic Salary Adjustment',
                     flex: 2, isMoney: true),
-                GridCol('points_earned', 'Points Earned', isNumber: true),
+                GridCol('points_earned', 'Points Earned',
+                    flex: 2, isNumber: true),
                 GridCol('approved_rank_text', 'Approved Rank', flex: 2),
-                GridCol('approved_date', 'Approved Date'),
-                GridCol('effective_date', 'Effective Date'),
+                GridCol('approved_date', 'Approved Date', flex: 2),
+                GridCol('effective_date', 'Effective Date', flex: 2),
               ],
               onAdd: (ctx, refresh) => editRanking(ctx, null, refresh),
               onView: viewRanking,
@@ -4420,6 +4423,7 @@ class CrudTable extends StatefulWidget {
   final String? archiveModuleName;
   final List<int> pageSizeOptions;
   final int initialPageSize;
+  final double minTableWidth;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
   final bool showActions;
@@ -4444,6 +4448,7 @@ class CrudTable extends StatefulWidget {
       this.archiveModuleName,
       this.pageSizeOptions = const [1, 10, 100],
       this.initialPageSize = 10,
+      this.minTableWidth = 0,
       required this.onDelete});
 
   @override
@@ -4692,32 +4697,48 @@ class _CrudTableState extends State<CrudTable> {
       Card(
         child: ClipRRect(
           borderRadius: BorderRadius.circular(22),
-          child: Column(children: [
-            TableHeader(
-                columns: widget.columns,
-                sortKey: activeSortKey,
-                sortAscending: sortAscending,
-                showActions: widget.showActions,
-                actionWidth: actionWidth,
-                onSort: (key) {
-                  setState(() {
-                    if (sortKey == key) {
-                      sortAscending = !sortAscending;
-                    } else {
-                      sortKey = key;
-                      sortAscending = true;
-                    }
-                    page = 0;
-                  });
-                }),
-            const Divider(height: 1, color: _line),
-            Expanded(
-              child: ListView.separated(
-                controller: tableScrollController,
-                itemCount: rows.length,
-                separatorBuilder: (_, __) =>
-                    const Divider(height: 1, color: _line),
-                itemBuilder: (_, i) => TableRowItem(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = constraints.maxWidth > widget.minTableWidth
+                  ? constraints.maxWidth
+                  : widget.minTableWidth;
+              return Scrollbar(
+                controller: crudOuterScrollController,
+                thumbVisibility: widget.minTableWidth > constraints.maxWidth,
+                trackVisibility: widget.minTableWidth > constraints.maxWidth,
+                notificationPredicate: (notification) =>
+                    notification.metrics.axis == Axis.horizontal,
+                child: SingleChildScrollView(
+                  controller: crudOuterScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(children: [
+                      TableHeader(
+                          columns: widget.columns,
+                          sortKey: activeSortKey,
+                          sortAscending: sortAscending,
+                          showActions: widget.showActions,
+                          actionWidth: actionWidth,
+                          onSort: (key) {
+                            setState(() {
+                              if (sortKey == key) {
+                                sortAscending = !sortAscending;
+                              } else {
+                                sortKey = key;
+                                sortAscending = true;
+                              }
+                              page = 0;
+                            });
+                          }),
+                      const Divider(height: 1, color: _line),
+                      Expanded(
+                        child: ListView.separated(
+                          controller: tableScrollController,
+                          itemCount: rows.length,
+                          separatorBuilder: (_, __) =>
+                              const Divider(height: 1, color: _line),
+                          itemBuilder: (_, i) => TableRowItem(
                   row: rows[i],
                   columns: widget.columns,
                   index: i,
@@ -4747,10 +4768,15 @@ class _CrudTableState extends State<CrudTable> {
                   onDelete: widget.showActions && widget.showDelete
                       ? () => confirmDelete(context, rows[i])
                       : null,
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
                 ),
-              ),
-            ),
-          ]),
+              );
+            },
+          ),
         ),
       );
 
@@ -4942,7 +4968,7 @@ class TableHeader extends StatelessWidget {
                   child: Row(children: [
                     Expanded(
                         child: Text(col.label,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w900,
