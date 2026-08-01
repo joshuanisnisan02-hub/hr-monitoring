@@ -1926,13 +1926,6 @@ class DashboardPage extends StatelessWidget {
                 );
 
             final moduleCards = <Metric>[
-              Metric(
-                  'Employees',
-                  data.activeEmployees,
-                  Icons.people_alt_rounded,
-                  const Color(0xFFEFF6FF),
-                  const Color(0xFF1D4ED8),
-                  targetIndex: 1),
               Metric('Contracts', data.contractsTotal, Icons.assignment_rounded,
                   const Color(0xFFFFFBEB), const Color(0xFFB45309),
                   targetIndex: 2),
@@ -1969,6 +1962,13 @@ class DashboardPage extends StatelessWidget {
             ];
 
             final attentionCards = <Metric>[
+              Metric(
+                  'Active Employees',
+                  data.activeEmployees,
+                  Icons.people_alt_rounded,
+                  const Color(0xFFEFF6FF),
+                  const Color(0xFF1D4ED8),
+                  targetIndex: 1),
               Metric(
                   'Ongoing Contracts',
                   data.contractsOngoing,
@@ -2012,27 +2012,26 @@ class DashboardPage extends StatelessWidget {
             final reportCards = <Metric>[
               Metric('Total Female', data.totalFemale, Icons.female_rounded,
                   const Color(0xFFFDF2F8), const Color(0xFFDB2777),
-                  targetIndex: 1, targetEmployeeView: 'Female'),
+                  targetIndex: 8),
               Metric('Total Male', data.totalMale, Icons.male_rounded,
                   const Color(0xFFEFF6FF), const Color(0xFF2563EB),
-                  targetIndex: 1, targetEmployeeView: 'Male'),
+                  targetIndex: 8),
               Metric('Total Gender', data.totalGender, Icons.wc_rounded,
                   const Color(0xFFF8FAFC), _ink,
-                  targetIndex: 1),
+                  targetIndex: 8),
               Metric('Active Faculty', data.activeFaculty, Icons.school_rounded,
                   const Color(0xFFF0FDF4), const Color(0xFF15803D),
-                  targetIndex: 1, targetEmployeeView: 'Active Faculty'),
+                  targetIndex: 8),
               Metric('License Summary', data.licensesTotal, Icons.badge_rounded,
                   const Color(0xFFFFF7ED), const Color(0xFFC2410C),
-                  targetIndex: 3, targetCredentialTab: 0),
+                  targetIndex: 8),
               Metric(
                   'NC/TM Summary',
                   data.certificatesTotal,
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
                   const Color(0xFF0E7490),
-                  targetIndex: 3,
-                  targetCredentialTab: 1),
+                  targetIndex: 8),
             ];
 
             return RefreshIndicator(
