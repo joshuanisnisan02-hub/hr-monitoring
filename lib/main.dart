@@ -2080,28 +2080,6 @@ class DashboardPage extends StatelessWidget {
                   targetCredentialsDueOnly: true),
             ];
 
-            final reportCards = <Metric>[
-              Metric('Total Female', data.totalFemale, Icons.female_rounded,
-                  const Color(0xFFFDF2F8), const Color(0xFFDB2777),
-                  targetIndex: reportsIndex),
-              Metric('Total Male', data.totalMale, Icons.male_rounded,
-                  const Color(0xFFEFF6FF), const Color(0xFF2563EB),
-                  targetIndex: reportsIndex),
-              Metric('Total Gender', data.totalGender, Icons.wc_rounded,
-                  const Color(0xFFF8FAFC), _ink,
-                  targetIndex: reportsIndex),
-              Metric('License Summary', data.licensesTotal, Icons.badge_rounded,
-                  const Color(0xFFFFF7ED), const Color(0xFFC2410C),
-                  targetIndex: reportsIndex),
-              Metric(
-                  'NC/TM Summary',
-                  data.certificatesTotal,
-                  Icons.workspace_premium_rounded,
-                  const Color(0xFFECFEFF),
-                  const Color(0xFF0E7490),
-                  targetIndex: reportsIndex),
-            ];
-
             return RefreshIndicator(
               onRefresh: () async {
                 _crudTableDataCache.clear();
@@ -2137,30 +2115,6 @@ class DashboardPage extends StatelessWidget {
                           children: attentionCards
                               .map((m) => MetricCard(m, onNavigate: onNavigate))
                               .toList()),
-                      const SizedBox(height: 30),
-                      const Text('Report Totals',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: _ink,
-                              fontSize: 16)),
-                      const SizedBox(height: 14),
-                      Wrap(
-                          spacing: 24,
-                          runSpacing: 24,
-                          children: reportCards
-                              .map((m) => MetricCard(m, onNavigate: onNavigate))
-                              .toList()),
-                      const SizedBox(height: 30),
-                      Wrap(spacing: 20, runSpacing: 14, children: [
-                        QuickCard('Manage Employees', Icons.people_alt_rounded,
-                            () => onNavigate(const DashboardTarget(1))),
-                        QuickCard('Manage Contracts', Icons.assignment_rounded,
-                            () => onNavigate(const DashboardTarget(2))),
-                        QuickCard('Manage Credentials', Icons.badge_rounded,
-                            () => onNavigate(const DashboardTarget(3))),
-                        QuickCard('Open Reports', Icons.summarize_rounded,
-                            () => onNavigate(DashboardTarget(reportsIndex))),
-                      ]),
                     ]),
               ),
             );
