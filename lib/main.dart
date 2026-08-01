@@ -2985,9 +2985,7 @@ class OverallEvaluationTab extends StatelessWidget {
     final normalized = rows.map((item) {
       final row = normalizeRow(Map<String, dynamic>.from(item as Map));
       final recomputed = recomputeEvaluationTotals(row);
-      row['total_rating'] = recomputed['total_rating'];
-      row['total_description'] = recomputed['total_description'];
-      return row;
+      return recomputed;
     }).toList();
     normalized.sort((a, b) => formatValue(a['employee_name'])
         .compareTo(formatValue(b['employee_name'])));
@@ -3488,17 +3486,17 @@ Future<void> viewEvaluation(
               DetailTile(
                   'Employee Name', formatValue(normalized['employee_name'])),
               DetailTile('Superior Rating / 100',
-                  evaluationScoreDisplay(normalized['superior_rating'])),
+                  evaluationScoreDisplay(computed['superior_rating'])),
               DetailTile(
                   'Superior Description',
                   evaluationScoreDescription(
-                      EvaluationKind.superior, normalized['superior_rating'])),
+                      EvaluationKind.superior, computed['superior_rating'])),
               DetailTile('Peer-to-Peer Rating / 100',
-                  evaluationScoreDisplay(normalized['peer_rating'])),
+                  evaluationScoreDisplay(computed['peer_rating'])),
               DetailTile(
                   'Peer-to-Peer Description',
                   evaluationScoreDescription(
-                      EvaluationKind.peer, normalized['peer_rating'])),
+                      EvaluationKind.peer, computed['peer_rating'])),
               DetailTile('Self Rating / 5',
                   evaluationScoreDisplay(normalized['self_rating'])),
               DetailTile(
