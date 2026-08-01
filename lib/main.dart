@@ -420,7 +420,10 @@ Future<void> archiveDeletedRecord({
   required String moduleName,
   required Map<String, dynamic> row,
 }) async {
-  if (tableName == null || tableName.trim().isEmpty) return;
+  if (tableName == null || tableName.trim().isEmpty) {
+    throw StateError(
+        'Deletion blocked because this module is not configured for archiving.');
+  }
   await archiveRecordSnapshot(
     tableName: tableName,
     moduleName: moduleName,
@@ -562,6 +565,57 @@ Widget? restoreArchivedRecordAction(
     icon: const Icon(Icons.restore_rounded, color: Color(0xFF16A34A), size: 19),
   );
 }
+
+Future<void> permanentlyDeleteArchivedRecord(BuildContext context,
+    Map<String, dynamic> row, VoidCallback refresh) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Permanently Delete Archived Record?'),
+      content: Text(
+          'This will permanently delete the archived copy of ${formatValue(row['employee_name'])} from ${formatValue(row['module_name'])}. This action cannot be undone.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _danger),
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Delete Permanently'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  try {
+    await db.from('archived_records').delete().eq('id', row['id']);
+    refresh();
+    if (context.mounted) {
+      showSnack(context, 'Archived record permanently deleted.');
+    }
+  } catch (e) {
+    if (context.mounted) showSnack(context, 'Permanent delete failed: $e');
+  }
+}
+
+Widget archivedRecordActions(BuildContext context, Map<String, dynamic> row,
+        VoidCallback refresh,
+        {required bool allowRestore}) =>
+    Row(mainAxisSize: MainAxisSize.min, children: [
+      if (allowRestore && row['is_restored'] != true)
+        IconButton(
+          tooltip: 'Restore',
+          onPressed: () => restoreArchivedRecord(context, row, refresh),
+          icon: const Icon(Icons.restore_rounded,
+              color: Color(0xFF16A34A), size: 19),
+        ),
+      IconButton(
+        tooltip: 'Delete Permanently',
+        onPressed: () => permanentlyDeleteArchivedRecord(context, row, refresh),
+        icon: const Icon(Icons.delete_forever_rounded,
+            color: _danger, size: 19),
+      ),
+    ]);
 
 Future<void> viewArchivedRecord(
     BuildContext context, Map<String, dynamic> row) async {
@@ -4770,6 +4824,7 @@ class CrudTable extends StatefulWidget {
   final int initialPageSize;
   final double minTableWidth;
   final bool showColumnDividers;
+  final int extraActionButtonCount;
   final Future<dynamic> Function(Map<String, dynamic> row) onDelete;
 
   final bool showActions;
@@ -4796,6 +4851,7 @@ class CrudTable extends StatefulWidget {
       this.initialPageSize = 10,
       this.minTableWidth = 0,
       this.showColumnDividers = false,
+      this.extraActionButtonCount = 1,
       required this.onDelete});
 
   @override
@@ -4867,7 +4923,7 @@ class _CrudTableState extends State<CrudTable> {
     if (widget.onView != null) count++;
     if (widget.onApprove != null) count++;
     if (widget.showDelete) count++;
-    if (widget.extraAction != null) count++;
+    if (widget.extraAction != null) count += widget.extraActionButtonCount;
     return (count * 46).toDouble();
   }
 
@@ -5134,16 +5190,16 @@ class _CrudTableState extends State<CrudTable> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete Record?'),
+        title: const Text('Move Record to Archive?'),
         content: Text(
-            'This will remove ${formatValue(valueFor(row, widget.columns.first.key))} from this module.'),
+            'This will remove ${formatValue(valueFor(row, widget.columns.first.key))} from this module and preserve it in Archived. It can only be permanently deleted from Archived.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel')),
           FilledButton.tonal(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete')),
+              child: const Text('Move to Archive')),
         ],
       ),
     );
@@ -5157,7 +5213,7 @@ class _CrudTableState extends State<CrudTable> {
       );
       await widget.onDelete(row);
       refresh();
-      if (mounted) showSnack(context, 'Record Deleted.');
+      if (mounted) showSnack(context, 'Record moved to Archived.');
     } catch (e) {
       if (mounted) showSnack(context, 'Delete Failed: $e');
     }
@@ -10385,7 +10441,7 @@ class ArchivedPage extends StatelessWidget {
         subtitle:
             'Preserved deleted records and old contract snapshots separated by module for easier review and retrieval.',
         child: const DefaultTabController(
-          length: 8,
+          length: 9,
           child: Column(children: [
             Align(
               alignment: Alignment.centerLeft,
@@ -10401,6 +10457,7 @@ class ArchivedPage extends StatelessWidget {
                     Tab(text: 'Evaluations'),
                     Tab(text: 'Appointment'),
                     Tab(text: 'Ranking'),
+                    Tab(text: 'Incident Reports'),
                     Tab(text: 'Old Contracts'),
                   ],
                 ),
@@ -10448,6 +10505,11 @@ class ArchivedPage extends StatelessWidget {
                   moduleFilters: ['Ranking'],
                 ),
                 ArchivedRecordsTab(
+                  title: 'Archived Incident Reports',
+                  oldContracts: false,
+                  moduleFilters: ['Incident Report'],
+                ),
+                ArchivedRecordsTab(
                   title: 'Old Contracts',
                   oldContracts: true,
                 ),
@@ -10492,7 +10554,13 @@ class ArchivedRecordsTab extends StatelessWidget {
           GridCol('restore_status', 'Status', isStatus: true),
         ],
         onView: viewArchivedRecord,
-        extraAction: oldContracts ? null : restoreArchivedRecordAction,
+        extraAction: (context, row, refresh) => archivedRecordActions(
+          context,
+          row,
+          refresh,
+          allowRestore: !oldContracts,
+        ),
+        extraActionButtonCount: 2,
         showDelete: false,
         onDelete: (row) async {},
       );
