@@ -1061,6 +1061,13 @@ class SetupPage extends StatelessWidget {
       );
 }
 
+class DashboardTarget {
+  final int index;
+  final String? contractStatus;
+
+  const DashboardTarget(this.index, {this.contractStatus});
+}
+
 class ShellPage extends StatefulWidget {
   const ShellPage({super.key});
 
@@ -1070,12 +1077,24 @@ class ShellPage extends StatefulWidget {
 
 class _ShellPageState extends State<ShellPage> {
   int index = 0;
+  String? contractStatusFilter;
+  int contractRouteToken = 0;
   final Set<int> visitedPages = {0};
 
   void selectPage(int nextIndex) {
     setState(() {
       index = nextIndex;
+      contractStatusFilter = null;
       visitedPages.add(nextIndex);
+    });
+  }
+
+  void openDashboardTarget(DashboardTarget target) {
+    setState(() {
+      index = target.index;
+      contractStatusFilter = target.contractStatus;
+      if (target.index == 2) contractRouteToken++;
+      visitedPages.add(target.index);
     });
   }
 
@@ -1084,9 +1103,12 @@ class _ShellPageState extends State<ShellPage> {
     final pages = currentUserIsIncidentOnly
         ? <Widget>[IncidentReportPage()]
         : <Widget>[
-            DashboardPage(onNavigate: selectPage),
+            DashboardPage(onNavigate: openDashboardTarget),
             const EmployeesPage(),
-            const ContractsPage(),
+            ContractsPage(
+              key: ValueKey('contracts-dashboard-$contractRouteToken'),
+              initialStatusFilter: contractStatusFilter,
+            ),
             const CredentialsPage(),
             const EvaluationsPage(),
             const AppointmentPage(),
@@ -1839,7 +1861,7 @@ Future<DashboardData> loadDashboardData() async {
 }
 
 class DashboardPage extends StatelessWidget {
-  final ValueChanged<int> onNavigate;
+  final ValueChanged<DashboardTarget> onNavigate;
   const DashboardPage({super.key, required this.onNavigate});
 
   @override
@@ -1924,21 +1946,24 @@ class DashboardPage extends StatelessWidget {
                   Icons.verified_rounded,
                   const Color(0xFFF0FDF4),
                   const Color(0xFF15803D),
-                  targetIndex: 2),
+                  targetIndex: 2,
+                  targetContractStatus: 'On-going'),
               Metric(
                   'For Renewal',
                   data.contractsForRenewal,
                   Icons.schedule_rounded,
                   const Color(0xFFFFFBEB),
                   const Color(0xFFB45309),
-                  targetIndex: 2),
+                  targetIndex: 2,
+                  targetContractStatus: 'For Renewal'),
               Metric(
                   'Expired Contracts',
                   data.expiredContracts,
                   Icons.warning_amber_rounded,
                   const Color(0xFFFEF2F2),
                   const Color(0xFFB91C1C),
-                  targetIndex: 2),
+                  targetIndex: 2,
+                  targetContractStatus: 'Expired'),
               Metric('Licenses Due', data.licensesDue, Icons.badge_rounded,
                   const Color(0xFFF5F3FF), const Color(0xFF6D28D9),
                   targetIndex: 3),
@@ -2027,13 +2052,13 @@ class DashboardPage extends StatelessWidget {
                       const SizedBox(height: 30),
                       Wrap(spacing: 20, runSpacing: 14, children: [
                         QuickCard('Manage Employees', Icons.people_alt_rounded,
-                            () => onNavigate(1)),
+                            () => onNavigate(const DashboardTarget(1))),
                         QuickCard('Manage Contracts', Icons.assignment_rounded,
-                            () => onNavigate(2)),
+                            () => onNavigate(const DashboardTarget(2))),
                         QuickCard('Manage Credentials', Icons.badge_rounded,
-                            () => onNavigate(3)),
+                            () => onNavigate(const DashboardTarget(3))),
                         QuickCard('Open Reports', Icons.summarize_rounded,
-                            () => onNavigate(8)),
+                            () => onNavigate(const DashboardTarget(8))),
                       ]),
                     ]),
               ),
@@ -2050,13 +2075,14 @@ class Metric {
   final Color bg;
   final Color fg;
   final int? targetIndex;
+  final String? targetContractStatus;
   const Metric(this.title, this.value, this.icon, this.bg, this.fg,
-      {this.targetIndex});
+      {this.targetIndex, this.targetContractStatus});
 }
 
 class MetricCard extends StatelessWidget {
   final Metric metric;
-  final ValueChanged<int>? onNavigate;
+  final ValueChanged<DashboardTarget>? onNavigate;
   const MetricCard(this.metric, {super.key, this.onNavigate});
 
   @override
@@ -2099,7 +2125,10 @@ class MetricCard extends StatelessWidget {
             ? content
             : InkWell(
                 borderRadius: BorderRadius.circular(22),
-                onTap: () => onNavigate!(metric.targetIndex!),
+                onTap: () => onNavigate!(DashboardTarget(
+                  metric.targetIndex!,
+                  contractStatus: metric.targetContractStatus,
+                )),
                 child: content,
               ),
       ),
@@ -2261,7 +2290,9 @@ class _EmployeesPageState extends State<EmployeesPage> {
 }
 
 class ContractsPage extends StatefulWidget {
-  const ContractsPage({super.key});
+  final String? initialStatusFilter;
+
+  const ContractsPage({super.key, this.initialStatusFilter});
 
   @override
   State<ContractsPage> createState() => _ContractsPageState();
@@ -2269,7 +2300,31 @@ class ContractsPage extends StatefulWidget {
 
 class _ContractsPageState extends State<ContractsPage> {
   String contractTypeFilter = 'All';
-  String statusFilter = 'All';
+  late String statusFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    statusFilter = _validInitialStatus(widget.initialStatusFilter);
+  }
+
+  @override
+  void didUpdateWidget(covariant ContractsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialStatusFilter != widget.initialStatusFilter) {
+      setState(() {
+        contractTypeFilter = 'All';
+        statusFilter = _validInitialStatus(widget.initialStatusFilter);
+      });
+    }
+  }
+
+  String _validInitialStatus(String? value) {
+    final requested = value?.trim();
+    return requested != null && statusFilters.contains(requested)
+        ? requested
+        : 'All';
+  }
 
   static const contractTypeFilters = <String>[
     'All',
