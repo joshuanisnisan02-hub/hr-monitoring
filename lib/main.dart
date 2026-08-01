@@ -1177,7 +1177,14 @@ class _ShellPageState extends State<ShellPage> {
   @override
   Widget build(BuildContext context) {
     final pages = currentUserIsIncidentOnly
-        ? <Widget>[IncidentReportPage()]
+        ? <Widget>[
+            EmployeesPage(
+              key: ValueKey('employees-ir-$employeeRouteToken'),
+              initialViewFilter: employeeViewFilter,
+            ),
+            IncidentReportPage(),
+            const ArchivedPage(),
+          ]
         : <Widget>[
             DashboardPage(onNavigate: openDashboardTarget),
             EmployeesPage(
@@ -1334,7 +1341,9 @@ class AppSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = currentUserIsIncidentOnly
         ? const [
+            NavItem('Employees', Icons.groups_rounded),
             NavItem('Incident Report', Icons.report_problem_rounded),
+            NavItem('Archived', Icons.archive_rounded),
           ]
         : <NavItem>[
             const NavItem('Dashboard', Icons.dashboard_rounded),
@@ -10433,89 +10442,117 @@ class ResignedEmployeesPage extends StatelessWidget {
 class ArchivedPage extends StatelessWidget {
   const ArchivedPage({super.key});
 
+  static const _nonIncidentModules = <String>[
+    'Employees',
+    'Contracts',
+    'Credentials - Licenses',
+    'Credentials - Certificates',
+    'Credentials - Safety Officer',
+    'Evaluations',
+    'Appointment',
+    'Ranking',
+  ];
+
   @override
-  Widget build(BuildContext context) => PageFrame(
+  Widget build(BuildContext context) {
+    if (currentUserIsIncidentOnly) {
+      return PageFrame(
         title: 'Archived',
         subtitle:
-            'Preserved deleted records and old contract snapshots separated by module for easier review and retrieval.',
-        child: const DefaultTabController(
-          length: 9,
-          child: Column(children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: 980,
-                child: TabBar(
-                  isScrollable: true,
-                  tabs: [
-                    Tab(text: 'All Deleted'),
-                    Tab(text: 'Employees'),
-                    Tab(text: 'Contracts'),
-                    Tab(text: 'Credentials'),
-                    Tab(text: 'Evaluations'),
-                    Tab(text: 'Appointment'),
-                    Tab(text: 'Ranking'),
-                    Tab(text: 'Incident Reports'),
-                    Tab(text: 'Old Contracts'),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: TabBarView(children: [
-                ArchivedRecordsTab(
-                  title: 'All Deleted Rows',
-                  oldContracts: false,
-                ),
-                ArchivedRecordsTab(
-                  title: 'Archived Employees',
-                  oldContracts: false,
-                  moduleFilters: ['Employees'],
-                ),
-                ArchivedRecordsTab(
-                  title: 'Archived Contracts',
-                  oldContracts: false,
-                  moduleFilters: ['Contracts'],
-                ),
-                ArchivedRecordsTab(
-                  title: 'Archived Credentials',
-                  oldContracts: false,
-                  moduleFilters: [
-                    'Credentials - Licenses',
-                    'Credentials - Certificates',
-                    'Credentials - Safety Officer',
-                  ],
-                ),
-                ArchivedRecordsTab(
-                  title: 'Archived Evaluations',
-                  oldContracts: false,
-                  moduleFilters: ['Evaluations'],
-                ),
-                ArchivedRecordsTab(
-                  title: 'Archived Appointments',
-                  oldContracts: false,
-                  moduleFilters: ['Appointment'],
-                ),
-                ArchivedRecordsTab(
-                  title: 'Archived Ranking',
-                  oldContracts: false,
-                  moduleFilters: ['Ranking'],
-                ),
-                ArchivedRecordsTab(
-                  title: 'Archived Incident Reports',
-                  oldContracts: false,
-                  moduleFilters: ['Incident Report'],
-                ),
-                ArchivedRecordsTab(
-                  title: 'Old Contracts',
-                  oldContracts: true,
-                ),
-              ]),
-            ),
-          ]),
+            'Preserved deleted incident reports available for review, restoration, or permanent deletion.',
+        child: const ArchivedRecordsTab(
+          title: 'Archived Incident Reports',
+          oldContracts: false,
+          moduleFilters: ['Incident Report'],
         ),
       );
+    }
+
+    final showIncidentArchive = currentUserIsAdmin;
+    final tabs = <Tab>[
+      const Tab(text: 'All Deleted'),
+      const Tab(text: 'Employees'),
+      const Tab(text: 'Contracts'),
+      const Tab(text: 'Credentials'),
+      const Tab(text: 'Evaluations'),
+      const Tab(text: 'Appointment'),
+      const Tab(text: 'Ranking'),
+      if (showIncidentArchive) const Tab(text: 'Incident Reports'),
+      const Tab(text: 'Old Contracts'),
+    ];
+    final views = <Widget>[
+      ArchivedRecordsTab(
+        title: 'All Deleted Rows',
+        oldContracts: false,
+        moduleFilters:
+            showIncidentArchive ? const <String>[] : _nonIncidentModules,
+      ),
+      const ArchivedRecordsTab(
+        title: 'Archived Employees',
+        oldContracts: false,
+        moduleFilters: ['Employees'],
+      ),
+      const ArchivedRecordsTab(
+        title: 'Archived Contracts',
+        oldContracts: false,
+        moduleFilters: ['Contracts'],
+      ),
+      const ArchivedRecordsTab(
+        title: 'Archived Credentials',
+        oldContracts: false,
+        moduleFilters: [
+          'Credentials - Licenses',
+          'Credentials - Certificates',
+          'Credentials - Safety Officer',
+        ],
+      ),
+      const ArchivedRecordsTab(
+        title: 'Archived Evaluations',
+        oldContracts: false,
+        moduleFilters: ['Evaluations'],
+      ),
+      const ArchivedRecordsTab(
+        title: 'Archived Appointments',
+        oldContracts: false,
+        moduleFilters: ['Appointment'],
+      ),
+      const ArchivedRecordsTab(
+        title: 'Archived Ranking',
+        oldContracts: false,
+        moduleFilters: ['Ranking'],
+      ),
+      if (showIncidentArchive)
+        const ArchivedRecordsTab(
+          title: 'Archived Incident Reports',
+          oldContracts: false,
+          moduleFilters: ['Incident Report'],
+        ),
+      const ArchivedRecordsTab(
+        title: 'Old Contracts',
+        oldContracts: true,
+      ),
+    ];
+
+    return PageFrame(
+      title: 'Archived',
+      subtitle:
+          'Preserved deleted records and old contract snapshots separated by module for easier review and retrieval.',
+      child: DefaultTabController(
+        length: tabs.length,
+        child: Column(children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: 980,
+              child: TabBar(isScrollable: true, tabs: tabs),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(child: TabBarView(children: views)),
+        ]),
+      ),
+    );
+  }
 }
 
 class ArchivedRecordsTab extends StatelessWidget {
