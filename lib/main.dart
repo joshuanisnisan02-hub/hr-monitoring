@@ -1770,9 +1770,12 @@ class DashboardData {
   final int licensesDue;
   final int certificatesTotal;
   final int certificatesDue;
+  final int safetyOfficersTotal;
   final int evaluationsTotal;
   final int appointmentsTotal;
   final int rankingsTotal;
+  final int incidentReportsTotal;
+  final int archivedTotal;
 
   const DashboardData({
     required this.activeEmployees,
@@ -1788,9 +1791,12 @@ class DashboardData {
     required this.licensesDue,
     required this.certificatesTotal,
     required this.certificatesDue,
+    required this.safetyOfficersTotal,
     required this.evaluationsTotal,
     required this.appointmentsTotal,
     required this.rankingsTotal,
+    required this.incidentReportsTotal,
+    required this.archivedTotal,
   });
 
   int get totalGender => totalFemale + totalMale;
@@ -1815,9 +1821,14 @@ Future<DashboardData> loadDashboardData() async {
     activeOnlyRows(loadContracts(limit: 5000)),
     activeOnlyRows(loadLicenses(limit: 5000)),
     activeOnlyRows(loadCertificates(limit: 5000)),
+    activeOnlyRows(loadSafetyOfficers(limit: 5000)),
     activeOnlyRows(loadEvaluations(limit: 5000)),
     activeOnlyRows(loadAppointments(limit: 5000)),
     activeOnlyRows(loadRankings(limit: 5000)),
+    currentUserCanSeeIncidentReport
+        ? activeOnlyRows(loadIncidentReports(limit: 5000))
+        : Future.value(<dynamic>[]),
+    db.from('archived_records').select('id').limit(5000),
   ]);
 
   final employees = results[0];
@@ -1825,9 +1836,12 @@ Future<DashboardData> loadDashboardData() async {
   final contracts = results[2];
   final licenses = results[3];
   final certificates = results[4];
-  final evaluations = results[5];
-  final appointments = results[6];
-  final rankings = results[7];
+  final safetyOfficers = results[5];
+  final evaluations = results[6];
+  final appointments = results[7];
+  final rankings = results[8];
+  final incidentReports = results[9];
+  final archivedRecords = results[10];
 
   var female = 0;
   var male = 0;
@@ -1883,9 +1897,12 @@ Future<DashboardData> loadDashboardData() async {
     licensesDue: licensesDue,
     certificatesTotal: certificates.length,
     certificatesDue: certificatesDue,
+    safetyOfficersTotal: safetyOfficers.length,
     evaluationsTotal: evaluations.length,
     appointmentsTotal: appointments.length,
     rankingsTotal: rankings.length,
+    incidentReportsTotal: incidentReports.length,
+    archivedTotal: archivedRecords.length,
   );
 }
 
@@ -1920,10 +1937,17 @@ class DashboardPage extends StatelessWidget {
                   licensesDue: 0,
                   certificatesTotal: 0,
                   certificatesDue: 0,
+                  safetyOfficersTotal: 0,
                   evaluationsTotal: 0,
                   appointmentsTotal: 0,
                   rankingsTotal: 0,
+                  incidentReportsTotal: 0,
+                  archivedTotal: 0,
                 );
+
+            final reportsIndex = currentUserCanSeeIncidentReport ? 8 : 7;
+            final resignedIndex = currentUserCanSeeIncidentReport ? 9 : 8;
+            final archivedIndex = currentUserCanSeeIncidentReport ? 10 : 9;
 
             final moduleCards = <Metric>[
               Metric(
@@ -1958,17 +1982,36 @@ class DashboardPage extends StatelessWidget {
                   targetIndex: 6),
               Metric('Reports', data.totalGender, Icons.summarize_rounded,
                   const Color(0xFFFFF7ED), const Color(0xFFC2410C),
-                  targetIndex: 8),
+                  targetIndex: reportsIndex),
+              if (currentUserCanSeeIncidentReport)
+                Metric(
+                    'Incident Report',
+                    data.incidentReportsTotal,
+                    Icons.report_problem_rounded,
+                    const Color(0xFFFFF7ED),
+                    const Color(0xFFC2410C),
+                    targetIndex: 7),
               Metric(
                   'Resigned Employees',
                   data.resignedEmployees,
                   Icons.person_off_rounded,
                   const Color(0xFFFEF2F2),
                   const Color(0xFFB91C1C),
-                  targetIndex: 9),
+                  targetIndex: resignedIndex),
+              Metric('Archived', data.archivedTotal, Icons.archive_rounded,
+                  const Color(0xFFF8FAFC), const Color(0xFF475569),
+                  targetIndex: archivedIndex),
             ];
 
             final attentionCards = <Metric>[
+              Metric('Female Employees', data.totalFemale, Icons.female_rounded,
+                  const Color(0xFFFDF2F8), const Color(0xFFDB2777),
+                  targetIndex: 1,
+                  targetEmployeeView: 'Female'),
+              Metric('Male Employees', data.totalMale, Icons.male_rounded,
+                  const Color(0xFFEFF6FF), const Color(0xFF2563EB),
+                  targetIndex: 1,
+                  targetEmployeeView: 'Male'),
               Metric(
                   'Active Faculty',
                   data.activeFaculty,
@@ -1977,6 +2020,26 @@ class DashboardPage extends StatelessWidget {
                   const Color(0xFF15803D),
                   targetIndex: 1,
                   targetEmployeeView: 'Active Faculty'),
+              Metric('Licenses', data.licensesTotal, Icons.badge_rounded,
+                  const Color(0xFFF5F3FF), const Color(0xFF6D28D9),
+                  targetIndex: 3,
+                  targetCredentialTab: 0),
+              Metric(
+                  'NC/TM',
+                  data.certificatesTotal,
+                  Icons.workspace_premium_rounded,
+                  const Color(0xFFECFEFF),
+                  const Color(0xFF0E7490),
+                  targetIndex: 3,
+                  targetCredentialTab: 1),
+              Metric(
+                  'Safety Officers',
+                  data.safetyOfficersTotal,
+                  Icons.health_and_safety_rounded,
+                  const Color(0xFFF0FDF4),
+                  const Color(0xFF15803D),
+                  targetIndex: 3,
+                  targetCredentialTab: 2),
               Metric(
                   'Ongoing Contracts',
                   data.contractsOngoing,
@@ -2020,23 +2083,23 @@ class DashboardPage extends StatelessWidget {
             final reportCards = <Metric>[
               Metric('Total Female', data.totalFemale, Icons.female_rounded,
                   const Color(0xFFFDF2F8), const Color(0xFFDB2777),
-                  targetIndex: 8),
+                  targetIndex: reportsIndex),
               Metric('Total Male', data.totalMale, Icons.male_rounded,
                   const Color(0xFFEFF6FF), const Color(0xFF2563EB),
-                  targetIndex: 8),
+                  targetIndex: reportsIndex),
               Metric('Total Gender', data.totalGender, Icons.wc_rounded,
                   const Color(0xFFF8FAFC), _ink,
-                  targetIndex: 8),
+                  targetIndex: reportsIndex),
               Metric('License Summary', data.licensesTotal, Icons.badge_rounded,
                   const Color(0xFFFFF7ED), const Color(0xFFC2410C),
-                  targetIndex: 8),
+                  targetIndex: reportsIndex),
               Metric(
                   'NC/TM Summary',
                   data.certificatesTotal,
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
                   const Color(0xFF0E7490),
-                  targetIndex: 8),
+                  targetIndex: reportsIndex),
             ];
 
             return RefreshIndicator(
@@ -2096,7 +2159,7 @@ class DashboardPage extends StatelessWidget {
                         QuickCard('Manage Credentials', Icons.badge_rounded,
                             () => onNavigate(const DashboardTarget(3))),
                         QuickCard('Open Reports', Icons.summarize_rounded,
-                            () => onNavigate(const DashboardTarget(8))),
+                            () => onNavigate(DashboardTarget(reportsIndex))),
                       ]),
                     ]),
               ),
