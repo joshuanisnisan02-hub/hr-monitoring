@@ -1980,7 +1980,7 @@ class DashboardPage extends StatelessWidget {
               Metric('Ranking', data.rankingsTotal, Icons.leaderboard_rounded,
                   const Color(0xFFF8FAFC), _ink,
                   targetIndex: 6),
-              Metric('Reports', data.totalGender, Icons.summarize_rounded,
+              Metric('Reports', 5, Icons.summarize_rounded,
                   const Color(0xFFFFF7ED), const Color(0xFFC2410C),
                   targetIndex: reportsIndex),
               if (currentUserCanSeeIncidentReport)
