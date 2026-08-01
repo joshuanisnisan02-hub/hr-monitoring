@@ -1293,8 +1293,7 @@ bool get currentUserIsAdmin => currentUserAccessRole() == 'admin';
 bool get currentUserIsIncidentOnly => currentUserAccessRole() == 'ir';
 bool get currentUserCanSeeIncidentReport =>
     currentUserIsAdmin ||
-    currentUserIsIncidentOnly ||
-    currentUserAccessRole() == 'hr';
+    currentUserIsIncidentOnly;
 
 Future<void> logoutUser(BuildContext context) async {
   final ok = await showDialog<bool>(
