@@ -1064,8 +1064,15 @@ class SetupPage extends StatelessWidget {
 class DashboardTarget {
   final int index;
   final String? contractStatus;
+  final String? employeeView;
+  final int? credentialTab;
+  final bool credentialsDueOnly;
 
-  const DashboardTarget(this.index, {this.contractStatus});
+  const DashboardTarget(this.index,
+      {this.contractStatus,
+      this.employeeView,
+      this.credentialTab,
+      this.credentialsDueOnly = false});
 }
 
 class ShellPage extends StatefulWidget {
@@ -1078,13 +1085,23 @@ class ShellPage extends StatefulWidget {
 class _ShellPageState extends State<ShellPage> {
   int index = 0;
   String? contractStatusFilter;
+  String? employeeViewFilter;
+  int credentialTab = 0;
+  bool credentialsDueOnly = false;
   int contractRouteToken = 0;
+  int employeeRouteToken = 0;
+  int credentialRouteToken = 0;
   final Set<int> visitedPages = {0};
 
   void selectPage(int nextIndex) {
     setState(() {
       index = nextIndex;
       contractStatusFilter = null;
+      employeeViewFilter = null;
+      credentialTab = 0;
+      credentialsDueOnly = false;
+      if (nextIndex == 1) employeeRouteToken++;
+      if (nextIndex == 3) credentialRouteToken++;
       visitedPages.add(nextIndex);
     });
   }
@@ -1093,7 +1110,12 @@ class _ShellPageState extends State<ShellPage> {
     setState(() {
       index = target.index;
       contractStatusFilter = target.contractStatus;
+      employeeViewFilter = target.employeeView;
+      credentialTab = target.credentialTab ?? 0;
+      credentialsDueOnly = target.credentialsDueOnly;
       if (target.index == 2) contractRouteToken++;
+      if (target.index == 1) employeeRouteToken++;
+      if (target.index == 3) credentialRouteToken++;
       visitedPages.add(target.index);
     });
   }
@@ -1104,12 +1126,19 @@ class _ShellPageState extends State<ShellPage> {
         ? <Widget>[IncidentReportPage()]
         : <Widget>[
             DashboardPage(onNavigate: openDashboardTarget),
-            const EmployeesPage(),
+            EmployeesPage(
+              key: ValueKey('employees-dashboard-$employeeRouteToken'),
+              initialViewFilter: employeeViewFilter,
+            ),
             ContractsPage(
               key: ValueKey('contracts-dashboard-$contractRouteToken'),
               initialStatusFilter: contractStatusFilter,
             ),
-            const CredentialsPage(),
+            CredentialsPage(
+              key: ValueKey('credentials-dashboard-$credentialRouteToken'),
+              initialTab: credentialTab,
+              dueOnly: credentialsDueOnly,
+            ),
             const EvaluationsPage(),
             const AppointmentPage(),
             const RankingPage(),
@@ -1966,39 +1995,44 @@ class DashboardPage extends StatelessWidget {
                   targetContractStatus: 'Expired'),
               Metric('Licenses Due', data.licensesDue, Icons.badge_rounded,
                   const Color(0xFFF5F3FF), const Color(0xFF6D28D9),
-                  targetIndex: 3),
+                  targetIndex: 3,
+                  targetCredentialTab: 0,
+                  targetCredentialsDueOnly: true),
               Metric(
                   'Certificates Due',
                   data.certificatesDue,
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
                   const Color(0xFF0E7490),
-                  targetIndex: 3),
+                  targetIndex: 3,
+                  targetCredentialTab: 1,
+                  targetCredentialsDueOnly: true),
             ];
 
             final reportCards = <Metric>[
               Metric('Total Female', data.totalFemale, Icons.female_rounded,
                   const Color(0xFFFDF2F8), const Color(0xFFDB2777),
-                  targetIndex: 8),
+                  targetIndex: 1, targetEmployeeView: 'Female'),
               Metric('Total Male', data.totalMale, Icons.male_rounded,
                   const Color(0xFFEFF6FF), const Color(0xFF2563EB),
-                  targetIndex: 8),
+                  targetIndex: 1, targetEmployeeView: 'Male'),
               Metric('Total Gender', data.totalGender, Icons.wc_rounded,
                   const Color(0xFFF8FAFC), _ink,
-                  targetIndex: 8),
+                  targetIndex: 1),
               Metric('Active Faculty', data.activeFaculty, Icons.school_rounded,
                   const Color(0xFFF0FDF4), const Color(0xFF15803D),
-                  targetIndex: 1),
+                  targetIndex: 1, targetEmployeeView: 'Active Faculty'),
               Metric('License Summary', data.licensesTotal, Icons.badge_rounded,
                   const Color(0xFFFFF7ED), const Color(0xFFC2410C),
-                  targetIndex: 8),
+                  targetIndex: 3, targetCredentialTab: 0),
               Metric(
                   'NC/TM Summary',
                   data.certificatesTotal,
                   Icons.workspace_premium_rounded,
                   const Color(0xFFECFEFF),
                   const Color(0xFF0E7490),
-                  targetIndex: 8),
+                  targetIndex: 3,
+                  targetCredentialTab: 1),
             ];
 
             return RefreshIndicator(
@@ -2076,8 +2110,15 @@ class Metric {
   final Color fg;
   final int? targetIndex;
   final String? targetContractStatus;
+  final String? targetEmployeeView;
+  final int? targetCredentialTab;
+  final bool targetCredentialsDueOnly;
   const Metric(this.title, this.value, this.icon, this.bg, this.fg,
-      {this.targetIndex, this.targetContractStatus});
+      {this.targetIndex,
+      this.targetContractStatus,
+      this.targetEmployeeView,
+      this.targetCredentialTab,
+      this.targetCredentialsDueOnly = false});
 }
 
 class MetricCard extends StatelessWidget {
@@ -2128,6 +2169,9 @@ class MetricCard extends StatelessWidget {
                 onTap: () => onNavigate!(DashboardTarget(
                   metric.targetIndex!,
                   contractStatus: metric.targetContractStatus,
+                  employeeView: metric.targetEmployeeView,
+                  credentialTab: metric.targetCredentialTab,
+                  credentialsDueOnly: metric.targetCredentialsDueOnly,
                 )),
                 child: content,
               ),
@@ -2167,7 +2211,8 @@ class QuickCard extends StatelessWidget {
 }
 
 class EmployeesPage extends StatefulWidget {
-  const EmployeesPage({super.key});
+  final String? initialViewFilter;
+  const EmployeesPage({super.key, this.initialViewFilter});
 
   @override
   State<EmployeesPage> createState() => _EmployeesPageState();
@@ -2175,7 +2220,23 @@ class EmployeesPage extends StatefulWidget {
 
 class _EmployeesPageState extends State<EmployeesPage> {
   int refreshToken = 0;
-  String genderFilter = 'All';
+  late String employeeViewFilter;
+
+  static const viewFilters = <String>[
+    'All',
+    'Male',
+    'Female',
+    'Unspecified',
+    'Active Faculty',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    employeeViewFilter = viewFilters.contains(widget.initialViewFilter)
+        ? widget.initialViewFilter!
+        : 'All';
+  }
 
   void refreshEmployees() => setState(() => refreshToken++);
 
@@ -2186,21 +2247,36 @@ class _EmployeesPageState extends State<EmployeesPage> {
     return 'Unspecified';
   }
 
-  bool _matchesGenderFilter(Map<String, dynamic> row) =>
-      genderFilter == 'All' || _genderKey(row['gender']) == genderFilter;
+  bool _isFaculty(Map<String, dynamic> row) {
+    final roleText = [
+      row['designation'],
+      row['employee_type'],
+      row['teaching_status'],
+      row['education_level'],
+    ].map(formatValue).join(' ').toLowerCase();
+    return roleText.contains('faculty') ||
+        roleText.contains('teacher') ||
+        roleText.contains('teaching');
+  }
+
+  bool _matchesViewFilter(Map<String, dynamic> row) {
+    if (employeeViewFilter == 'All') return true;
+    if (employeeViewFilter == 'Active Faculty') return _isFaculty(row);
+    return _genderKey(row['gender']) == employeeViewFilter;
+  }
 
   Future<List<dynamic>> _loadEmployees() async {
     final rows = await loadActiveEmployees(limit: 5000);
-    if (genderFilter == 'All') return rows;
+    if (employeeViewFilter == 'All') return rows;
     return rows
-        .where((item) => _matchesGenderFilter(
+        .where((item) => _matchesViewFilter(
             normalizeRow(Map<String, dynamic>.from(item as Map))))
         .toList();
   }
 
-  String _employeeReportTitle() => genderFilter == 'All'
+  String _employeeReportTitle() => employeeViewFilter == 'All'
       ? 'Employee Report'
-      : 'Employee Report - $genderFilter';
+      : 'Employee Report - $employeeViewFilter';
 
   bool isResignedEmployeeRow(Map<String, dynamic> row) {
     final values = [
@@ -2230,9 +2306,10 @@ class _EmployeesPageState extends State<EmployeesPage> {
                 SizedBox(
                   width: 260,
                   child: DropdownButtonFormField<String>(
-                    value: genderFilter,
+                    value: employeeViewFilter,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Gender'),
+                    decoration:
+                        const InputDecoration(labelText: 'Employee View'),
                     items: const [
                       DropdownMenuItem(
                           value: 'All', child: Text('All Genders')),
@@ -2241,15 +2318,18 @@ class _EmployeesPageState extends State<EmployeesPage> {
                       DropdownMenuItem(
                           value: 'Unspecified',
                           child: Text('Unspecified / Other')),
+                      DropdownMenuItem(
+                          value: 'Active Faculty',
+                          child: Text('Active Faculty')),
                     ],
                     onChanged: (value) =>
-                        setState(() => genderFilter = value ?? 'All'),
+                        setState(() => employeeViewFilter = value ?? 'All'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
-                      'The table and Print button will follow the selected gender filter.',
+                      'The table and Print button will follow the selected employee view.',
                       style: TextStyle(
                           color: _muted, fontWeight: FontWeight.w600)),
                 ),
@@ -2261,7 +2341,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
             child: CrudTable(
               pageSizeOptions: const [1, 10, 100],
               initialPageSize: 10,
-              key: ValueKey('employees-$refreshToken-$genderFilter'),
+              key: ValueKey('employees-$refreshToken-$employeeViewFilter'),
               load: () => _loadEmployees(),
               searchHint:
                   'Search employee, bio number, gender, education, status, or date hired',
@@ -2498,17 +2578,21 @@ class _ContractsPageState extends State<ContractsPage> {
 }
 
 class CredentialsPage extends StatelessWidget {
-  const CredentialsPage({super.key});
+  final int initialTab;
+  final bool dueOnly;
+  const CredentialsPage(
+      {super.key, this.initialTab = 0, this.dueOnly = false});
 
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Credentials',
         subtitle:
             'Manage licenses, national certificates, and safety officer credentials linked to employees.',
-        child: const DefaultTabController(
+        child: DefaultTabController(
           length: 3,
+          initialIndex: initialTab.clamp(0, 2).toInt(),
           child: Column(children: [
-            Align(
+            const Align(
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
                     width: 430,
@@ -2517,12 +2601,12 @@ class CredentialsPage extends StatelessWidget {
                       Tab(text: 'National Certificates'),
                       Tab(text: 'Safety Officer')
                     ]))),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Expanded(
                 child: TabBarView(children: [
-              LicensesTab(),
-              CertificatesTab(),
-              SafetyOfficersTab()
+              LicensesTab(dueOnly: dueOnly),
+              CertificatesTab(dueOnly: dueOnly),
+              const SafetyOfficersTab()
             ])),
           ]),
         ),
@@ -2530,11 +2614,21 @@ class CredentialsPage extends StatelessWidget {
 }
 
 class LicensesTab extends StatelessWidget {
-  const LicensesTab({super.key});
+  final bool dueOnly;
+  const LicensesTab({super.key, this.dueOnly = false});
+
+  Future<List<dynamic>> _loadRows() async {
+    final rows = await activeOnlyRows(loadLicensesGrouped());
+    if (!dueOnly) return rows;
+    return rows
+        .where((item) =>
+            dashboardStatusContains(item, ['renew', 'expired']))
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) => CrudTable(
-        load: () => activeOnlyRows(loadLicensesGrouped()),
+        load: _loadRows,
         searchHint: 'Search employee, license name, number, or status',
         addLabel: 'Add License',
         archiveTableName: 'employee_licenses',
@@ -2563,11 +2657,21 @@ class LicensesTab extends StatelessWidget {
 }
 
 class CertificatesTab extends StatelessWidget {
-  const CertificatesTab({super.key});
+  final bool dueOnly;
+  const CertificatesTab({super.key, this.dueOnly = false});
+
+  Future<List<dynamic>> _loadRows() async {
+    final rows = await activeOnlyRows(loadCertificatesGrouped());
+    if (!dueOnly) return rows;
+    return rows
+        .where((item) =>
+            dashboardStatusContains(item, ['renew', 'expired']))
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) => CrudTable(
-        load: () => activeOnlyRows(loadCertificatesGrouped()),
+        load: _loadRows,
         searchHint: 'Search employee, certificate, number, or status',
         addLabel: 'Add Certificate',
         archiveTableName: 'employee_certificates',
