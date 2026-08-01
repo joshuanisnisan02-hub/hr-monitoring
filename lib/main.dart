@@ -10506,8 +10506,6 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> {
-  int selected = 0;
-
   List<SummaryReportCategory> get reports => [
         SummaryReportCategory('Contract Type Gender Summary Report', 'Type',
             loadContractTypeGenderSummary),
@@ -10540,51 +10538,71 @@ class _ReportsPageState extends State<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final config = reports[selected];
+    final reportCategories = reports;
     return PageFrame(
       title: 'Reports',
       subtitle:
           'Print each summary category separately in two-column table format.',
-      child: Column(children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(children: [
-              SizedBox(
-                width: 330,
-                child: DropdownButtonFormField<int>(
-                  value: selected,
-                  isExpanded: true,
-                  decoration:
-                      const InputDecoration(labelText: 'Summary Category'),
-                  items: [
-                    for (var i = 0; i < reports.length; i++)
-                      DropdownMenuItem(
-                          value: i,
-                          child: Text(reports[i].title,
-                              overflow: TextOverflow.ellipsis))
-                  ],
-                  onChanged: (v) => setState(() => selected = v ?? 0),
-                ),
+      child: DefaultTabController(
+        length: reportCategories.length,
+        child: Column(children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: 760,
+              child: TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: 'Contract Type'),
+                  Tab(text: 'Gender'),
+                  Tab(text: 'Ranks'),
+                  Tab(text: 'Licenses'),
+                  Tab(text: 'NC/TM'),
+                ],
               ),
-              const SizedBox(width: 12),
-              FilledButton.icon(
-                  onPressed: () => printCurrentReport(config),
-                  icon: const Icon(Icons.print_rounded),
-                  label: const Text('Print Report')),
-              const SizedBox(width: 12),
-              const Expanded(
-                  child: Text(
-                      'Select one category, then print that category as a simple summary table.',
-                      style: TextStyle(
-                          color: _muted, fontWeight: FontWeight.w600))),
-            ]),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: TabBarView(
+              children: [
+                for (final config in reportCategories)
+                  SummaryReportTab(
+                    config: config,
+                    onPrint: () => printCurrentReport(config),
+                  ),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class SummaryReportTab extends StatelessWidget {
+  final SummaryReportCategory config;
+  final VoidCallback onPrint;
+
+  const SummaryReportTab({
+    super.key,
+    required this.config,
+    required this.onPrint,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            onPressed: onPrint,
+            icon: const Icon(Icons.print_rounded),
+            label: const Text('Print Report'),
           ),
         ),
         const SizedBox(height: 14),
         Expanded(
           child: FutureBuilder<List<SummaryReportRow>>(
-            key: ValueKey(selected),
             future: config.load(),
             builder: (context, snap) {
               if (snap.connectionState != ConnectionState.done) {
@@ -10593,13 +10611,14 @@ class _ReportsPageState extends State<ReportsPage> {
               if (snap.hasError) return ErrorBox('${snap.error}');
               final rows = snap.data ?? const <SummaryReportRow>[];
               return SummaryReportPreview(
-                  title: config.title, keyLabel: config.keyLabel, rows: rows);
+                title: config.title,
+                keyLabel: config.keyLabel,
+                rows: rows,
+              );
             },
           ),
         ),
-      ]),
-    );
-  }
+      ]);
 }
 
 Future<Map<String, String>> employeeGenderById() async {
